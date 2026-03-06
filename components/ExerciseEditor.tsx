@@ -8,6 +8,19 @@ import { SubmissionStatusResponse } from "@/lib/grading/contracts";
 import { validateExerciseSubmission } from "@/lib/exerciseValidation";
 
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
+const USER_STORAGE_KEY = "codecamp_user_id";
+
+function getOrCreateUserId(): string {
+  if (typeof window === "undefined") return "";
+  const existing = localStorage.getItem(USER_STORAGE_KEY);
+  if (existing) return existing;
+  const generated =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `user-${Date.now()}`;
+  localStorage.setItem(USER_STORAGE_KEY, generated);
+  return generated;
+}
 
 interface Props {
   exercise: Exercise;
@@ -35,6 +48,7 @@ export default function ExerciseEditor({
   const [testFeedback, setTestFeedback] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editorTheme, setEditorTheme] = useState<"vs-dark" | "light">("light");
+  const [userId] = useState(() => getOrCreateUserId());
 
   const alreadyDone = isExerciseDone(courseSlug, chapterId, exercise.id);
 
@@ -66,15 +80,26 @@ export default function ExerciseEditor({
   async function handleSubmit() {
     setSubmitted(true);
     setIsSubmitting(true);
+    setXpAwarded(false);
     setTestFeedback([]);
 
     try {
       if (shouldUseServerGrader) {
+        if (!userId) {
+          setIsCorrect(false);
+          setFeedback("Could not initialize user ID for submission.");
+          return;
+        }
+
         const response = await fetch("/api/submissions", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            userId,
+            courseSlug,
+            chapterId,
             exerciseId: exercise.id,
+            xp: exercise.xp,
             language,
             code,
           }),
@@ -117,15 +142,16 @@ export default function ExerciseEditor({
           }
 
           const isPassed = statusPayload.result.status === "passed";
+          const awardedXp = statusPayload.result.awardedXp ?? 0;
           setIsCorrect(isPassed);
           setFeedback(statusPayload.result.feedback[0] ?? "No feedback returned.");
           setTestFeedback(
             statusPayload.result.tests.map((t) => `${t.passed ? "✓" : "✗"} ${t.name}`)
           );
+          setXpAwarded(awardedXp > 0);
 
-          if (isPassed && !alreadyDone && !xpAwarded) {
-            completeExercise(courseSlug, chapterId, exercise.id, exercise.xp);
-            setXpAwarded(true);
+          if (isPassed && awardedXp > 0 && !alreadyDone) {
+            completeExercise(courseSlug, chapterId, exercise.id, awardedXp);
           }
 
           return;
@@ -139,7 +165,7 @@ export default function ExerciseEditor({
       const validation = validateExerciseSubmission(exercise, code, language);
       setIsCorrect(validation.isCorrect);
       setFeedback(validation.message);
-      if (validation.isCorrect && !alreadyDone && !xpAwarded) {
+      if (validation.isCorrect && !alreadyDone) {
         completeExercise(courseSlug, chapterId, exercise.id, exercise.xp);
         setXpAwarded(true);
       }

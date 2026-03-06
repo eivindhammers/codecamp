@@ -10,10 +10,15 @@ export interface GradingResult {
   status: "passed" | "failed" | "error";
   feedback: string[];
   tests: GradingTestResult[];
+  awardedXp?: number;
 }
 
 export interface SubmissionRequest {
+  userId: string;
+  courseSlug: string;
+  chapterId: string;
   exerciseId: string;
+  xp: number;
   language: Language;
   code: string;
 }

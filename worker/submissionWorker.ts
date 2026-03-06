@@ -2,7 +2,7 @@ import { Worker } from "bullmq";
 import { GradingResult } from "../lib/grading/contracts";
 import {
   claimSubmissionForGrading,
-  updateSubmissionStatus,
+  finalizeSubmission,
 } from "../lib/grading/submissionDb";
 import { gradeRSubmission } from "../lib/grading/runRChecker";
 import { queueConnection } from "../lib/queue/connection";
@@ -35,9 +35,9 @@ const worker = new Worker(
         result = unsupportedLanguageResult(workItem.language);
       }
 
-      updateSubmissionStatus(submissionId, "completed", result);
+      finalizeSubmission(submissionId, result);
     } catch (error) {
-      updateSubmissionStatus(submissionId, "completed", {
+      finalizeSubmission(submissionId, {
         status: "error",
         feedback: [
           error instanceof Error

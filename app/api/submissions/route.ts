@@ -30,7 +30,17 @@ export async function POST(req: Request) {
   }
 
   if (!body.exerciseId || !body.language || typeof body.code !== "string") {
-    return badRequest("Missing required fields: exerciseId, language, code.");
+    return badRequest("Missing required fields: userId, courseSlug, chapterId, exerciseId, xp, language, code.");
+  }
+
+  if (
+    !body.userId ||
+    !body.courseSlug ||
+    !body.chapterId ||
+    typeof body.xp !== "number" ||
+    body.xp < 0
+  ) {
+    return badRequest("Invalid fields: userId, courseSlug, chapterId, xp.");
   }
 
   if (body.language !== "r") {
@@ -41,7 +51,11 @@ export async function POST(req: Request) {
 
   createSubmission({
     submissionId,
+    userId: body.userId,
+    courseSlug: body.courseSlug,
+    chapterId: body.chapterId,
     exerciseId: body.exerciseId,
+    xp: body.xp,
     language: body.language,
     code: body.code,
   });
