@@ -6,6 +6,7 @@ import React, {
   useEffect,
   useReducer,
 } from "react";
+import { courses } from "@/lib/courses";
 import { UserProgress } from "@/lib/types";
 
 const STORAGE_KEY = "codecamp_progress";
@@ -53,7 +54,7 @@ interface ProgressContextValue {
   completeExercise: (courseSlug: string, chapterId: string, exerciseId: string, xp: number) => void;
   completeCourse: (slug: string) => void;
   isExerciseDone: (courseSlug: string, chapterId: string, exerciseId: string) => boolean;
-  courseProgress: (slug: string) => { completed: number; total: number; xp: number };
+  courseProgress: (slug: string) => { completed: number; total: number; xp: number; totalXp: number };
 }
 
 const ProgressContext = createContext<ProgressContextValue | null>(null);
@@ -103,10 +104,25 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
   }
 
   function courseProgress(slug: string) {
-    const keys = Object.keys(progress.completedExercises).filter((k) =>
-      k.startsWith(`${slug}/`)
-    );
-    return { completed: keys.length, total: 0, xp: 0 };
+    const course = courses.find((c) => c.slug === slug);
+    const allExercises = course
+      ? course.chapters.flatMap((ch) =>
+          ch.exercises.map((ex) => ({ chapterId: ch.id, exerciseId: ex.id, xp: ex.xp }))
+        )
+      : [];
+    const total = allExercises.length;
+    const totalXp = allExercises.reduce((acc, ex) => acc + ex.xp, 0);
+    const completed = allExercises.filter(
+      (ex) =>
+        !!progress.completedExercises[`${slug}/${ex.chapterId}/${ex.exerciseId}`]
+    ).length;
+    const earnedXp = allExercises
+      .filter(
+        (ex) =>
+          !!progress.completedExercises[`${slug}/${ex.chapterId}/${ex.exerciseId}`]
+      )
+      .reduce((acc, ex) => acc + ex.xp, 0);
+    return { completed, total, xp: earnedXp, totalXp };
   }
 
   return (
