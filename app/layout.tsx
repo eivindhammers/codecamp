@@ -3,6 +3,7 @@ import Link from "next/link";
 import "./globals.css";
 import { ProgressProvider } from "@/lib/ProgressContext";
 import XPBar from "@/components/XPBar";
+import ThemeToggle from "@/components/ThemeToggle";
 
 export const metadata: Metadata = {
   title: "CodeCamp – Gamified R & Python Courses",
@@ -27,7 +28,10 @@ export default function RootLayout({
               >
                 🎓 CodeCamp
               </Link>
-              <XPBar />
+              <div className="flex items-center gap-2 sm:gap-3">
+                <ThemeToggle />
+                <XPBar />
+              </div>
             </div>
           </header>
           <main className="max-w-6xl mx-auto px-4 py-8">{children}</main>
