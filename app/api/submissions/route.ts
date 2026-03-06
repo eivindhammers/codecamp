@@ -48,13 +48,13 @@ export async function POST(req: Request) {
 
   try {
     const submissionQueue = getSubmissionQueue();
-    const addToQueue = submissionQueue.add as unknown as (
-      name: string,
-      data: SubmissionJobData,
-      opts: { jobId: string; removeOnComplete: number; removeOnFail: number }
-    ) => Promise<unknown>;
-
-    await addToQueue(
+    await (submissionQueue as unknown as {
+      add: (
+        name: string,
+        data: SubmissionJobData,
+        opts: { jobId: string; removeOnComplete: number; removeOnFail: number }
+      ) => Promise<unknown>;
+    }).add(
       submissionJobName,
       { submissionId },
       { jobId: submissionId, removeOnComplete: 1000, removeOnFail: 1000 }
