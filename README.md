@@ -37,6 +37,34 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
+## Async Grading Worker (Redis + BullMQ)
+
+Server-side grading for queued submissions requires Redis and the worker process.
+
+1. Start Redis:
+
+```bash
+npm run redis:up
+```
+
+2. In one terminal, run the Next.js app:
+
+```bash
+npm run dev
+```
+
+3. In a second terminal, run the worker:
+
+```bash
+npm run worker
+```
+
+Optional:
+
+```bash
+npm run redis:down
+```
+
 ## Project Structure
 
 ```

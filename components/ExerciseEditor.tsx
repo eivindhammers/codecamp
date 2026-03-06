@@ -1,9 +1,11 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Exercise } from "@/lib/types";
 import { useProgress } from "@/lib/ProgressContext";
+import { SubmissionStatusResponse } from "@/lib/grading/contracts";
+import { validateExerciseSubmission } from "@/lib/exerciseValidation";
 
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
 
@@ -28,14 +30,128 @@ export default function ExerciseEditor({
   const [showSolution, setShowSolution] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [xpAwarded, setXpAwarded] = useState(false);
+  const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
+  const [feedback, setFeedback] = useState("");
+  const [testFeedback, setTestFeedback] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editorTheme, setEditorTheme] = useState<"vs-dark" | "light">("light");
 
   const alreadyDone = isExerciseDone(courseSlug, chapterId, exercise.id);
 
-  function handleSubmit() {
+  useEffect(() => {
+    const applyTheme = () => {
+      const currentTheme = document.documentElement.getAttribute("data-theme");
+      setEditorTheme(currentTheme === "dark" ? "vs-dark" : "light");
+    };
+
+    applyTheme();
+
+    const observer = new MutationObserver(applyTheme);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
+  const shouldUseServerGrader = language === "r" && exercise.id === "arithmetic";
+  const pollIntervalMs = 400;
+  const maxPollAttempts = 30;
+
+  async function wait(ms: number) {
+    await new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  async function handleSubmit() {
     setSubmitted(true);
-    if (!alreadyDone && !xpAwarded) {
-      completeExercise(courseSlug, chapterId, exercise.id, exercise.xp);
-      setXpAwarded(true);
+    setIsSubmitting(true);
+    setTestFeedback([]);
+
+    try {
+      if (shouldUseServerGrader) {
+        const response = await fetch("/api/submissions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            exerciseId: exercise.id,
+            language,
+            code,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          setIsCorrect(false);
+          setFeedback(`Submission failed: ${errorText}`);
+          return;
+        }
+
+        const created = (await response.json()) as SubmissionStatusResponse;
+        setFeedback("Submission queued. Running hidden tests...");
+
+        for (let attempt = 0; attempt < maxPollAttempts; attempt += 1) {
+          await wait(pollIntervalMs);
+          const statusResponse = await fetch(
+            `/api/submissions/${created.submissionId}`,
+            {
+              cache: "no-store",
+            }
+          );
+
+          if (!statusResponse.ok) {
+            const errorText = await statusResponse.text();
+            setIsCorrect(false);
+            setFeedback(`Failed to fetch submission status: ${errorText}`);
+            return;
+          }
+
+          const statusPayload = (await statusResponse.json()) as SubmissionStatusResponse;
+
+          if (statusPayload.status !== "completed") continue;
+
+          if (!statusPayload.result) {
+            setIsCorrect(false);
+            setFeedback("Submission finished without a grading result.");
+            return;
+          }
+
+          const isPassed = statusPayload.result.status === "passed";
+          setIsCorrect(isPassed);
+          setFeedback(statusPayload.result.feedback[0] ?? "No feedback returned.");
+          setTestFeedback(
+            statusPayload.result.tests.map((t) => `${t.passed ? "✓" : "✗"} ${t.name}`)
+          );
+
+          if (isPassed && !alreadyDone && !xpAwarded) {
+            completeExercise(courseSlug, chapterId, exercise.id, exercise.xp);
+            setXpAwarded(true);
+          }
+
+          return;
+        }
+
+        setIsCorrect(false);
+        setFeedback("Submission timed out. Please try again.");
+        return;
+      }
+
+      const validation = validateExerciseSubmission(exercise, code, language);
+      setIsCorrect(validation.isCorrect);
+      setFeedback(validation.message);
+      if (validation.isCorrect && !alreadyDone && !xpAwarded) {
+        completeExercise(courseSlug, chapterId, exercise.id, exercise.xp);
+        setXpAwarded(true);
+      }
+    } catch (error) {
+      setIsCorrect(false);
+      setFeedback(
+        error instanceof Error
+          ? `Submission failed: ${error.message}`
+          : "Submission failed due to an unknown error."
+      );
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -44,6 +160,10 @@ export default function ExerciseEditor({
     setSubmitted(false);
     setShowHint(false);
     setShowSolution(false);
+    setIsCorrect(null);
+    setFeedback("");
+    setTestFeedback([]);
+    setIsSubmitting(false);
   }
 
   const monacoLang = language === "python" ? "python" : "r";
@@ -86,7 +206,7 @@ export default function ExerciseEditor({
           language={monacoLang}
           value={code}
           onChange={(v) => setCode(v ?? "")}
-          theme="vs-dark"
+          theme={editorTheme}
           options={{
             fontSize: 14,
             minimap: { enabled: false },
@@ -101,9 +221,10 @@ export default function ExerciseEditor({
       <div className="flex flex-wrap gap-2 items-center">
         <button
           onClick={handleSubmit}
+          disabled={isSubmitting}
           className="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium text-sm transition-colors"
         >
-          Submit Answer
+          {isSubmitting ? "Submitting..." : "Submit Answer"}
         </button>
         <button
           onClick={() => setShowHint(!showHint)}
@@ -127,8 +248,8 @@ export default function ExerciseEditor({
         )}
       </div>
 
-      {/* XP Award Toast */}
-      {submitted && xpAwarded && (
+      {/* Submission Feedback */}
+      {submitted && isCorrect && xpAwarded && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 flex items-center gap-3">
           <span className="text-2xl">🎉</span>
           <div>
@@ -136,15 +257,29 @@ export default function ExerciseEditor({
               Exercise submitted! You earned +{exercise.xp} XP
             </p>
             <p className="text-yellow-700 text-xs mt-0.5">
-              Check the sample solution below to compare your approach.
+              {feedback}
             </p>
           </div>
         </div>
       )}
 
-      {submitted && !xpAwarded && (
+      {submitted && isCorrect && !xpAwarded && (
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-800">
           Exercise already completed — no additional XP awarded.
+        </div>
+      )}
+
+      {submitted && isCorrect === false && (
+        <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 text-sm text-rose-800">
+          {feedback}
+        </div>
+      )}
+
+      {submitted && testFeedback.length > 0 && (
+        <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm text-slate-700">
+          {testFeedback.map((line) => (
+            <p key={line}>{line}</p>
+          ))}
         </div>
       )}
 
@@ -168,7 +303,7 @@ export default function ExerciseEditor({
             height="200px"
             language={monacoLang}
             value={exercise.sampleSolution}
-            theme="vs-dark"
+            theme={editorTheme}
             options={{
               readOnly: true,
               fontSize: 14,
