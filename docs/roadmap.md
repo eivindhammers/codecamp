@@ -303,6 +303,10 @@ Primary target users are economics students, with platform usage planned across 
 - Added `npm run scaffold:content-pack -- --key <courseSlug/chapterId/exerciseId>` to scaffold `exercise.json`, checker, and solution files from `lib/courses.ts` metadata.
 - Supports `--force` for intentional regeneration, helping multi-course filesystem migration while keeping metadata parity with source course definitions.
 
+65. Enrollment status write guardrails (phase 2 progress)
+- Added `PATCH /api/classroom/enrollments` to update section enrollment status (`active`/`dropped`) with section-staff auth checks.
+- Staff-status updates for non-student enrollments are instructor-only; TAs can only manage student enrollment status changes.
+
 ## Runtime Setup
 
 From repo root:
