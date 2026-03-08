@@ -49,6 +49,10 @@ function countActiveInstructors(sectionId: string): number {
   ).length;
 }
 
+function isStaffRole(role: ClassroomRole): boolean {
+  return role === "instructor" || role === "ta";
+}
+
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const sectionId = url.searchParams.get("sectionId")?.trim() ?? "";
@@ -101,6 +105,17 @@ export async function POST(req: Request) {
     return forbidden("Only instructors can assign section staff roles.");
   }
   const existingEnrollment = getSectionEnrollment(sectionId, userId);
+  if (
+    existingEnrollment &&
+    existingEnrollment.role !== role &&
+    actorProfile.role !== "instructor"
+  ) {
+    return forbidden("Only instructors can change existing enrollment roles.");
+  }
+  const targetProfile = getUserProfile(userId);
+  if (isStaffRole(role) && targetProfile?.role === "student") {
+    return forbidden("Cannot assign staff enrollment role to a student profile.");
+  }
   if (
     existingEnrollment &&
     existingEnrollment.role === "instructor" &&
