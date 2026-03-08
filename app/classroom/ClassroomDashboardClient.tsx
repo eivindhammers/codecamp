@@ -7,6 +7,8 @@ import type {
   AuthSessionResponse,
   ClassSectionRecord,
   ClassSectionsResponse,
+  SectionGradeSummaryRecord,
+  SectionGradeSummaryResponse,
   SectionLearnerMetric,
   SectionLearnerMetricsResponse,
   UserProfileRecord,
@@ -17,6 +19,7 @@ interface SectionPanel {
   section: ClassSectionRecord;
   metrics: SectionLearnerMetric[];
   assignments: AssignmentRecord[];
+  gradeSummary: SectionGradeSummaryRecord[];
   error?: string;
 }
 
@@ -63,24 +66,31 @@ export default function ClassroomDashboardClient() {
       const panels = await Promise.all(
         sectionsPayload.sections.map(async (section) => {
           try {
-            const [metricsPayload, assignmentsPayload] = await Promise.all([
+            const [metricsPayload, assignmentsPayload, summaryPayload] = await Promise.all([
               readJson<SectionLearnerMetricsResponse>(
                 `/api/classroom/sections/metrics?sectionId=${encodeURIComponent(section.sectionId)}`
               ),
               readJson<AssignmentsResponse>(
                 `/api/classroom/assignments?sectionId=${encodeURIComponent(section.sectionId)}`
               ),
+              readJson<SectionGradeSummaryResponse>(
+                `/api/classroom/sections/export?sectionId=${encodeURIComponent(
+                  section.sectionId
+                )}&format=json`
+              ),
             ]);
             return {
               section,
               metrics: metricsPayload.metrics,
               assignments: assignmentsPayload.assignments,
+              gradeSummary: summaryPayload.summary,
             } as SectionPanel;
           } catch (error) {
             return {
               section,
               metrics: [],
               assignments: [],
+              gradeSummary: [],
               error:
                 error instanceof Error
                   ? `Could not load classroom data: ${error.message}`
@@ -230,10 +240,34 @@ export default function ClassroomDashboardClient() {
         acc + section.metrics.reduce((a, metric) => a + metric.attemptsCount, 0),
       0
     );
+    const avgCompletionRate =
+      sections.length === 0
+        ? 0
+        : Number(
+            (
+              sections.reduce((acc, section) => {
+                if (section.gradeSummary.length === 0) return acc;
+                const localAvg =
+                  section.gradeSummary.reduce((sum, row) => sum + row.completionRate, 0) /
+                  section.gradeSummary.length;
+                return acc + localAvg;
+              }, 0) / sections.length
+            ).toFixed(1)
+          );
+    const stuckLearners = sections.reduce(
+      (acc, section) =>
+        acc +
+        section.gradeSummary.filter(
+          (row) => row.attemptsCount >= 5 && row.completionRate < 25
+        ).length,
+      0
+    );
     return {
       sections: sections.length,
       learners,
       attempts,
+      avgCompletionRate,
+      stuckLearners,
     };
   }, [sections]);
 
@@ -305,7 +339,7 @@ export default function ClassroomDashboardClient() {
 
       {profile && isStaff && (
         <>
-          <section className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
             <div className="bg-white border border-gray-200 rounded-xl p-4">
               <p className="text-xs text-gray-500">Sections</p>
               <p className="text-2xl font-semibold text-gray-900">{summary.sections}</p>
@@ -317,6 +351,16 @@ export default function ClassroomDashboardClient() {
             <div className="bg-white border border-gray-200 rounded-xl p-4">
               <p className="text-xs text-gray-500">Attempts logged</p>
               <p className="text-2xl font-semibold text-gray-900">{summary.attempts}</p>
+            </div>
+            <div className="bg-white border border-gray-200 rounded-xl p-4">
+              <p className="text-xs text-gray-500">Avg completion rate</p>
+              <p className="text-2xl font-semibold text-gray-900">
+                {summary.avgCompletionRate}%
+              </p>
+            </div>
+            <div className="bg-white border border-gray-200 rounded-xl p-4">
+              <p className="text-xs text-gray-500">Stuck learners</p>
+              <p className="text-2xl font-semibold text-rose-700">{summary.stuckLearners}</p>
             </div>
           </section>
 
@@ -337,6 +381,23 @@ export default function ClassroomDashboardClient() {
                       <p className="text-xs text-gray-500">
                         {panel.section.courseSlug} · section {panel.section.sectionId}
                       </p>
+                      {!panel.error && panel.gradeSummary.length > 0 && (
+                        <p className="text-xs text-gray-600 mt-1">
+                          Pass rate:{" "}
+                          {(
+                            panel.gradeSummary.reduce(
+                              (acc, row) => acc + row.completionRate,
+                              0
+                            ) / panel.gradeSummary.length
+                          ).toFixed(1)}
+                          % · Stuck:{" "}
+                          {
+                            panel.gradeSummary.filter(
+                              (row) => row.attemptsCount >= 5 && row.completionRate < 25
+                            ).length
+                          }
+                        </p>
+                      )}
                     </div>
                     <a
                       href={`/api/classroom/sections/export?sectionId=${encodeURIComponent(
