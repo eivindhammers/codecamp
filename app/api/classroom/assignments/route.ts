@@ -4,6 +4,7 @@ import { courses } from "@/lib/courses";
 import { AssignmentsResponse } from "@/lib/grading/contracts";
 import {
   createAssignment,
+  getUserProfile,
   listAcademicTerms,
   listClassSections,
   listSectionAssignments,
@@ -18,6 +19,10 @@ const DEFAULT_ASSIGNMENT_PACING_EARLY_TOLERANCE_DAYS = 14;
 
 function badRequest(message: string) {
   return NextResponse.json({ error: message }, { status: 400 });
+}
+
+function forbidden(message: string) {
+  return NextResponse.json({ error: message }, { status: 403 });
 }
 
 function readPositiveIntEnv(name: string, fallback: number): number {
@@ -94,6 +99,13 @@ export async function POST(req: Request) {
   }
   const auth = requireSectionStaff(req, sectionId);
   if (!auth.ok) return auth.response;
+  const actorProfile = getUserProfile(auth.value.actorUserId);
+  if (!actorProfile) {
+    return forbidden("Actor profile not found.");
+  }
+  if (actorProfile.role !== "instructor") {
+    return forbidden("Only instructors can create assignments.");
+  }
 
   const section = listClassSections().find((item) => item.sectionId === sectionId);
   if (!section) {
