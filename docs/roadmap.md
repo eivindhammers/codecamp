@@ -201,6 +201,10 @@ Primary target users are economics students, with platform usage planned across 
 - Added `GET|PUT /api/classroom/sections/risk-policy/archive?sectionId=...` for section staff to configure archive cadence, retention window, and destination label.
 - Classroom dashboard section policy panels now expose archive-policy controls and show computed next-archive schedule visibility.
 
+41. Archive execution governance reporting (phase 2 progress)
+- Added `GET|POST /api/classroom/sections/risk-policy/archive/report?sectionId=...` for section-level archive run reporting (success/failure outcomes, recent runs, and 30-day failure metrics).
+- Dashboard archive policy panels now show archive run health summaries (success/failure counts, failure rate, last success/failure) and recent run history.
+
 ## Runtime Setup
 
 From repo root:
@@ -258,7 +262,7 @@ npm run redis:down
 
 3. Instructor workflow (teaching operations, phase 2)
 - Add section list virtualization/performance tuning and richer term-based filtering for very large datasets.
-- Add governance reporting around archive execution outcomes and delivery failures.
+- Automate archive execution scheduling and delivery (currently governance reporting is available, execution still manual).
 
 4. Multi-course content pipeline expansion
 - Migrate more exercises from inline definitions to `content/exercises/...`.

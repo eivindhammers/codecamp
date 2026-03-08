@@ -72,6 +72,7 @@ Protected classroom routes now use session-backed identity (`codecamp_session` c
 `/api/classroom/sections/risk-policy` supports per-section staff overrides and returns policy audit history (filterable via `limit`, `action`, `actor` query params).
 `/api/classroom/sections/risk-policy/export` provides CSV/JSON exports for section policy audit history.
 `/api/classroom/sections/risk-policy/archive` manages section-level audit archival cadence/retention policy metadata.
+`/api/classroom/sections/risk-policy/archive/report` exposes archive run outcomes (success/failure), recent runs, and failure-rate reporting.
 `/api/classroom/sections` supports server-backed filtering/sorting/pagination via query params (`search`, `courseSlug`, `sort`, `limit`, `offset`).
 Auth supports two modes via `AUTH_MODE`: `bootstrap` (email POST to `/api/auth/session`) and `oidc` (redirect via `/api/auth/login` and callback at `/api/auth/callback`).
 `/classroom` provides an instructor dashboard client for section metrics and exports.
@@ -83,6 +84,7 @@ Section activity supports course filtering plus per-section learner search/risk 
 Assignment creation API validates section/course alignment, exercise existence in `lib/courses.ts`, and due dates within the section term window.
 Assignment creation also enforces max due-date publish horizon and chapter pacing windows via env-configurable policies.
 Assignment tables include per-assignment completion/last-completion data and stalled overdue indicators.
+Dashboard section risk panels include archive run governance summaries (30-day totals, failures, and last run outcomes).
 
 ## Conventions
 
