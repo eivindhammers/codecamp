@@ -2,6 +2,8 @@ import { mkdirSync } from "node:fs";
 import path from "node:path";
 import Database from "better-sqlite3";
 import {
+  AttemptHistoryItem,
+  ExerciseProgressRecord,
   GradingResult,
   SubmissionStatus,
   SubmissionStatusResponse,
@@ -85,6 +87,25 @@ export interface SubmissionWorkItem {
 
 interface ColumnInfo {
   name: string;
+}
+
+interface AttemptRow {
+  attempt_id: string;
+  submission_id: string;
+  status: SubmissionStatus;
+  result_json: string | null;
+  submitted_at: number;
+  completed_at: number | null;
+}
+
+interface ProgressRow {
+  user_id: string;
+  course_slug: string;
+  chapter_id: string;
+  exercise_id: string;
+  first_pass_submission_id: string;
+  xp_awarded: number;
+  completed_at: number;
 }
 
 function hasColumn(tableName: string, columnName: string) {
@@ -347,4 +368,112 @@ export function getSubmission(
     status: row.status,
     result: row.result_json ? (JSON.parse(row.result_json) as GradingResult) : undefined,
   };
+}
+
+interface ListAttemptsInput {
+  userId: string;
+  courseSlug: string;
+  chapterId?: string;
+  exerciseId?: string;
+  limit?: number;
+}
+
+function mapAttemptRowToHistoryItem(row: AttemptRow): AttemptHistoryItem {
+  return {
+    attemptId: row.attempt_id,
+    submissionId: row.submission_id,
+    status: row.status,
+    submittedAt: row.submitted_at,
+    completedAt: row.completed_at,
+    result: row.result_json ? (JSON.parse(row.result_json) as GradingResult) : undefined,
+  };
+}
+
+export function listAttempts(input: ListAttemptsInput): AttemptHistoryItem[] {
+  const safeLimit = Math.min(Math.max(input.limit ?? 20, 1), 100);
+
+  if (input.chapterId && input.exerciseId) {
+    const rows = db
+      .prepare(
+        `
+          SELECT attempt_id, submission_id, status, result_json, submitted_at, completed_at
+          FROM attempts
+          WHERE user_id = ? AND course_slug = ? AND chapter_id = ? AND exercise_id = ?
+          ORDER BY submitted_at DESC
+          LIMIT ?
+        `
+      )
+      .all(
+        input.userId,
+        input.courseSlug,
+        input.chapterId,
+        input.exerciseId,
+        safeLimit
+      ) as AttemptRow[];
+
+    return rows.map(mapAttemptRowToHistoryItem);
+  }
+
+  const rows = db
+    .prepare(
+      `
+        SELECT attempt_id, submission_id, status, result_json, submitted_at, completed_at
+        FROM attempts
+        WHERE user_id = ? AND course_slug = ?
+        ORDER BY submitted_at DESC
+        LIMIT ?
+      `
+    )
+    .all(input.userId, input.courseSlug, safeLimit) as AttemptRow[];
+
+  return rows.map(mapAttemptRowToHistoryItem);
+}
+
+function mapProgressRowToRecord(row: ProgressRow): ExerciseProgressRecord {
+  return {
+    userId: row.user_id,
+    courseSlug: row.course_slug,
+    chapterId: row.chapter_id,
+    exerciseId: row.exercise_id,
+    firstPassSubmissionId: row.first_pass_submission_id,
+    xpAwarded: row.xp_awarded,
+    completedAt: row.completed_at,
+  };
+}
+
+export function getExerciseProgress(
+  userId: string,
+  courseSlug: string,
+  chapterId: string,
+  exerciseId: string
+): ExerciseProgressRecord | undefined {
+  const row = db
+    .prepare(
+      `
+        SELECT user_id, course_slug, chapter_id, exercise_id, first_pass_submission_id, xp_awarded, completed_at
+        FROM progress
+        WHERE user_id = ? AND course_slug = ? AND chapter_id = ? AND exercise_id = ?
+      `
+    )
+    .get(userId, courseSlug, chapterId, exerciseId) as ProgressRow | undefined;
+
+  return row ? mapProgressRowToRecord(row) : undefined;
+}
+
+export function listCourseProgress(
+  userId: string,
+  courseSlug: string
+): ExerciseProgressRecord[] {
+  const rows = db
+    .prepare(
+      `
+        SELECT user_id, course_slug, chapter_id, exercise_id, first_pass_submission_id, xp_awarded, completed_at
+        FROM progress
+        WHERE user_id = ? AND course_slug = ?
+        ORDER BY completed_at DESC
+      `
+    )
+    .all(userId, courseSlug) as ProgressRow[];
+
+  return rows.map(mapProgressRowToRecord);
 }

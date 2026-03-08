@@ -30,3 +30,35 @@ export interface SubmissionStatusResponse {
   status: SubmissionStatus;
   result?: GradingResult;
 }
+
+export interface AttemptHistoryItem {
+  attemptId: string;
+  submissionId: string;
+  status: SubmissionStatus;
+  submittedAt: number;
+  completedAt: number | null;
+  result?: GradingResult;
+}
+
+export interface AttemptsResponse {
+  attempts: AttemptHistoryItem[];
+}
+
+export interface ExerciseProgressRecord {
+  userId: string;
+  courseSlug: string;
+  chapterId: string;
+  exerciseId: string;
+  firstPassSubmissionId: string;
+  xpAwarded: number;
+  completedAt: number;
+}
+
+export interface ExerciseProgressResponse {
+  completed: boolean;
+  progress?: ExerciseProgressRecord;
+}
+
+export interface CourseProgressResponse {
+  progress: ExerciseProgressRecord[];
+}

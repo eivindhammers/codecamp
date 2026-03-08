@@ -38,6 +38,16 @@ The grading pipeline is:
 - Added `users`, `attempts`, and `progress` tables.
 - XP awarded only on first pass per user/exercise (`awardedXp` in result).
 
+6. Attempts and progress read APIs + exercise history UI
+- Added `GET /api/attempts` with user/course and optional exercise filters.
+- Added `GET /api/progress` for single exercise or course progress reads.
+- Added submission history panel in `ExerciseEditor` for server-graded exercises.
+
+7. Python server-side grading parity (first exercise)
+- Added Python checker runner (`lib/grading/runPythonChecker.ts`).
+- Migrated `intro-python/basics/hello-python` to server-side grading with filesystem checker content.
+- Worker now routes both `r` and `python` submissions through language-specific checkers.
+
 ## Runtime Setup
 
 From repo root:
@@ -79,31 +89,27 @@ npm run redis:down
 4. Worker activity visible
 - Worker logs should show completed jobs.
 
+5. Python server-side grading pass/fail
+- Intro to Python -> Python Basics -> Hello, Python!
+- Submit `print("Hello, Python!")` and then an incorrect output to verify pass/fail feedback.
+
 ## Next Milestones (Priority Order)
 
-1. API for user attempts/progress history
-- Add endpoints to fetch attempt list and completion state by user/course.
-- Surface that data in UI (submission history panel per exercise).
-
-2. Python server-side grading parity
-- Add Python checker runner and migrate one Intro to Python exercise.
-- Keep same result schema and first-pass XP rules.
-
-3. Harden execution sandbox
+1. Harden execution sandbox
 - Move checker execution to isolated containers with resource limits.
 - Enforce timeout/memory constraints and no-network policy.
 
-4. Auth layer (replace local user ID)
+2. Auth layer (replace local user ID)
 - Add real login/session and map `userId` to authenticated user.
 - Keep compatibility migration from local IDs where possible.
 
-5. Content pipeline expansion
+3. Content pipeline expansion
 - Migrate more exercises from inline definitions to `content/exercises/...`.
 - Add checker templates and author validation scripts.
 
 ## Known Constraints / Technical Debt
 
-1. Only one exercise currently uses server-side grading.
+1. Server-side grading currently covers two exercises (`intro-r/basics/arithmetic`, `intro-python/basics/hello-python`).
 2. Frontend progress context still exists locally and should eventually sync with backend truth.
 3. Queue enqueue path uses a typed cast around BullMQ `add` due TS friction in current setup.
 4. Worker and API run in-process/local; no production orchestration yet.
@@ -114,4 +120,4 @@ npm run redis:down
 1. Pull latest branch.
 2. Open this file and confirm priority milestone.
 3. Start Redis/dev/worker.
-4. Implement milestone 1 (attempt/progress read APIs + UI view).
+4. Implement milestone 1 (execution sandbox hardening).

@@ -43,8 +43,8 @@ export async function POST(req: Request) {
     return badRequest("Invalid fields: userId, courseSlug, chapterId, xp.");
   }
 
-  if (body.language !== "r") {
-    return badRequest("Only R server-side grading is enabled in this milestone.");
+  if (body.language !== "r" && body.language !== "python") {
+    return badRequest("Only R and Python are supported for server-side grading.");
   }
 
   const submissionId = randomUUID();

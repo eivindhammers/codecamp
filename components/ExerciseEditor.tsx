@@ -1,10 +1,16 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Exercise } from "@/lib/types";
 import { useProgress } from "@/lib/ProgressContext";
-import { SubmissionStatusResponse } from "@/lib/grading/contracts";
+import {
+  AttemptHistoryItem,
+  AttemptsResponse,
+  ExerciseProgressRecord,
+  ExerciseProgressResponse,
+  SubmissionStatusResponse,
+} from "@/lib/grading/contracts";
 import { validateExerciseSubmission } from "@/lib/exerciseValidation";
 
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
@@ -49,6 +55,10 @@ export default function ExerciseEditor({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editorTheme, setEditorTheme] = useState<"vs-dark" | "light">("light");
   const [userId] = useState(() => getOrCreateUserId());
+  const [attemptHistory, setAttemptHistory] = useState<AttemptHistoryItem[]>([]);
+  const [serverProgress, setServerProgress] = useState<ExerciseProgressRecord>();
+  const [historyError, setHistoryError] = useState("");
+  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
 
   const alreadyDone = isExerciseDone(courseSlug, chapterId, exercise.id);
 
@@ -69,13 +79,74 @@ export default function ExerciseEditor({
     return () => observer.disconnect();
   }, []);
 
-  const shouldUseServerGrader = language === "r" && exercise.id === "arithmetic";
+  const isSupportedRServerExercise =
+    language === "r" &&
+    courseSlug === "intro-r" &&
+    chapterId === "basics" &&
+    exercise.id === "arithmetic";
+  const isSupportedPythonServerExercise =
+    language === "python" &&
+    courseSlug === "intro-python" &&
+    chapterId === "basics" &&
+    exercise.id === "hello-python";
+  const shouldUseServerGrader =
+    isSupportedRServerExercise || isSupportedPythonServerExercise;
   const pollIntervalMs = 400;
   const maxPollAttempts = 30;
 
   async function wait(ms: number) {
     await new Promise((resolve) => setTimeout(resolve, ms));
   }
+
+  const loadServerHistory = useCallback(async () => {
+    if (!shouldUseServerGrader || !userId) {
+      setAttemptHistory([]);
+      setServerProgress(undefined);
+      setHistoryError("");
+      return;
+    }
+
+    setIsHistoryLoading(true);
+    setHistoryError("");
+
+    try {
+      const params = new URLSearchParams({
+        userId,
+        courseSlug,
+        chapterId,
+        exerciseId: exercise.id,
+      });
+
+      const [attemptsResponse, progressResponse] = await Promise.all([
+        fetch(`/api/attempts?${params.toString()}`, { cache: "no-store" }),
+        fetch(`/api/progress?${params.toString()}`, { cache: "no-store" }),
+      ]);
+
+      if (!attemptsResponse.ok) {
+        throw new Error(await attemptsResponse.text());
+      }
+      if (!progressResponse.ok) {
+        throw new Error(await progressResponse.text());
+      }
+
+      const attemptsPayload = (await attemptsResponse.json()) as AttemptsResponse;
+      const progressPayload = (await progressResponse.json()) as ExerciseProgressResponse;
+      setAttemptHistory(attemptsPayload.attempts);
+      setServerProgress(progressPayload.progress);
+    } catch (error) {
+      setHistoryError(
+        error instanceof Error
+          ? `Failed to load submission history: ${error.message}`
+          : "Failed to load submission history."
+      );
+    } finally {
+      setIsHistoryLoading(false);
+    }
+  }, [chapterId, courseSlug, exercise.id, shouldUseServerGrader, userId]);
+
+  useEffect(() => {
+    void loadServerHistory();
+  }, [loadServerHistory]);
 
   async function handleSubmit() {
     setSubmitted(true);
@@ -178,6 +249,9 @@ export default function ExerciseEditor({
       );
     } finally {
       setIsSubmitting(false);
+      if (shouldUseServerGrader) {
+        void loadServerHistory();
+      }
     }
   }
 
@@ -209,6 +283,11 @@ export default function ExerciseEditor({
           {alreadyDone && (
             <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full font-medium">
               ✓ Completed
+            </span>
+          )}
+          {serverProgress && (
+            <span className="text-xs bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-full font-medium">
+              Server pass: {new Date(serverProgress.completedAt).toLocaleDateString()}
             </span>
           )}
         </div>
@@ -306,6 +385,49 @@ export default function ExerciseEditor({
           {testFeedback.map((line) => (
             <p key={line}>{line}</p>
           ))}
+        </div>
+      )}
+
+      {shouldUseServerGrader && (
+        <div className="bg-white border border-gray-200 rounded-xl p-4">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-semibold text-sm text-gray-900">Submission History</h3>
+            {isHistoryLoading && (
+              <span className="text-xs text-gray-500">Refreshing...</span>
+            )}
+          </div>
+          {historyError && (
+            <p className="text-sm text-rose-700">
+              {historyError}
+            </p>
+          )}
+          {!historyError && attemptHistory.length === 0 && (
+            <p className="text-sm text-gray-600">No submissions yet for this exercise.</p>
+          )}
+          {!historyError && attemptHistory.length > 0 && (
+            <div className="space-y-2">
+              {attemptHistory.map((attempt) => (
+                <div
+                  key={attempt.attemptId}
+                  className="border border-gray-100 rounded-lg px-3 py-2 bg-gray-50"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs text-gray-500">
+                      {new Date(attempt.submittedAt).toLocaleString()}
+                    </p>
+                    <span className="text-xs rounded-full px-2 py-0.5 bg-slate-200 text-slate-700 font-medium">
+                      {attempt.status}
+                    </span>
+                  </div>
+                  {attempt.result && (
+                    <p className="text-sm text-gray-700 mt-1">
+                      {attempt.result.feedback[0] ?? "No feedback returned."}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

@@ -5,6 +5,7 @@ import {
   finalizeSubmission,
 } from "../lib/grading/submissionDb";
 import { gradeRSubmission } from "../lib/grading/runRChecker";
+import { gradePythonSubmission } from "../lib/grading/runPythonChecker";
 import { queueConnection } from "../lib/queue/connection";
 import { submissionQueueName } from "../lib/queue/submissionQueue";
 
@@ -31,6 +32,8 @@ const worker = new Worker(
       let result: GradingResult;
       if (workItem.language === "r") {
         result = await gradeRSubmission(workItem.exerciseId, workItem.code);
+      } else if (workItem.language === "python") {
+        result = await gradePythonSubmission(workItem.exerciseId, workItem.code);
       } else {
         result = unsupportedLanguageResult(workItem.language);
       }
