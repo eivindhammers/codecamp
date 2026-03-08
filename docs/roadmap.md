@@ -281,6 +281,11 @@ Primary target users are economics students, with platform usage planned across 
 - Added global "Expand all" / "Collapse all" controls in section activity filters for faster bulk navigation.
 - This defers heavy learner/policy/assignment table rendering until needed, improving large-section-list responsiveness.
 
+60. Archive destination ref revocation controls (phase 2 progress)
+- Archive destination ref resolution now enforces configured refs (`CLASSROOM_RISK_ARCHIVE_DESTINATION_REF_NAMES`) and blocks revoked refs (`CLASSROOM_RISK_ARCHIVE_DESTINATION_REVOKED_REF_NAMES`).
+- Validation and automation share the same ref-governance enforcement, so revoked/unlisted refs fail preflight and run-time delivery resolution consistently.
+- Archive governance config/dashboard visibility now includes revoked ref names for operational rotation/revocation workflows.
+
 ## Runtime Setup
 
 From repo root:

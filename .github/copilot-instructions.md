@@ -146,6 +146,7 @@ Use these for API response shapes. Add new types here rather than inline.
 - Webhook delivery retries are configurable via `CLASSROOM_RISK_ARCHIVE_DELIVERY_RETRY_COUNT` and `CLASSROOM_RISK_ARCHIVE_DELIVERY_RETRY_BACKOFF_MS`.
 - PUT destination controls are env-configurable via `CLASSROOM_RISK_ARCHIVE_UPLOAD_ALLOW_HOSTS` and `CLASSROOM_RISK_ARCHIVE_UPLOAD_TIMEOUT_MS`.
 - Destination references can be configured with `CLASSROOM_RISK_ARCHIVE_DESTINATION_REF_NAMES` plus per-ref URL env vars (`CLASSROOM_RISK_ARCHIVE_DESTINATION_<REF_NAME>`), and used via `webhookref:<refName>` / `puturlref:<refName>`.
+- Destination reference revocation is env-configurable via `CLASSROOM_RISK_ARCHIVE_DESTINATION_REVOKED_REF_NAMES` (revoked refs are rejected during validation and archive delivery execution).
 - Archive destination validation reuses delivery governance checks, including webhook/upload host allowlists and protocol enforcement.
 - In production, sandbox mode defaults to Docker when `GRADER_SANDBOX_MODE` is unset.
 - CI workflow (`.github/workflows/ci.yml`) enforces `check:sandbox`, `check:sandbox-policy`, `check:sandbox-runtime`, `check:sandbox-startup`, `check:sandbox-faults`, lint, and build.
