@@ -335,6 +335,10 @@ Primary target users are economics students, with platform usage planned across 
 - Added `POST /api/progress` to persist first-pass completions for locally validated exercises with idempotent XP awarding semantics.
 - `ExerciseEditor` now syncs successful local validations through backend progress writes and applies awarded XP from backend response, tightening cross-device consistency.
 
+73. Enrollment role-mutation boundary hardening (phase 2 progress)
+- `POST /api/classroom/enrollments` now treats role changes on existing enrollments as instructor-only writes, preventing TA-driven staff-role demotions via upsert behavior.
+- Staff-role enrollment assignments now reject targets explicitly profiled as `student`, while still allowing profile-missing IDs for migration compatibility.
+
 ## Runtime Setup
 
 From repo root:
