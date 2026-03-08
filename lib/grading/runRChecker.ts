@@ -1,12 +1,10 @@
-import { access, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { access, copyFile, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { constants } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { promisify } from "node:util";
-import { execFile } from "node:child_process";
 import { GradingResult } from "@/lib/grading/contracts";
-
-const execFileAsync = promisify(execFile);
+import { parseCheckerOutput } from "@/lib/grading/checkerOutput";
+import { runCheckerProcess } from "@/lib/grading/runCheckerProcess";
 
 const ARITHMETIC_EXERCISE_ID = "arithmetic";
 const ARITHMETIC_CHECKER_PATH = path.join(
@@ -18,56 +16,6 @@ const ARITHMETIC_CHECKER_PATH = path.join(
   "arithmetic",
   "checker.R"
 );
-
-interface ParsedCheckerOutput {
-  status: "passed" | "failed";
-  feedback: string[];
-  tests: GradingResult["tests"];
-}
-
-function parseCheckerOutput(stdout: string): ParsedCheckerOutput {
-  const lines = stdout
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0);
-
-  let status: "passed" | "failed" = "failed";
-  const feedback: string[] = [];
-  const tests: GradingResult["tests"] = [];
-
-  for (const line of lines) {
-    if (line.startsWith("STATUS:")) {
-      const parsed = line.slice("STATUS:".length).trim().toLowerCase();
-      status = parsed === "passed" ? "passed" : "failed";
-      continue;
-    }
-
-    if (line.startsWith("FEEDBACK:")) {
-      feedback.push(line.slice("FEEDBACK:".length).trim());
-      continue;
-    }
-
-    if (line.startsWith("TEST:")) {
-      const payload = line.slice("TEST:".length);
-      const [name, passedRaw, message] = payload.split("|");
-      tests.push({
-        name: (name ?? "").trim(),
-        passed: (passedRaw ?? "").trim().toLowerCase() === "pass",
-        message: message?.trim(),
-      });
-    }
-  }
-
-  if (feedback.length === 0) {
-    feedback.push(
-      status === "passed"
-        ? "Submission passed hidden tests."
-        : "Submission did not pass hidden tests."
-    );
-  }
-
-  return { status, feedback, tests };
-}
 
 export async function gradeRSubmission(
   exerciseId: string,
@@ -94,19 +42,40 @@ export async function gradeRSubmission(
   }
 
   const workDir = await mkdtemp(path.join(tmpdir(), "codecamp-r-check-"));
+  const checkerPath = path.join(workDir, "checker.R");
   const submissionPath = path.join(workDir, "submission.R");
   const checkerOutputPath = path.join(workDir, "checker-output.txt");
 
   try {
+    await copyFile(ARITHMETIC_CHECKER_PATH, checkerPath);
     await writeFile(submissionPath, code, "utf8");
+    const checkerResult = await runCheckerProcess({
+      runtime: "r",
+      command: "Rscript",
+      args: [checkerPath, submissionPath, checkerOutputPath],
+      outputPath: checkerOutputPath,
+      workDir,
+    });
 
-    await execFileAsync("Rscript", [
-      ARITHMETIC_CHECKER_PATH,
-      submissionPath,
-      checkerOutputPath,
-    ]);
+    if (checkerResult.error) {
+      if (checkerResult.error.kind === "missing-runtime") {
+        return {
+          status: "error",
+          feedback: [
+            "Rscript was not found on the server. Install R to enable server-side grading.",
+          ],
+          tests: [],
+        };
+      }
 
-    const checkerOutput = await readFile(checkerOutputPath, "utf8");
+      return {
+        status: "error",
+        feedback: [`R checker execution failed: ${checkerResult.error.message}`],
+        tests: [],
+      };
+    }
+
+    const checkerOutput = checkerResult.output ?? "";
     const parsed = parseCheckerOutput(checkerOutput);
 
     return {
@@ -115,18 +84,12 @@ export async function gradeRSubmission(
       tests: parsed.tests,
     };
   } catch (error) {
-    const message =
-      error instanceof Error && "message" in error
-        ? error.message
-        : "Unknown execution error.";
-    const missingRscript = message.includes("ENOENT");
-
     return {
       status: "error",
       feedback: [
-        missingRscript
-          ? "Rscript was not found on the server. Install R to enable server-side grading."
-          : `R checker execution failed: ${message}`,
+        error instanceof Error
+          ? `R checker setup failed: ${error.message}`
+          : "R checker setup failed.",
       ],
       tests: [],
     };
