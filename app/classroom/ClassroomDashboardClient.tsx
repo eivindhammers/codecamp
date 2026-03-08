@@ -2,6 +2,8 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import type {
+  AssignmentRecord,
+  AssignmentsResponse,
   AuthSessionResponse,
   ClassSectionRecord,
   ClassSectionsResponse,
@@ -14,7 +16,15 @@ import type {
 interface SectionPanel {
   section: ClassSectionRecord;
   metrics: SectionLearnerMetric[];
+  assignments: AssignmentRecord[];
   error?: string;
+}
+
+interface AssignmentDraft {
+  title: string;
+  chapterId: string;
+  exerciseId: string;
+  dueAtLocal: string;
 }
 
 async function readJson<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
@@ -33,6 +43,11 @@ export default function ClassroomDashboardClient() {
   const [profile, setProfile] = useState<UserProfileRecord>();
   const [sections, setSections] = useState<SectionPanel[]>([]);
   const [loadingSections, setLoadingSections] = useState(false);
+  const [assignmentDrafts, setAssignmentDrafts] = useState<
+    Record<string, AssignmentDraft>
+  >({});
+  const [assignmentBusy, setAssignmentBusy] = useState<Record<string, boolean>>({});
+  const [assignmentError, setAssignmentError] = useState<Record<string, string>>({});
 
   const isStaff = profile?.role === "instructor" || profile?.role === "ta";
 
@@ -48,26 +63,47 @@ export default function ClassroomDashboardClient() {
       const panels = await Promise.all(
         sectionsPayload.sections.map(async (section) => {
           try {
-            const metricsPayload = await readJson<SectionLearnerMetricsResponse>(
-              `/api/classroom/sections/metrics?sectionId=${encodeURIComponent(section.sectionId)}`
-            );
+            const [metricsPayload, assignmentsPayload] = await Promise.all([
+              readJson<SectionLearnerMetricsResponse>(
+                `/api/classroom/sections/metrics?sectionId=${encodeURIComponent(section.sectionId)}`
+              ),
+              readJson<AssignmentsResponse>(
+                `/api/classroom/assignments?sectionId=${encodeURIComponent(section.sectionId)}`
+              ),
+            ]);
             return {
               section,
               metrics: metricsPayload.metrics,
+              assignments: assignmentsPayload.assignments,
             } as SectionPanel;
           } catch (error) {
             return {
               section,
               metrics: [],
+              assignments: [],
               error:
                 error instanceof Error
-                  ? `Could not load metrics: ${error.message}`
-                  : "Could not load metrics.",
+                  ? `Could not load classroom data: ${error.message}`
+                  : "Could not load classroom data.",
             } as SectionPanel;
           }
         })
       );
       setSections(panels);
+      setAssignmentDrafts((prev) => {
+        const next = { ...prev };
+        for (const panel of panels) {
+          if (!next[panel.section.sectionId]) {
+            next[panel.section.sectionId] = {
+              title: "",
+              chapterId: "",
+              exerciseId: "",
+              dueAtLocal: "",
+            };
+          }
+        }
+        return next;
+      });
     } finally {
       setLoadingSections(false);
     }
@@ -118,6 +154,72 @@ export default function ClassroomDashboardClient() {
       setAuthError(error instanceof Error ? error.message : "Sign-out failed.");
     } finally {
       setAuthBusy(false);
+    }
+  }
+
+  function setDraftValue(sectionId: string, field: keyof AssignmentDraft, value: string) {
+    setAssignmentDrafts((prev) => {
+      const current = prev[sectionId] ?? {
+        title: "",
+        chapterId: "",
+        exerciseId: "",
+        dueAtLocal: "",
+      };
+      return {
+        ...prev,
+        [sectionId]: {
+          ...current,
+          [field]: value,
+        },
+      };
+    });
+  }
+
+  async function onCreateAssignment(event: FormEvent<HTMLFormElement>, section: ClassSectionRecord) {
+    event.preventDefault();
+    const draft = assignmentDrafts[section.sectionId];
+    if (!draft) return;
+
+    setAssignmentBusy((prev) => ({ ...prev, [section.sectionId]: true }));
+    setAssignmentError((prev) => ({ ...prev, [section.sectionId]: "" }));
+    try {
+      const dueAt =
+        draft.dueAtLocal.length > 0 ? new Date(draft.dueAtLocal).getTime() : undefined;
+      if (dueAt !== undefined && Number.isNaN(dueAt)) {
+        throw new Error("Invalid due date.");
+      }
+
+      await readJson<AssignmentRecord>("/api/classroom/assignments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sectionId: section.sectionId,
+          courseSlug: section.courseSlug,
+          chapterId: draft.chapterId.trim(),
+          exerciseId: draft.exerciseId.trim(),
+          title: draft.title.trim(),
+          dueAt,
+        }),
+      });
+
+      setAssignmentDrafts((prev) => ({
+        ...prev,
+        [section.sectionId]: {
+          title: "",
+          chapterId: "",
+          exerciseId: "",
+          dueAtLocal: "",
+        },
+      }));
+      await loadSections();
+    } catch (error) {
+      setAssignmentError((prev) => ({
+        ...prev,
+        [section.sectionId]:
+          error instanceof Error ? error.message : "Failed to create assignment.",
+      }));
+    } finally {
+      setAssignmentBusy((prev) => ({ ...prev, [section.sectionId]: false }));
     }
   }
 
@@ -275,6 +377,124 @@ export default function ClassroomDashboardClient() {
                           ))}
                         </tbody>
                       </table>
+                    </div>
+                  )}
+                  {!panel.error && (
+                    <div className="mt-4 border-t border-gray-100 pt-3">
+                      <h3 className="text-sm font-medium text-gray-900 mb-2">Assignments</h3>
+                      <form
+                        className="grid gap-2 sm:grid-cols-5"
+                        onSubmit={(event) => onCreateAssignment(event, panel.section)}
+                      >
+                        <input
+                          value={assignmentDrafts[panel.section.sectionId]?.title ?? ""}
+                          onChange={(event) =>
+                            setDraftValue(panel.section.sectionId, "title", event.target.value)
+                          }
+                          placeholder="Title"
+                          required
+                          className="border border-gray-300 rounded px-2 py-1.5 text-xs"
+                        />
+                        <input
+                          value={assignmentDrafts[panel.section.sectionId]?.chapterId ?? ""}
+                          onChange={(event) =>
+                            setDraftValue(panel.section.sectionId, "chapterId", event.target.value)
+                          }
+                          placeholder="Chapter ID"
+                          required
+                          className="border border-gray-300 rounded px-2 py-1.5 text-xs"
+                        />
+                        <input
+                          value={assignmentDrafts[panel.section.sectionId]?.exerciseId ?? ""}
+                          onChange={(event) =>
+                            setDraftValue(
+                              panel.section.sectionId,
+                              "exerciseId",
+                              event.target.value
+                            )
+                          }
+                          placeholder="Exercise ID"
+                          required
+                          className="border border-gray-300 rounded px-2 py-1.5 text-xs"
+                        />
+                        <input
+                          type="datetime-local"
+                          value={assignmentDrafts[panel.section.sectionId]?.dueAtLocal ?? ""}
+                          onChange={(event) =>
+                            setDraftValue(panel.section.sectionId, "dueAtLocal", event.target.value)
+                          }
+                          className="border border-gray-300 rounded px-2 py-1.5 text-xs"
+                        />
+                        <button
+                          type="submit"
+                          disabled={assignmentBusy[panel.section.sectionId]}
+                          className="bg-indigo-600 text-white rounded px-2 py-1.5 text-xs font-medium hover:bg-indigo-700 disabled:opacity-60"
+                        >
+                          {assignmentBusy[panel.section.sectionId] ? "Saving..." : "Add assignment"}
+                        </button>
+                      </form>
+                      {assignmentError[panel.section.sectionId] && (
+                        <p className="text-xs text-rose-700 mt-2">
+                          {assignmentError[panel.section.sectionId]}
+                        </p>
+                      )}
+                      {panel.assignments.length === 0 ? (
+                        <p className="text-xs text-gray-500 mt-2">No assignments yet.</p>
+                      ) : (
+                        <div className="overflow-x-auto mt-2">
+                          <table className="min-w-full text-xs">
+                            <thead>
+                              <tr className="text-left text-gray-500">
+                                <th className="py-1 pr-2">Title</th>
+                                <th className="py-1 pr-2">Exercise</th>
+                                <th className="py-1 pr-2">Due</th>
+                                <th className="py-1">Status</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {panel.assignments.map((assignment) => {
+                                const now = Date.now();
+                                const isLate =
+                                  assignment.dueAt !== null && assignment.dueAt < now;
+                                const hasDueDate = assignment.dueAt !== null;
+                                return (
+                                  <tr
+                                    key={assignment.assignmentId}
+                                    className="border-t border-gray-100"
+                                  >
+                                    <td className="py-1.5 pr-2">{assignment.title}</td>
+                                    <td className="py-1.5 pr-2 font-mono">
+                                      {assignment.chapterId}/{assignment.exerciseId}
+                                    </td>
+                                    <td className="py-1.5 pr-2">
+                                      {hasDueDate
+                                        ? new Date(assignment.dueAt as number).toLocaleString()
+                                        : "No due date"}
+                                    </td>
+                                    <td className="py-1.5">
+                                      {!hasDueDate && (
+                                        <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
+                                          Open
+                                        </span>
+                                      )}
+                                      {hasDueDate && !isLate && (
+                                        <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+                                          Upcoming
+                                        </span>
+                                      )}
+                                      {hasDueDate && isLate && (
+                                        <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700">
+                                          Late
+                                        </span>
+                                      )}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
