@@ -96,6 +96,7 @@ Dashboard section risk panels include archive run governance summaries (30-day t
 Archive automation writes local JSON artifacts to `.data/risk-audit-archives/` and stores delivery refs on archive runs.
 Archive automation also supports webhook delivery via destination labels (`webhook:<url>`), with host allowlisting for outbound safety.
 Archive automation supports archive upload destinations via `puturl:<url>` (HTTP PUT of archive artifact JSON, useful for pre-signed object storage endpoints).
+Archive execution and manual archive-run recording endpoints are instructor-only write actions.
 
 ## Conventions
 

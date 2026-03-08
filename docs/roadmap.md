@@ -246,6 +246,10 @@ Primary target users are economics students, with platform usage planned across 
 - Added `npm run check:content-packs` to validate `content/exercises/*/*/*` packs against `lib/courses.ts` metadata and required checker/solution files by language.
 - CI now enforces content-pack validation before lint/build to catch malformed or orphaned exercise packs earlier.
 
+52. Instructor-only archive execution writes (phase 2 progress)
+- `POST /api/classroom/risk-archive/run` now requires instructor role, preventing TA/global-staff archive execution writes.
+- `POST /api/classroom/sections/risk-policy/archive/report` now also requires instructor role for manual archive run recording.
+
 ## Runtime Setup
 
 From repo root:
