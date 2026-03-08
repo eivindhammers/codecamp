@@ -30,6 +30,9 @@ jobs:
       - name: Validate sandbox config
         run: npm run check:sandbox
 
+      - name: Validate sandbox image refs
+        run: npm run check:sandbox-images
+
       - name: Validate sandbox policy
         run: npm run check:sandbox-policy
 

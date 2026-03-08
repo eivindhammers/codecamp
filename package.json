@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "check:sandbox": "node scripts/checkSandboxConfig.mjs",
+    "check:sandbox-images": "node scripts/checkSandboxImages.mjs",
     "check:sandbox-policy": "node scripts/checkSandboxPolicy.mjs",
     "check:sandbox-runtime": "tsx scripts/checkSandboxRuntime.ts",
     "check:sandbox-startup": "tsx scripts/checkSandboxStartup.ts",
