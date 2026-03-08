@@ -42,6 +42,9 @@ jobs:
       - name: Validate sandbox fault handling
         run: npm run check:sandbox-faults
 
+      - name: Validate content exercise packs
+        run: npm run check:content-packs
+
       - name: Lint
         run: npm run lint
 
