@@ -14,6 +14,7 @@ import {
 } from "@/lib/grading/submissionDb";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+const WEBHOOK_PREFIX = "webhook:";
 
 function cadenceMs(policy: SectionRiskArchivePolicyRecord): number {
   if (policy.cadence === "daily") return DAY_MS;
@@ -66,6 +67,74 @@ async function writeArchiveArtifact(
   return artifactPath;
 }
 
+function webhookAllowHosts(): Set<string> {
+  return new Set(
+    (process.env.CLASSROOM_RISK_ARCHIVE_WEBHOOK_ALLOW_HOSTS ?? "")
+      .split(",")
+      .map((item) => item.trim().toLowerCase())
+      .filter((item) => item.length > 0)
+  );
+}
+
+function parseWebhookDestination(destinationLabel: string | null): string | null {
+  if (!destinationLabel) return null;
+  const trimmed = destinationLabel.trim();
+  if (!trimmed.toLowerCase().startsWith(WEBHOOK_PREFIX)) {
+    return null;
+  }
+  const url = trimmed.slice(WEBHOOK_PREFIX.length).trim();
+  return url.length > 0 ? url : null;
+}
+
+function validateWebhookDestination(urlRaw: string): URL {
+  const url = new URL(urlRaw);
+  if (url.protocol !== "https:" && url.protocol !== "http:") {
+    throw new Error("Webhook destination must use http or https.");
+  }
+  const allowHosts = webhookAllowHosts();
+  if (allowHosts.size > 0 && !allowHosts.has(url.host.toLowerCase())) {
+    throw new Error(`Webhook host '${url.host}' is not allowed.`);
+  }
+  return url;
+}
+
+async function deliverToWebhook(
+  destinationUrl: URL,
+  artifactPath: string,
+  sectionId: string,
+  exportedAt: number,
+  recordsCount: number
+): Promise<string> {
+  const timeoutMsRaw = Number.parseInt(
+    process.env.CLASSROOM_RISK_ARCHIVE_WEBHOOK_TIMEOUT_MS ?? "",
+    10
+  );
+  const timeoutMs = Number.isFinite(timeoutMsRaw)
+    ? Math.min(Math.max(timeoutMsRaw, 1000), 30000)
+    : 5000;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(destinationUrl.toString(), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      signal: controller.signal,
+      body: JSON.stringify({
+        sectionId,
+        exportedAt,
+        recordsCount,
+        artifactPath,
+      }),
+    });
+    if (!response.ok) {
+      throw new Error(`Webhook delivery failed with status ${response.status}.`);
+    }
+    return `webhook:${destinationUrl.toString()}`;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 function resolveWindowStart(policy: SectionRiskArchivePolicyRecord, now: number): number {
   if (policy.lastArchivedAt !== null) {
     return policy.lastArchivedAt;
@@ -110,11 +179,22 @@ export async function executeSectionRiskAuditArchive(
       policy.destinationLabel,
       events
     );
+    let finalDeliveryRef = deliveryRef;
+    const webhookRaw = parseWebhookDestination(policy.destinationLabel);
+    if (webhookRaw) {
+      finalDeliveryRef = await deliverToWebhook(
+        validateWebhookDestination(webhookRaw),
+        deliveryRef,
+        sectionId,
+        now,
+        events.length
+      );
+    }
     const run = recordSectionRiskArchiveRun({
       sectionId,
       status: "success",
       archivedRecords: events.length,
-      deliveryRef,
+      deliveryRef: finalDeliveryRef,
       errorMessage: null,
       actorUserId,
     });
