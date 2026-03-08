@@ -1084,6 +1084,12 @@ interface EnrollUserInput {
   role: ClassroomRole;
 }
 
+interface UpdateEnrollmentStatusInput {
+  sectionId: string;
+  userId: string;
+  status: EnrollmentStatus;
+}
+
 function mapEnrollmentRow(row: SectionEnrollmentRow): SectionEnrollmentRecord {
   return {
     enrollmentId: row.enrollment_id,
@@ -1155,6 +1161,33 @@ export function getSectionEnrollment(
     .get(sectionId, userId) as SectionEnrollmentRow | undefined;
 
   return row ? mapEnrollmentRow(row) : undefined;
+}
+
+export function updateSectionEnrollmentStatus(
+  input: UpdateEnrollmentStatusInput
+): SectionEnrollmentRecord {
+  db.prepare(
+    `
+      UPDATE section_enrollments
+      SET status = ?
+      WHERE section_id = ? AND user_id = ?
+    `
+  ).run(input.status, input.sectionId, input.userId);
+
+  const row = db
+    .prepare(
+      `
+        SELECT enrollment_id, section_id, user_id, role, status, enrolled_at
+        FROM section_enrollments
+        WHERE section_id = ? AND user_id = ?
+      `
+    )
+    .get(input.sectionId, input.userId) as SectionEnrollmentRow | undefined;
+
+  if (!row) {
+    throw new Error("Enrollment not found.");
+  }
+  return mapEnrollmentRow(row);
 }
 
 interface CreateAssignmentInput {

@@ -7,7 +7,9 @@ import {
 import {
   enrollUserInSection,
   getUserProfile,
+  getSectionEnrollment,
   listSectionEnrollments,
+  updateSectionEnrollmentStatus,
 } from "@/lib/grading/submissionDb";
 import { requireSectionStaff } from "@/app/api/classroom/_auth";
 
@@ -25,6 +27,12 @@ interface EnrollPayload {
   sectionId?: string;
   userId?: string;
   role?: ClassroomRole;
+}
+
+interface UpdateEnrollmentStatusPayload {
+  sectionId?: string;
+  userId?: string;
+  status?: "active" | "dropped";
 }
 
 export async function GET(req: Request) {
@@ -76,4 +84,41 @@ export async function POST(req: Request) {
     role,
   });
   return NextResponse.json(enrollment, { status: 201 });
+}
+
+export async function PATCH(req: Request) {
+  let body: UpdateEnrollmentStatusPayload;
+  try {
+    body = (await req.json()) as UpdateEnrollmentStatusPayload;
+  } catch {
+    return badRequest("Invalid JSON payload.");
+  }
+
+  const sectionId = body.sectionId?.trim() ?? "";
+  const userId = body.userId?.trim() ?? "";
+  const status = body.status;
+  if (!sectionId || !userId || !status) {
+    return badRequest("Missing required fields: sectionId, userId, status.");
+  }
+  if (status !== "active" && status !== "dropped") {
+    return badRequest("status must be one of: active, dropped.");
+  }
+
+  const auth = requireSectionStaff(req, sectionId);
+  if (!auth.ok) return auth.response;
+  const actorProfile = getUserProfile(auth.value.actorUserId);
+  if (!actorProfile) {
+    return forbidden("Actor profile not found.");
+  }
+
+  const existingEnrollment = getSectionEnrollment(sectionId, userId);
+  if (!existingEnrollment) {
+    return badRequest("Enrollment not found for sectionId/userId.");
+  }
+  if (existingEnrollment.role !== "student" && actorProfile.role !== "instructor") {
+    return forbidden("Only instructors can change staff enrollment status.");
+  }
+
+  const enrollment = updateSectionEnrollmentStatus({ sectionId, userId, status });
+  return NextResponse.json(enrollment);
 }
