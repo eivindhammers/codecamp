@@ -168,6 +168,10 @@ Primary target users are economics students, with platform usage planned across 
 - Risk policy API now returns change history with actor + timestamp and records updates/resets in persistent audit storage.
 - Dashboard section cards now show recent policy changes for quick instructor governance visibility.
 
+33. Sandbox pressure fault checks (phase 2 progress)
+- Expanded `check:sandbox-faults` to include memory-pressure and PID-pressure failure coverage in Docker sandbox mode.
+- CI fault checks now verify timeout, memory pressure, and process-limit pressure behavior for graders.
+
 ## Runtime Setup
 
 From repo root:
@@ -217,7 +221,7 @@ npm run redis:down
 
 1. Harden execution sandbox (phase 2 completion)
 - Validate and tune image strategy (`GRADER_DOCKER_R_IMAGE`, `GRADER_DOCKER_PYTHON_IMAGE`) and startup performance.
-- Add additional fault-injection coverage for memory/process-limit pressure in Docker sandbox checks.
+- Add optional network/isolation regression checks to complement current timeout/memory/process pressure coverage.
 
 2. Classroom identity and enrollment model (phase 2 completion)
 - Expand role mapping governance (policy docs/audit logs) and align section-staff enrollment workflows with IdP-derived roles.

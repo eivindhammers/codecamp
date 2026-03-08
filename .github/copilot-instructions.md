@@ -114,6 +114,7 @@ Use these for API response shapes. Add new types here rather than inline.
 - Risk policy changes are audit-recorded with actor user ID and timestamp for section governance visibility.
 - In production, sandbox mode defaults to Docker when `GRADER_SANDBOX_MODE` is unset.
 - CI workflow (`.github/workflows/ci.yml`) enforces `check:sandbox`, `check:sandbox-policy`, `check:sandbox-runtime`, `check:sandbox-faults`, lint, and build.
+- `check:sandbox-faults` covers timeout, memory pressure, and process-limit pressure scenarios for Docker grader execution.
 
 ### Working style (from project Copilot.md)
 - Read relevant files before editing.
