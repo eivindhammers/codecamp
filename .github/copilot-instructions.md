@@ -76,7 +76,7 @@ Protected classroom routes now use session-backed identity (`codecamp_session` c
 `/api/classroom/sections/risk-policy/archive` manages section-level audit archival cadence/retention policy metadata.
 `/api/classroom/sections/risk-policy/archive/report` exposes archive run outcomes (success/failure), recent runs, and failure-rate reporting.
 `/api/classroom/risk-archive/run` executes due archive policies (or a specific section) for operational automation.
-`/api/classroom/sections` supports server-backed filtering/sorting/pagination via query params (`search`, `courseSlug`, `sort`, `limit`, `offset`).
+`/api/classroom/sections` supports server-backed filtering/sorting/pagination via query params (`termId`, `search`, `courseSlug`, `sort`, `limit`, `offset`).
 Auth supports two modes via `AUTH_MODE`: `bootstrap` (email POST to `/api/auth/session`) and `oidc` (redirect via `/api/auth/login` and callback at `/api/auth/callback`).
 `/classroom` provides an instructor dashboard client for section metrics and exports.
 The classroom dashboard also supports assignment creation and due-state indicators per section.
@@ -84,6 +84,7 @@ Dashboard cards and section headers include pass-rate and stuck-learner indicato
 Assignment authoring in the dashboard uses chapter/exercise options derived from `lib/courses.ts` for the selected section course.
 Learner rows in section activity include completion-rate and risk-state badges derived from assignment due dates and summary metrics.
 Section activity supports course filtering plus per-section learner search/risk filters with pagination for larger rosters.
+Section activity controls also include term-based filtering wired to server-backed section paging.
 Enrollment API enforces role assignment guardrails: only instructor actors can assign `instructor`/`ta` roles in section enrollments.
 Assignment creation API validates section/course alignment, exercise existence in `lib/courses.ts`, and due dates within the section term window.
 Assignment creation also enforces max due-date publish horizon and chapter pacing windows via env-configurable policies.

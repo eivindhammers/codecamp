@@ -226,6 +226,10 @@ Primary target users are economics students, with platform usage planned across 
 - Webhook archive delivery now retries failed attempts with configurable retry count/backoff policy.
 - Retry controls are configurable via `CLASSROOM_RISK_ARCHIVE_DELIVERY_RETRY_COUNT` and `CLASSROOM_RISK_ARCHIVE_DELIVERY_RETRY_BACKOFF_MS`.
 
+47. Term-based section activity filtering (phase 2 progress)
+- Classroom dashboard section activity controls now include term selection and server-backed `termId` filtering.
+- `/api/classroom/sections` term filtering is now wired into dashboard search/sort/pagination requests for larger multi-term datasets.
+
 ## Runtime Setup
 
 From repo root:
@@ -282,7 +286,7 @@ npm run redis:down
 - Keep migration path from local IDs where possible.
 
 3. Instructor workflow (teaching operations, phase 2)
-- Add section list virtualization/performance tuning and richer term-based filtering for very large datasets.
+- Add section list virtualization/performance tuning for very large datasets.
 - Add object-storage destination integrations for archive delivery.
 
 4. Multi-course content pipeline expansion
