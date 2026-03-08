@@ -97,6 +97,63 @@ function parsePutUrlDestination(destinationLabel: string | null): string | null 
   return url.length > 0 ? url : null;
 }
 
+export function validateArchiveDestinationLabel(destinationLabel: string | null): {
+  valid: boolean;
+  mode: "none" | "webhook" | "puturl" | "local";
+  host?: string;
+  message: string;
+} {
+  const trimmed = destinationLabel?.trim() ?? "";
+  if (!trimmed) {
+    return { valid: true, mode: "none", message: "No destination set; archives stay local." };
+  }
+
+  const webhookRaw = parseWebhookDestination(trimmed);
+  if (webhookRaw) {
+    try {
+      const url = validateWebhookDestination(webhookRaw);
+      return {
+        valid: true,
+        mode: "webhook",
+        host: url.host,
+        message: `Webhook destination validated for ${url.host}.`,
+      };
+    } catch (error) {
+      return {
+        valid: false,
+        mode: "webhook",
+        message:
+          error instanceof Error ? error.message : "Webhook destination is invalid.",
+      };
+    }
+  }
+
+  const putUrlRaw = parsePutUrlDestination(trimmed);
+  if (putUrlRaw) {
+    try {
+      const url = validatePutDestination(putUrlRaw);
+      return {
+        valid: true,
+        mode: "puturl",
+        host: url.host,
+        message: `PUT destination validated for ${url.host}.`,
+      };
+    } catch (error) {
+      return {
+        valid: false,
+        mode: "puturl",
+        message: error instanceof Error ? error.message : "PUT destination is invalid.",
+      };
+    }
+  }
+
+  return {
+    valid: true,
+    mode: "local",
+    message: "Using local archive artifact storage path.",
+  };
+}
+
 function validateWebhookDestination(urlRaw: string): URL {
   const url = new URL(urlRaw);
   if (url.protocol !== "https:" && url.protocol !== "http:") {

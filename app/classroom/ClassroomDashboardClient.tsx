@@ -8,6 +8,7 @@ import type {
   AssignmentRecord,
   AuthConfigResponse,
   RiskArchiveGovernanceConfigResponse,
+  RiskArchiveDestinationValidation,
   AuthSessionResponse,
   ClassSectionRecord,
   ClassSectionsResponse,
@@ -141,6 +142,12 @@ export default function ClassroomDashboardClient() {
   const [riskArchiveDrafts, setRiskArchiveDrafts] = useState<Record<string, RiskArchiveDraft>>({});
   const [riskArchiveBusy, setRiskArchiveBusy] = useState<Record<string, boolean>>({});
   const [riskArchiveError, setRiskArchiveError] = useState<Record<string, string>>({});
+  const [riskArchiveValidateBusy, setRiskArchiveValidateBusy] = useState<Record<string, boolean>>(
+    {}
+  );
+  const [riskArchiveValidation, setRiskArchiveValidation] = useState<
+    Record<string, RiskArchiveDestinationValidation | undefined>
+  >({});
   const [riskArchiveRunBusy, setRiskArchiveRunBusy] = useState<Record<string, boolean>>({});
   const [auditActorFilter, setAuditActorFilter] = useState("");
   const [auditActionFilter, setAuditActionFilter] = useState<"all" | "upsert" | "reset">("all");
@@ -510,6 +517,35 @@ export default function ClassroomDashboardClient() {
       }));
     } finally {
       setRiskArchiveBusy((prev) => ({ ...prev, [sectionId]: false }));
+    }
+  }
+
+  async function onValidateRiskArchiveDestination(sectionId: string) {
+    const draft = riskArchiveDrafts[sectionId];
+    if (!draft) return;
+    setRiskArchiveValidateBusy((prev) => ({ ...prev, [sectionId]: true }));
+    setRiskArchiveError((prev) => ({ ...prev, [sectionId]: "" }));
+    try {
+      const result = await readJson<RiskArchiveDestinationValidation>(
+        `/api/classroom/sections/risk-policy/archive/validate?sectionId=${encodeURIComponent(
+          sectionId
+        )}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ destinationLabel: draft.destinationLabel }),
+        }
+      );
+      setRiskArchiveValidation((prev) => ({ ...prev, [sectionId]: result }));
+    } catch (error) {
+      setRiskArchiveError((prev) => ({
+        ...prev,
+        [sectionId]:
+          error instanceof Error ? error.message : "Failed to validate archive destination.",
+      }));
+      setRiskArchiveValidation((prev) => ({ ...prev, [sectionId]: undefined }));
+    } finally {
+      setRiskArchiveValidateBusy((prev) => ({ ...prev, [sectionId]: false }));
     }
   }
 
@@ -1264,6 +1300,14 @@ export default function ClassroomDashboardClient() {
                       <div className="mt-2 flex items-center gap-2">
                         <button
                           type="button"
+                          onClick={() => onValidateRiskArchiveDestination(panel.section.sectionId)}
+                          disabled={riskArchiveValidateBusy[panel.section.sectionId]}
+                          className="border border-gray-300 text-gray-700 rounded px-2 py-1 text-xs disabled:opacity-50"
+                        >
+                          Validate destination
+                        </button>
+                        <button
+                          type="button"
                           onClick={() => onSaveRiskArchivePolicy(panel.section.sectionId)}
                           disabled={riskArchiveBusy[panel.section.sectionId]}
                           className="border border-indigo-300 text-indigo-700 rounded px-2 py-1 text-xs disabled:opacity-50"
@@ -1280,6 +1324,17 @@ export default function ClassroomDashboardClient() {
                           Export runs CSV
                         </a>
                       </div>
+                      {riskArchiveValidation[panel.section.sectionId] && (
+                        <p
+                          className={`mt-2 text-xs ${
+                            riskArchiveValidation[panel.section.sectionId]?.valid
+                              ? "text-emerald-700"
+                              : "text-rose-700"
+                          }`}
+                        >
+                          {riskArchiveValidation[panel.section.sectionId]?.message}
+                        </p>
+                      )}
                       <div className="mt-2 text-xs text-gray-600">
                         Runs (30d): {panel.riskArchiveWindow.totalRuns} total ·{" "}
                         {panel.riskArchiveWindow.successRuns} success ·{" "}

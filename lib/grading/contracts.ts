@@ -325,3 +325,10 @@ export interface RiskArchiveGovernanceConfig {
 export interface RiskArchiveGovernanceConfigResponse {
   config: RiskArchiveGovernanceConfig;
 }
+
+export interface RiskArchiveDestinationValidation {
+  valid: boolean;
+  mode: "none" | "webhook" | "puturl" | "local";
+  host?: string;
+  message: string;
+}
