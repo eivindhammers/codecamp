@@ -139,6 +139,10 @@ Primary target users are economics students, with platform usage planned across 
 - Added `GET /api/classroom/sections/assignment-breakdown?sectionId=...` for assignment-level completion rollups.
 - `/classroom` assignment tables now show completed learners, completion rate, last completion time, and stalled overdue indicators.
 
+26. CI runtime sandbox execution checks (phase 2 progress)
+- Added `npm run check:sandbox-runtime` to execute both R and Python graders in Docker sandbox mode as a CI smoke check.
+- CI now runs config, policy, and runtime sandbox checks before lint/build.
+
 ## Runtime Setup
 
 From repo root:
@@ -188,7 +192,7 @@ npm run redis:down
 
 1. Harden execution sandbox (phase 2 completion)
 - Validate and tune image strategy (`GRADER_DOCKER_R_IMAGE`, `GRADER_DOCKER_PYTHON_IMAGE`) and startup performance.
-- Add runtime/integration tests that execute graders in CI to verify policy behavior under real Docker execution.
+- Add fault-injection coverage (timeouts/resource exhaustion) for Docker sandbox checks in CI.
 
 2. Classroom identity and enrollment model (phase 2 completion)
 - Add production login integration replacing email-only session bootstrap.
