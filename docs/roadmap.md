@@ -307,6 +307,10 @@ Primary target users are economics students, with platform usage planned across 
 - Added `PATCH /api/classroom/enrollments` to update section enrollment status (`active`/`dropped`) with section-staff auth checks.
 - Staff-status updates for non-student enrollments are instructor-only; TAs can only manage student enrollment status changes.
 
+66. Archive destination reference health visibility (phase 2 progress)
+- `GET /api/classroom/risk-archive/config` now includes per-reference health metadata (ref name, env key, revoked flag, URL-present flag).
+- Classroom dashboard governance panel now renders destination reference health rows to support rotation/revocation and missing-secret detection.
+
 ## Runtime Setup
 
 From repo root:
