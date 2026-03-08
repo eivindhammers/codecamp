@@ -331,6 +331,10 @@ Primary target users are economics students, with platform usage planned across 
 - Added `npm run check:sandbox-images` to enforce explicit docker image references (tag or digest) and disallow `latest` tags for grader runtimes.
 - CI now enforces sandbox image reference checks before sandbox runtime/fault checks.
 
+72. Backend progress write sync for client-validated exercises (phase 2 progress)
+- Added `POST /api/progress` to persist first-pass completions for locally validated exercises with idempotent XP awarding semantics.
+- `ExerciseEditor` now syncs successful local validations through backend progress writes and applies awarded XP from backend response, tightening cross-device consistency.
+
 ## Runtime Setup
 
 From repo root:

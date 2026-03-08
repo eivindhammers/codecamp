@@ -38,7 +38,8 @@ No unit test suite exists yet. Playwright is available for end-to-end tests (`@p
 ```
 ExerciseEditor (client)
   → client-side validation (lib/exerciseValidation.ts)
-  → POST /api/submissions  → insert DB row + enqueue BullMQ job
+  → local-validation pass → POST /api/progress (idempotent first-pass write)
+  → server-graded exercises → POST /api/submissions  → insert DB row + enqueue BullMQ job
   → worker/submissionWorker.ts picks up job
       → language-specific grader runs content/exercises/{course}/{chapter}/{exercise}/checker
       → updates DB with result + awards XP
@@ -49,7 +50,8 @@ ExerciseEditor (client)
 - **localStorage** (`codecamp_progress`, `codecamp_user_id`) — client-side XP/completion cache via `ProgressContext` (`useReducer`)
 - **SQLite** — backend authoritative record; queried via `/api/progress` and `/api/attempts`
 
-Backend progress now supports full-catalog hydration via `/api/progress?userId=...`, and `ProgressContext` merges backend completion rows with local cache on startup.
+Backend progress now supports full-catalog hydration via `/api/progress?userId=...`, and client-validated completions are persisted via `POST /api/progress` for backend-first XP/progress continuity.
+`ProgressContext` still merges backend completion rows with local cache on startup.
 
 ### All courses are defined in TypeScript
 `lib/courses.ts` (~645 lines) contains all `Course → Chapter → Exercise` data as typed objects. There is no CMS or database for course content.
