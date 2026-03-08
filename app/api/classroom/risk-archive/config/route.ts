@@ -47,6 +47,28 @@ function defaultActorUserId(): string {
   return process.env.CLASSROOM_RISK_ARCHIVE_ACTOR_USER_ID?.trim() || "system:risk-archive";
 }
 
+function destinationEnvKey(name: string): string {
+  return `CLASSROOM_RISK_ARCHIVE_DESTINATION_${name.toUpperCase()}`;
+}
+
+function buildDestinationReferenceHealth() {
+  const configured = parseReferenceNames();
+  const revoked = parseRevokedReferenceNames();
+  const names = Array.from(new Set([...configured, ...revoked])).sort((a, b) =>
+    a.localeCompare(b)
+  );
+  const revokedSet = new Set(revoked);
+  return names.map((name) => {
+    const envKey = destinationEnvKey(name);
+    return {
+      name,
+      envKey,
+      revoked: revokedSet.has(name),
+      hasUrl: (process.env[envKey] ?? "").trim().length > 0,
+    };
+  });
+}
+
 export async function GET(req: Request) {
   const auth = requireGlobalStaff(req);
   if (!auth.ok) return auth.response;
@@ -57,6 +79,7 @@ export async function GET(req: Request) {
       uploadAllowHosts: parseHosts("CLASSROOM_RISK_ARCHIVE_UPLOAD_ALLOW_HOSTS"),
       destinationReferenceNames: parseReferenceNames(),
       destinationRevokedReferenceNames: parseRevokedReferenceNames(),
+      destinationReferenceHealth: buildDestinationReferenceHealth(),
       webhookTimeoutMs: readNumberEnv(
         "CLASSROOM_RISK_ARCHIVE_WEBHOOK_TIMEOUT_MS",
         5000,

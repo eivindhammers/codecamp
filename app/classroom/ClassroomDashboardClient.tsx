@@ -892,52 +892,95 @@ export default function ClassroomDashboardClient() {
               <p className="text-sm text-gray-600">Loading archive governance settings...</p>
             )}
             {archiveGovernanceConfig && (
-              <div className="grid grid-cols-1 gap-2 text-xs text-gray-700 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="rounded border border-gray-200 p-2">
-                  <p className="font-medium text-gray-900">Webhook hosts</p>
-                  <p className="mt-1">
-                    {archiveGovernanceConfig.webhookAllowHosts.length > 0
-                      ? archiveGovernanceConfig.webhookAllowHosts.join(", ")
-                      : "Any host (not restricted)"}
-                  </p>
+              <>
+                <div className="grid grid-cols-1 gap-2 text-xs text-gray-700 sm:grid-cols-2 lg:grid-cols-4">
+                  <div className="rounded border border-gray-200 p-2">
+                    <p className="font-medium text-gray-900">Webhook hosts</p>
+                    <p className="mt-1">
+                      {archiveGovernanceConfig.webhookAllowHosts.length > 0
+                        ? archiveGovernanceConfig.webhookAllowHosts.join(", ")
+                        : "Any host (not restricted)"}
+                    </p>
+                  </div>
+                  <div className="rounded border border-gray-200 p-2">
+                    <p className="font-medium text-gray-900">Upload hosts</p>
+                    <p className="mt-1">
+                      {archiveGovernanceConfig.uploadAllowHosts.length > 0
+                        ? archiveGovernanceConfig.uploadAllowHosts.join(", ")
+                        : "Any host (not restricted)"}
+                    </p>
+                  </div>
+                  <div className="rounded border border-gray-200 p-2">
+                    <p className="font-medium text-gray-900">Timeouts & retries</p>
+                    <p className="mt-1">
+                      webhook {archiveGovernanceConfig.webhookTimeoutMs}ms · upload{" "}
+                      {archiveGovernanceConfig.uploadTimeoutMs}ms
+                    </p>
+                    <p className="mt-1">
+                      retries {archiveGovernanceConfig.deliveryRetryCount} · backoff{" "}
+                      {archiveGovernanceConfig.deliveryRetryBackoffMs}ms
+                    </p>
+                  </div>
+                  <div className="rounded border border-gray-200 p-2">
+                    <p className="font-medium text-gray-900">Automation defaults</p>
+                    <p className="mt-1">batch limit {archiveGovernanceConfig.archiveBatchLimit}</p>
+                    <p className="mt-1">actor {archiveGovernanceConfig.defaultActorUserId}</p>
+                    <p className="mt-1">
+                      refs{" "}
+                      {archiveGovernanceConfig.destinationReferenceNames.length > 0
+                        ? archiveGovernanceConfig.destinationReferenceNames.join(", ")
+                        : "none configured"}
+                    </p>
+                    <p className="mt-1">
+                      revoked refs{" "}
+                      {archiveGovernanceConfig.destinationRevokedReferenceNames.length > 0
+                        ? archiveGovernanceConfig.destinationRevokedReferenceNames.join(", ")
+                        : "none"}
+                    </p>
+                  </div>
                 </div>
-                <div className="rounded border border-gray-200 p-2">
-                  <p className="font-medium text-gray-900">Upload hosts</p>
-                  <p className="mt-1">
-                    {archiveGovernanceConfig.uploadAllowHosts.length > 0
-                      ? archiveGovernanceConfig.uploadAllowHosts.join(", ")
-                      : "Any host (not restricted)"}
-                  </p>
-                </div>
-                <div className="rounded border border-gray-200 p-2">
-                  <p className="font-medium text-gray-900">Timeouts & retries</p>
-                  <p className="mt-1">
-                    webhook {archiveGovernanceConfig.webhookTimeoutMs}ms · upload{" "}
-                    {archiveGovernanceConfig.uploadTimeoutMs}ms
-                  </p>
-                  <p className="mt-1">
-                    retries {archiveGovernanceConfig.deliveryRetryCount} · backoff{" "}
-                    {archiveGovernanceConfig.deliveryRetryBackoffMs}ms
-                  </p>
-                </div>
-                <div className="rounded border border-gray-200 p-2">
-                  <p className="font-medium text-gray-900">Automation defaults</p>
-                  <p className="mt-1">batch limit {archiveGovernanceConfig.archiveBatchLimit}</p>
-                  <p className="mt-1">actor {archiveGovernanceConfig.defaultActorUserId}</p>
-                  <p className="mt-1">
-                    refs{" "}
-                    {archiveGovernanceConfig.destinationReferenceNames.length > 0
-                      ? archiveGovernanceConfig.destinationReferenceNames.join(", ")
-                      : "none configured"}
-                  </p>
-                  <p className="mt-1">
-                    revoked refs{" "}
-                    {archiveGovernanceConfig.destinationRevokedReferenceNames.length > 0
-                      ? archiveGovernanceConfig.destinationRevokedReferenceNames.join(", ")
-                      : "none"}
-                  </p>
-                </div>
-              </div>
+                {archiveGovernanceConfig.destinationReferenceHealth.length > 0 && (
+                  <div className="mt-3 overflow-x-auto">
+                    <p className="mb-1 text-xs font-medium text-gray-700">Destination reference health</p>
+                    <table className="min-w-full text-xs">
+                      <thead>
+                        <tr className="text-left text-gray-500">
+                          <th className="py-1 pr-3">Reference</th>
+                          <th className="py-1 pr-3">Env key</th>
+                          <th className="py-1 pr-3">URL configured</th>
+                          <th className="py-1">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {archiveGovernanceConfig.destinationReferenceHealth.map((ref) => (
+                          <tr key={ref.name} className="border-t border-gray-100">
+                            <td className="py-1 pr-3 font-mono">{ref.name}</td>
+                            <td className="py-1 pr-3 font-mono">{ref.envKey}</td>
+                            <td className="py-1 pr-3">
+                              {ref.hasUrl ? (
+                                <span className="text-emerald-700">configured</span>
+                              ) : (
+                                <span className="text-rose-700">missing</span>
+                              )}
+                            </td>
+                            <td className="py-1">
+                              {ref.revoked ? (
+                                <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700">
+                                  revoked
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+                                  active
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </>
             )}
           </section>
 

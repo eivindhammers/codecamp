@@ -316,6 +316,12 @@ export interface RiskArchiveGovernanceConfig {
   uploadAllowHosts: string[];
   destinationReferenceNames: string[];
   destinationRevokedReferenceNames: string[];
+  destinationReferenceHealth: {
+    name: string;
+    envKey: string;
+    revoked: boolean;
+    hasUrl: boolean;
+  }[];
   webhookTimeoutMs: number;
   uploadTimeoutMs: number;
   deliveryRetryCount: number;
