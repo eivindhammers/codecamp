@@ -98,6 +98,7 @@ Term/section creation endpoints are instructor-only (`POST /api/classroom/terms`
 Assignment creation API validates section/course alignment, exercise existence in `lib/courses.ts`, and due dates within the section term window.
 Assignment creation also enforces max due-date publish horizon and chapter pacing windows via env-configurable policies.
 Assignment tables include per-assignment completion/last-completion data and stalled overdue indicators.
+Assignment creation writes are instructor-only (`POST /api/classroom/assignments`); TAs remain read-capable for assignment visibility.
 Dashboard section risk panels include archive run governance summaries (30-day totals, failures, and last run outcomes).
 Archive automation writes local JSON artifacts to `.data/risk-audit-archives/` and stores delivery refs on archive runs.
 Archive automation also supports webhook delivery via destination labels (`webhook:<url>`), with host allowlisting for outbound safety.

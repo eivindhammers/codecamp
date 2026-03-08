@@ -291,6 +291,10 @@ Primary target users are economics students, with platform usage planned across 
 - Virtualized mode keeps only a subset of section cards mounted in the DOM at once and shows live in-DOM/total counts for visibility.
 - Instructors can toggle virtualized rendering on/off from section controls to balance performance vs full-list rendering behavior.
 
+62. Instructor-only assignment creation writes (phase 2 progress)
+- `POST /api/classroom/assignments` now requires the actor profile role to be `instructor`.
+- Section staff TAs retain assignment visibility (`GET`) but can no longer publish assignment writes.
+
 ## Runtime Setup
 
 From repo root:
