@@ -363,6 +363,10 @@ Primary target users are economics students, with platform usage planned across 
 - `POST /api/classroom/profile` now requires an active session and only allows actors to update their own profile record (`userId` must match session user).
 - Profile writes can no longer override session identity email or role through this route, closing a profile-write privilege boundary gap.
 
+80. Classroom metadata read authentication boundaries (phase 2 progress)
+- `GET /api/classroom/terms` and `GET /api/classroom/sections` now require authenticated global staff sessions, preventing unauthenticated classroom metadata reads.
+- This aligns read access with existing staff-only dashboard usage and closes a classroom identity exposure gap.
+
 ## Runtime Setup
 
 From repo root:
@@ -408,6 +412,7 @@ npm run redis:down
 - Verify TA cannot mutate an existing enrollment role.
 - Verify staff-role assignment to an explicitly student-profile user is rejected.
 - Verify `/api/classroom/profile` rejects unauthenticated writes and rejects cross-user profile updates.
+- Verify unauthenticated requests to `/api/classroom/terms` and `/api/classroom/sections` are rejected.
 
 5. Governance/sandbox gates
 - Run `npm run check:sandbox-images`, `npm run check:sandbox-policy`, `npm run check:sandbox-faults` (docker mode).

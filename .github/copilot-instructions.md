@@ -73,6 +73,7 @@ export const runtime = 'nodejs';
 
 ### Classroom backend foundation exists
 `/api/classroom/*` includes terms, sections, enrollments, assignments, profile, metrics, and export endpoints backed by SQLite tables in `submissionDb.ts`.
+Classroom metadata reads for terms/sections are staff-authenticated (`GET /api/classroom/terms`, `GET /api/classroom/sections`), matching dashboard access expectations.
 `/api/classroom/sections/metrics` provides instructor-oriented learner progress rollups per section.
 Protected classroom routes now use session-backed identity (`codecamp_session` cookie) with role/section checks; production identity provider integration is still pending.
 `/api/classroom/sections/export` provides JSON/CSV grade-summary exports for section instructors.
