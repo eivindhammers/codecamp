@@ -185,6 +185,10 @@ Primary target users are economics students, with platform usage planned across 
 - Added configurable audit retention controls in persistence layer via `CLASSROOM_RISK_AUDIT_RETENTION_DAYS` and `CLASSROOM_RISK_AUDIT_MAX_ROWS_PER_SECTION`.
 - Dashboard section policy panels now include audit export links aligned with active audit filters.
 
+37. Server-backed section pagination/sorting (phase 2 progress)
+- `GET /api/classroom/sections` now supports `search`, `courseSlug`, `sort`, `limit`, and `offset`, and returns paging metadata.
+- Classroom dashboard section activity now uses paged API loading with server-backed search/sort and load-more controls.
+
 ## Runtime Setup
 
 From repo root:
@@ -242,7 +246,7 @@ npm run redis:down
 - Keep migration path from local IDs where possible.
 
 3. Instructor workflow (teaching operations, phase 2)
-- Add server-backed sorting/pagination support and term/course filters for very large section datasets.
+- Add section list virtualization/performance tuning and richer term-based filtering for very large datasets.
 - Add assignment authoring validation against course pacing milestones and enforce max publish horizon per section policy.
 - Add audit export scheduling/archival options and governance reporting.
 
