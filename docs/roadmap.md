@@ -355,6 +355,10 @@ Primary target users are economics students, with platform usage planned across 
 - `ProgressContext` hydration now treats backend progress as authoritative whenever backend records exist, preventing stale local cache from silently overriding backend truth.
 - Local cache remains a fallback only when backend has no rows yet, preserving first-session usability while converging to backend-first continuity.
 
+78. Multi-course content-pack throughput expansion (phase 2 progress)
+- Added scaffolded filesystem packs for `intermediate-python/pandas/groupby`, `economics-data-science/regression/ols`, and `r-for-economists/panel-data/fe-regression`.
+- `check:content-packs` now validates these additional packs successfully, increasing migration coverage across both Python and R course tracks.
+
 ## Runtime Setup
 
 From repo root:
@@ -441,19 +445,19 @@ Use this queue for day-to-day execution; keep it small and rotate items after ea
 - Outcome: remaining write-boundary gaps closed for instructor/TA/student transitions.
 - Acceptance: protected routes reject invalid role mutations with explicit errors; lint/build pass.
 
-2. Content migration throughput
-- Outcome: additional course exercises are moved into `content/exercises/...` using scaffold/parity workflow.
-- Acceptance: migrated packs pass `check:content-packs` and remain aligned with `lib/courses.ts`.
+2. Sandbox digest-only rollout
+- Outcome: production/CI image references move to digest-pinned form with strict enforcement enabled.
+- Acceptance: `GRADER_REQUIRE_IMAGE_DIGESTS=true` passes in enforced environments and docs reflect pinned-image policy.
 
 ### Next
-1. Sandbox digest-only rollout
-- Move CI/production grader image references to digests and enable `GRADER_REQUIRE_IMAGE_DIGESTS` in enforcement environments.
-
-2. Archive credential lifecycle automation depth
+1. Archive credential lifecycle automation depth
 - Extend runbook guidance with operational automation hooks (alerting/escalation/checklists) as governance surfaces mature.
 
-3. Progress sync UX hardening
+2. Progress sync UX hardening
 - Add user-visible sync/error affordances so backend-progress failures are explicit instead of silent.
+
+3. Content migration throughput (next tranche)
+- Continue migrating additional exercises into `content/exercises/...` with parity checks and scaffold workflow.
 
 ### Later
 1. Broader server-side grading coverage across additional exercises/courses.
