@@ -106,6 +106,7 @@ Use these for API response shapes. Add new types here rather than inline.
 - Docker mode uses `GRADER_DOCKER_R_IMAGE` / `GRADER_DOCKER_PYTHON_IMAGE` when set.
 - `AUTH_BOOTSTRAP_INSTRUCTOR_EMAILS` (comma-separated) grants bootstrap instructor role for listed emails during session sign-in.
 - OIDC mode requires `AUTH_OIDC_AUTHORIZATION_URL`, `AUTH_OIDC_TOKEN_URL`, `AUTH_OIDC_USERINFO_URL`, `AUTH_OIDC_CLIENT_ID`, `AUTH_OIDC_CLIENT_SECRET` (+ optional `AUTH_OIDC_REDIRECT_URI`, `AUTH_OIDC_SCOPE`).
+- OIDC role sync supports env-driven claim mapping: `AUTH_OIDC_ROLE_CLAIM`, `AUTH_OIDC_GROUP_CLAIM`, `AUTH_OIDC_INSTRUCTOR_ROLE_VALUES`, `AUTH_OIDC_TA_ROLE_VALUES`, `AUTH_OIDC_INSTRUCTOR_GROUP_VALUES`, `AUTH_OIDC_TA_GROUP_VALUES`, `AUTH_OIDC_INSTRUCTOR_EMAILS`, `AUTH_OIDC_TA_EMAILS`, `AUTH_OIDC_DEFAULT_ROLE`.
 - In production, sandbox mode defaults to Docker when `GRADER_SANDBOX_MODE` is unset.
 - CI workflow (`.github/workflows/ci.yml`) enforces `check:sandbox`, `check:sandbox-policy`, `check:sandbox-runtime`, `check:sandbox-faults`, lint, and build.
 

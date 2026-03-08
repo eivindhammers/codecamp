@@ -152,6 +152,10 @@ Primary target users are economics students, with platform usage planned across 
 - Added `npm run check:sandbox-faults` to assert Docker sandbox timeout handling for both Python and R checker runtimes.
 - CI now validates sandbox config, policy, runtime execution, and timeout fault behavior before lint/build.
 
+29. OIDC role-claim mapping sync (phase 2 progress)
+- OIDC callback now maps identity claims to classroom roles (`instructor`/`ta`/`student`) and syncs profile roles on each sign-in.
+- Added flexible env-driven claim mapping for role/group/email-based role assignment.
+
 ## Runtime Setup
 
 From repo root:
@@ -204,7 +208,7 @@ npm run redis:down
 - Add additional fault-injection coverage for memory/process-limit pressure in Docker sandbox checks.
 
 2. Classroom identity and enrollment model (phase 2 completion)
-- Add role-claim mapping/synchronization from IdP (e.g., instructor/ta) instead of email bootstrap-only role seeding.
+- Expand role mapping governance (policy docs/audit logs) and align section-staff enrollment workflows with IdP-derived roles.
 - Keep and harden instructor/TA/student authorization rules on classroom routes.
 - Keep migration path from local IDs where possible.
 
@@ -231,8 +235,8 @@ npm run redis:down
 4. Worker and API run in-process/local; no production orchestration yet.
 5. Docker daemon must be available for `redis:up`.
 6. Docker sandbox defaults are production-safe, but host runtime fallback still exists for development and explicit host mode.
-7. Session auth currently uses email-based bootstrap and still needs production identity provider integration.
-8. Instructor dashboard currently uses API-level session auth only; no dedicated auth UI flows beyond email bootstrap.
+7. OIDC integration exists, but deployment still requires configuring provider env vars and role-claim mappings per institution.
+8. Session lifecycle is API-managed; dedicated account/settings UX beyond sign-in/out is still minimal.
 
 ## Suggested Next Session Start
 
