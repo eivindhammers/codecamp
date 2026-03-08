@@ -315,6 +315,10 @@ Primary target users are economics students, with platform usage planned across 
 - Added `npm run check:archive-refs` to validate destination reference env consistency (configured refs, revoked-ref list coherence, URL protocol, and host allowlist compatibility).
 - CI now runs archive-ref checks alongside existing content/sandbox gates before lint/build.
 
+68. Full-catalog backend progress hydration (phase 2 progress)
+- `GET /api/progress?userId=...` now returns catalog-wide progress rows (course filter optional), while exercise-level queries continue to support `courseSlug/chapterId/exerciseId`.
+- `ProgressContext` now hydrates from backend catalog progress at startup and merges it with local storage completion state for cross-device continuity on broader exercise sets.
+
 ## Runtime Setup
 
 From repo root:

@@ -48,7 +48,7 @@ ExerciseEditor (client)
 - **localStorage** (`codecamp_progress`, `codecamp_user_id`) — client-side XP/completion cache via `ProgressContext` (`useReducer`)
 - **SQLite** — backend authoritative record; queried via `/api/progress` and `/api/attempts`
 
-Backend progress now hydrates `ProgressContext` for server-graded exercises; full catalog sync is still an open task.
+Backend progress now supports full-catalog hydration via `/api/progress?userId=...`, and `ProgressContext` merges backend completion rows with local cache on startup.
 
 ### All courses are defined in TypeScript
 `lib/courses.ts` (~645 lines) contains all `Course → Chapter → Exercise` data as typed objects. There is no CMS or database for course content.
