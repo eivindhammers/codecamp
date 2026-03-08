@@ -6,22 +6,18 @@ import type {
   AcademicTermRecord,
   AcademicTermsResponse,
   AssignmentRecord,
-  AssignmentsResponse,
   AuthConfigResponse,
   AuthSessionResponse,
   ClassSectionRecord,
   ClassSectionsResponse,
   ClassroomRiskConfig,
   SectionAssignmentBreakdownRecord,
-  SectionAssignmentBreakdownResponse,
   SectionGradeSummaryRecord,
-  SectionGradeSummaryResponse,
   SectionLearnerMetric,
-  SectionLearnerMetricsResponse,
   SectionRiskPolicyAuditRecord,
   SectionRiskArchivePolicyRecord,
   SectionRiskArchivePolicyResponse,
-  SectionRiskArchiveReportResponse,
+  SectionOverviewResponse,
   SectionRiskArchiveRunRecord,
   SectionRiskPolicyRecord,
   SectionRiskPolicyResponse,
@@ -170,68 +166,22 @@ export default function ClassroomDashboardClient() {
       const panels = await Promise.all(
         sectionsPayload.sections.map(async (section) => {
           try {
-            const [
-              metricsPayload,
-              assignmentsPayload,
-              summaryPayload,
-              breakdownPayload,
-              riskPayload,
-              archivePayload,
-              archiveReportPayload,
-            ] =
-              await Promise.all([
-                readJson<SectionLearnerMetricsResponse>(
-                  `/api/classroom/sections/metrics?sectionId=${encodeURIComponent(section.sectionId)}`
-                ),
-                readJson<AssignmentsResponse>(
-                  `/api/classroom/assignments?sectionId=${encodeURIComponent(section.sectionId)}`
-              ),
-                readJson<SectionGradeSummaryResponse>(
-                  `/api/classroom/sections/export?sectionId=${encodeURIComponent(
-                    section.sectionId
-                  )}&format=json`
-                ),
-                readJson<SectionAssignmentBreakdownResponse>(
-                  `/api/classroom/sections/assignment-breakdown?sectionId=${encodeURIComponent(
-                    section.sectionId
-                  )}`
-                ),
-                readJson<SectionRiskPolicyResponse>(
-                  `/api/classroom/sections/risk-policy?sectionId=${encodeURIComponent(
-                    section.sectionId
-                  )}&limit=50`
-                ),
-                readJson<SectionRiskArchivePolicyResponse>(
-                  `/api/classroom/sections/risk-policy/archive?sectionId=${encodeURIComponent(
-                    section.sectionId
-                  )}`
-                ),
-                readJson<SectionRiskArchiveReportResponse>(
-                  `/api/classroom/sections/risk-policy/archive/report?sectionId=${encodeURIComponent(
-                    section.sectionId
-                  )}&windowDays=30&limit=5`
-                ),
-              ]);
+            const overview = await readJson<SectionOverviewResponse>(
+              `/api/classroom/sections/overview?sectionId=${encodeURIComponent(section.sectionId)}`
+            );
             return {
               section,
-              metrics: metricsPayload.metrics,
-              assignments: assignmentsPayload.assignments,
-              assignmentBreakdown: breakdownPayload.assignments,
-              gradeSummary: summaryPayload.summary,
-              riskPolicy: riskPayload.policy,
-              riskPolicyHistory: riskPayload.history,
-              riskArchivePolicy: archivePayload.policy,
-              riskArchiveNextAt: archivePayload.nextArchiveAt,
-              riskArchiveRecentRuns: archiveReportPayload.recentRuns,
-              riskArchiveWindow: {
-                totalRuns: archiveReportPayload.report.totalRuns,
-                successRuns: archiveReportPayload.report.successRuns,
-                failedRuns: archiveReportPayload.report.failedRuns,
-                failureRate: archiveReportPayload.report.failureRate,
-                lastSuccessAt: archiveReportPayload.report.lastSuccessAt,
-                lastFailureAt: archiveReportPayload.report.lastFailureAt,
-              },
-              effectiveRiskConfig: riskPayload.effectiveConfig,
+              metrics: overview.metrics,
+              assignments: overview.assignments,
+              assignmentBreakdown: overview.assignmentBreakdown,
+              gradeSummary: overview.gradeSummary,
+              riskPolicy: overview.riskPolicy,
+              riskPolicyHistory: overview.riskPolicyHistory,
+              riskArchivePolicy: overview.riskArchivePolicy,
+              riskArchiveNextAt: overview.riskArchiveNextAt,
+              riskArchiveRecentRuns: overview.riskArchiveRecentRuns,
+              riskArchiveWindow: overview.riskArchiveWindow,
+              effectiveRiskConfig: overview.effectiveRiskConfig,
             } as SectionPanel;
           } catch (error) {
             return {

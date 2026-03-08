@@ -276,6 +276,27 @@ export interface SectionRiskArchiveReportResponse {
   recentRuns: SectionRiskArchiveRunRecord[];
 }
 
+export interface SectionOverviewResponse {
+  metrics: SectionLearnerMetric[];
+  assignments: AssignmentRecord[];
+  assignmentBreakdown: SectionAssignmentBreakdownRecord[];
+  gradeSummary: SectionGradeSummaryRecord[];
+  riskPolicy?: SectionRiskPolicyRecord;
+  riskPolicyHistory: SectionRiskPolicyAuditRecord[];
+  effectiveRiskConfig: ClassroomRiskConfig;
+  riskArchivePolicy: SectionRiskArchivePolicyRecord;
+  riskArchiveNextAt: number;
+  riskArchiveRecentRuns: SectionRiskArchiveRunRecord[];
+  riskArchiveWindow: {
+    totalRuns: number;
+    successRuns: number;
+    failedRuns: number;
+    failureRate: number;
+    lastSuccessAt: number | null;
+    lastFailureAt: number | null;
+  };
+}
+
 export interface RiskArchiveAutomationItem {
   sectionId: string;
   due: boolean;
