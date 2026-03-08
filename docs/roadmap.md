@@ -347,6 +347,10 @@ Primary target users are economics students, with platform usage planned across 
 - Runtime sandbox selection now forces Docker in production even if `GRADER_SANDBOX_MODE=host`, unless explicit breakglass override (`GRADER_ALLOW_HOST_MODE_IN_PRODUCTION=true`) is set.
 - `check:sandbox-images` now supports optional digest-only enforcement via `GRADER_REQUIRE_IMAGE_DIGESTS=true` to enable staged rollout toward fully digest-pinned grader images.
 
+76. Archive incident runbook guidance in governance UI (phase 2 progress)
+- Archive Delivery Governance now includes a concrete incident runbook for destination validation, ref health triage, and recovery/export workflow.
+- This gives instructors explicit rotation/revocation failure-handling steps from the same panel used to review archive config and reference health.
+
 ## Runtime Setup
 
 From repo root:
@@ -433,19 +437,19 @@ Use this queue for day-to-day execution; keep it small and rotate items after ea
 - Outcome: remaining write-boundary gaps closed for instructor/TA/student transitions.
 - Acceptance: protected routes reject invalid role mutations with explicit errors; lint/build pass.
 
-2. Archive credential lifecycle runbooks
-- Outcome: rotation/revocation and delivery-failure workflows are explicit for instructor operations.
-- Acceptance: runbook steps are documented and linked from governance surfaces/docs.
+2. Progress reconciliation policy
+- Outcome: backend-first conflict resolution is explicit when local cache and backend progress/XP differ.
+- Acceptance: reconciliation rules are implemented and documented; local cache no longer silently overrides backend truth.
 
 ### Next
-1. Progress reconciliation policy
-- Define and implement backend-first conflict resolution rules for local cache vs backend XP/progress.
-
-2. Content migration throughput
+1. Content migration throughput
 - Use scaffolding to migrate additional exercises into `content/exercises/...` with parity checks green.
 
-3. Sandbox digest-only rollout
+2. Sandbox digest-only rollout
 - Move CI/production grader image references to digests and enable `GRADER_REQUIRE_IMAGE_DIGESTS` in enforcement environments.
+
+3. Archive credential lifecycle automation depth
+- Extend runbook guidance with operational automation hooks (alerting/escalation/checklists) as governance surfaces mature.
 
 ### Later
 1. Broader server-side grading coverage across additional exercises/courses.
