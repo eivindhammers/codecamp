@@ -311,6 +311,10 @@ Primary target users are economics students, with platform usage planned across 
 - `GET /api/classroom/risk-archive/config` now includes per-reference health metadata (ref name, env key, revoked flag, URL-present flag).
 - Classroom dashboard governance panel now renders destination reference health rows to support rotation/revocation and missing-secret detection.
 
+67. Archive destination ref configuration check gate (phase 2 progress)
+- Added `npm run check:archive-refs` to validate destination reference env consistency (configured refs, revoked-ref list coherence, URL protocol, and host allowlist compatibility).
+- CI now runs archive-ref checks alongside existing content/sandbox gates before lint/build.
+
 ## Runtime Setup
 
 From repo root:

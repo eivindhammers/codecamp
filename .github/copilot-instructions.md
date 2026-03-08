@@ -12,6 +12,7 @@ npm run check:sandbox-runtime # Execute R/Python graders in docker sandbox as sm
 npm run check:sandbox-startup # Measure R/Python docker grader startup time against thresholds
 npm run check:sandbox-faults # Assert timeout fault handling in docker sandbox
 npm run check:content-packs # Validate filesystem exercise packs against course metadata/contracts
+npm run check:archive-refs # Validate archive destination reference environment/allowlist consistency
 npm run scaffold:content-pack -- --key <course/chapter/exercise> [--force] # Scaffold exercise pack files from courses.ts
 npm run archive:risk-audit # Execute due risk-audit archive runs and record outcomes
 npm run worker      # Background grading worker (requires Redis)
@@ -153,9 +154,10 @@ Use these for API response shapes. Add new types here rather than inline.
 - Destination references can be configured with `CLASSROOM_RISK_ARCHIVE_DESTINATION_REF_NAMES` plus per-ref URL env vars (`CLASSROOM_RISK_ARCHIVE_DESTINATION_<REF_NAME>`), and used via `webhookref:<refName>` / `puturlref:<refName>`.
 - Destination reference revocation is env-configurable via `CLASSROOM_RISK_ARCHIVE_DESTINATION_REVOKED_REF_NAMES` (revoked refs are rejected during validation and archive delivery execution).
 - Archive destination validation reuses delivery governance checks, including webhook/upload host allowlists and protocol enforcement.
+- `check:archive-refs` validates configured destination refs, revoked-ref consistency, and per-ref URL/host allowlist compatibility.
 - In production, sandbox mode defaults to Docker when `GRADER_SANDBOX_MODE` is unset.
 - CI workflow (`.github/workflows/ci.yml`) enforces `check:sandbox`, `check:sandbox-policy`, `check:sandbox-runtime`, `check:sandbox-startup`, `check:sandbox-faults`, lint, and build.
-- CI workflow (`.github/workflows/ci.yml`) also enforces `check:content-packs` before lint/build.
+- CI workflow (`.github/workflows/ci.yml`) also enforces `check:content-packs` and `check:archive-refs` before lint/build.
 - `check:content-packs` validates pack manifests (`exercise.json`) against `lib/courses.ts` metadata plus required checker/solution files.
 - `scaffold:content-pack` bootstraps `content/exercises/...` packs from `lib/courses.ts` (manifest + checker + solution), with optional `--force` overwrite.
 - `check:sandbox-faults` covers timeout, memory pressure, process-limit pressure, and outbound-network isolation scenarios for Docker grader execution.
