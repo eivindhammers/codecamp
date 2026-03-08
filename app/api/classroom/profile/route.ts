@@ -1,11 +1,16 @@
 import { NextResponse } from "next/server";
 import { UserProfileResponse } from "@/lib/grading/contracts";
+import { getSessionProfile } from "@/app/api/auth/_session";
 import { upsertUserProfile } from "@/lib/grading/submissionDb";
 
 export const runtime = "nodejs";
 
 function badRequest(message: string) {
   return NextResponse.json({ error: message }, { status: 400 });
+}
+
+function forbidden(message: string) {
+  return NextResponse.json({ error: message }, { status: 403 });
 }
 
 interface ProfilePayload {
@@ -26,15 +31,26 @@ export async function POST(req: Request) {
   const displayName = body.displayName?.trim() ?? "";
   const email = body.email?.trim().toLowerCase() ?? "";
 
-  if (!userId || !displayName || !email) {
-    return badRequest("Missing required fields: userId, displayName, email.");
+  if (!userId || !displayName) {
+    return badRequest("Missing required fields: userId, displayName.");
+  }
+
+  const actor = getSessionProfile(req);
+  if (!actor) {
+    return forbidden("Missing active session cookie.");
+  }
+  if (actor.userId !== userId) {
+    return forbidden("Actor may only update their own profile.");
+  }
+  if (email && email !== actor.email) {
+    return forbidden("Profile email must match the authenticated session identity.");
   }
 
   const profile = upsertUserProfile({
     userId,
     displayName,
-    email,
-    role: "student",
+    email: actor.email,
+    role: actor.role,
   });
   const response: UserProfileResponse = { profile };
   return NextResponse.json(response);
