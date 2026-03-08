@@ -7,6 +7,7 @@ import type {
   AcademicTermsResponse,
   AssignmentRecord,
   AuthConfigResponse,
+  RiskArchiveGovernanceConfigResponse,
   AuthSessionResponse,
   ClassSectionRecord,
   ClassSectionsResponse,
@@ -108,6 +109,9 @@ export default function ClassroomDashboardClient() {
   const [authMode, setAuthMode] = useState<"bootstrap" | "oidc">("bootstrap");
   const [authBusy, setAuthBusy] = useState(false);
   const [authError, setAuthError] = useState("");
+  const [archiveGovernanceError, setArchiveGovernanceError] = useState("");
+  const [archiveGovernanceConfig, setArchiveGovernanceConfig] =
+    useState<RiskArchiveGovernanceConfigResponse["config"]>();
   const [profile, setProfile] = useState<UserProfileRecord>();
   const [sections, setSections] = useState<SectionPanel[]>([]);
   const [loadingSections, setLoadingSections] = useState(false);
@@ -300,6 +304,29 @@ export default function ClassroomDashboardClient() {
       }
     };
     void loadTerms();
+  }, [isStaff, profile]);
+
+  useEffect(() => {
+    if (!profile || !isStaff) {
+      setArchiveGovernanceConfig(undefined);
+      setArchiveGovernanceError("");
+      return;
+    }
+    const loadArchiveGovernance = async () => {
+      try {
+        const payload = await readJson<RiskArchiveGovernanceConfigResponse>(
+          "/api/classroom/risk-archive/config"
+        );
+        setArchiveGovernanceConfig(payload.config);
+        setArchiveGovernanceError("");
+      } catch (error) {
+        setArchiveGovernanceConfig(undefined);
+        setArchiveGovernanceError(
+          error instanceof Error ? error.message : "Failed to load archive governance config."
+        );
+      }
+    };
+    void loadArchiveGovernance();
   }, [isStaff, profile]);
 
   useEffect(() => {
@@ -755,6 +782,52 @@ export default function ClassroomDashboardClient() {
               <p className="text-xs text-gray-500">Stuck learners</p>
               <p className="text-2xl font-semibold text-rose-700">{summary.stuckLearners}</p>
             </div>
+          </section>
+
+          <section className="bg-white border border-gray-200 rounded-xl p-5">
+            <h2 className="font-semibold text-gray-900 mb-2">Archive Delivery Governance</h2>
+            {archiveGovernanceError && (
+              <p className="text-sm text-rose-700 mb-2">{archiveGovernanceError}</p>
+            )}
+            {!archiveGovernanceError && !archiveGovernanceConfig && (
+              <p className="text-sm text-gray-600">Loading archive governance settings...</p>
+            )}
+            {archiveGovernanceConfig && (
+              <div className="grid grid-cols-1 gap-2 text-xs text-gray-700 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="rounded border border-gray-200 p-2">
+                  <p className="font-medium text-gray-900">Webhook hosts</p>
+                  <p className="mt-1">
+                    {archiveGovernanceConfig.webhookAllowHosts.length > 0
+                      ? archiveGovernanceConfig.webhookAllowHosts.join(", ")
+                      : "Any host (not restricted)"}
+                  </p>
+                </div>
+                <div className="rounded border border-gray-200 p-2">
+                  <p className="font-medium text-gray-900">Upload hosts</p>
+                  <p className="mt-1">
+                    {archiveGovernanceConfig.uploadAllowHosts.length > 0
+                      ? archiveGovernanceConfig.uploadAllowHosts.join(", ")
+                      : "Any host (not restricted)"}
+                  </p>
+                </div>
+                <div className="rounded border border-gray-200 p-2">
+                  <p className="font-medium text-gray-900">Timeouts & retries</p>
+                  <p className="mt-1">
+                    webhook {archiveGovernanceConfig.webhookTimeoutMs}ms · upload{" "}
+                    {archiveGovernanceConfig.uploadTimeoutMs}ms
+                  </p>
+                  <p className="mt-1">
+                    retries {archiveGovernanceConfig.deliveryRetryCount} · backoff{" "}
+                    {archiveGovernanceConfig.deliveryRetryBackoffMs}ms
+                  </p>
+                </div>
+                <div className="rounded border border-gray-200 p-2">
+                  <p className="font-medium text-gray-900">Automation defaults</p>
+                  <p className="mt-1">batch limit {archiveGovernanceConfig.archiveBatchLimit}</p>
+                  <p className="mt-1">actor {archiveGovernanceConfig.defaultActorUserId}</p>
+                </div>
+              </div>
+            )}
           </section>
 
           <section className="bg-white border border-gray-200 rounded-xl p-5">

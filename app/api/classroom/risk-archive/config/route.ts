@@ -1,0 +1,61 @@
+import { NextResponse } from "next/server";
+import { RiskArchiveGovernanceConfigResponse } from "@/lib/grading/contracts";
+import { requireGlobalStaff } from "@/app/api/classroom/_auth";
+
+export const runtime = "nodejs";
+
+function readNumberEnv(name: string, fallback: number, min: number, max: number): number {
+  const raw = Number.parseInt(process.env[name] ?? "", 10);
+  if (!Number.isFinite(raw)) return fallback;
+  return Math.min(Math.max(raw, min), max);
+}
+
+function parseHosts(name: string): string[] {
+  return (process.env[name] ?? "")
+    .split(",")
+    .map((value) => value.trim().toLowerCase())
+    .filter((value) => value.length > 0);
+}
+
+function defaultActorUserId(): string {
+  return process.env.CLASSROOM_RISK_ARCHIVE_ACTOR_USER_ID?.trim() || "system:risk-archive";
+}
+
+export async function GET(req: Request) {
+  const auth = requireGlobalStaff(req);
+  if (!auth.ok) return auth.response;
+
+  const response: RiskArchiveGovernanceConfigResponse = {
+    config: {
+      webhookAllowHosts: parseHosts("CLASSROOM_RISK_ARCHIVE_WEBHOOK_ALLOW_HOSTS"),
+      uploadAllowHosts: parseHosts("CLASSROOM_RISK_ARCHIVE_UPLOAD_ALLOW_HOSTS"),
+      webhookTimeoutMs: readNumberEnv(
+        "CLASSROOM_RISK_ARCHIVE_WEBHOOK_TIMEOUT_MS",
+        5000,
+        1000,
+        30000
+      ),
+      uploadTimeoutMs: readNumberEnv(
+        "CLASSROOM_RISK_ARCHIVE_UPLOAD_TIMEOUT_MS",
+        10000,
+        1000,
+        60000
+      ),
+      deliveryRetryCount: readNumberEnv(
+        "CLASSROOM_RISK_ARCHIVE_DELIVERY_RETRY_COUNT",
+        2,
+        0,
+        10
+      ),
+      deliveryRetryBackoffMs: readNumberEnv(
+        "CLASSROOM_RISK_ARCHIVE_DELIVERY_RETRY_BACKOFF_MS",
+        1000,
+        100,
+        10000
+      ),
+      archiveBatchLimit: readNumberEnv("CLASSROOM_RISK_ARCHIVE_BATCH_LIMIT", 5000, 100, 20000),
+      defaultActorUserId: defaultActorUserId(),
+    },
+  };
+  return NextResponse.json(response);
+}

@@ -310,3 +310,18 @@ export interface RiskArchiveAutomationResponse {
   executedAt: number;
   processed: RiskArchiveAutomationItem[];
 }
+
+export interface RiskArchiveGovernanceConfig {
+  webhookAllowHosts: string[];
+  uploadAllowHosts: string[];
+  webhookTimeoutMs: number;
+  uploadTimeoutMs: number;
+  deliveryRetryCount: number;
+  deliveryRetryBackoffMs: number;
+  archiveBatchLimit: number;
+  defaultActorUserId: string;
+}
+
+export interface RiskArchiveGovernanceConfigResponse {
+  config: RiskArchiveGovernanceConfig;
+}
