@@ -8,6 +8,8 @@ import type {
   AuthSessionResponse,
   ClassSectionRecord,
   ClassSectionsResponse,
+  SectionAssignmentBreakdownRecord,
+  SectionAssignmentBreakdownResponse,
   SectionGradeSummaryRecord,
   SectionGradeSummaryResponse,
   SectionLearnerMetric,
@@ -20,6 +22,7 @@ interface SectionPanel {
   section: ClassSectionRecord;
   metrics: SectionLearnerMetric[];
   assignments: AssignmentRecord[];
+  assignmentBreakdown: SectionAssignmentBreakdownRecord[];
   gradeSummary: SectionGradeSummaryRecord[];
   error?: string;
 }
@@ -96,23 +99,30 @@ export default function ClassroomDashboardClient() {
       const panels = await Promise.all(
         sectionsPayload.sections.map(async (section) => {
           try {
-            const [metricsPayload, assignmentsPayload, summaryPayload] = await Promise.all([
-              readJson<SectionLearnerMetricsResponse>(
-                `/api/classroom/sections/metrics?sectionId=${encodeURIComponent(section.sectionId)}`
+            const [metricsPayload, assignmentsPayload, summaryPayload, breakdownPayload] =
+              await Promise.all([
+                readJson<SectionLearnerMetricsResponse>(
+                  `/api/classroom/sections/metrics?sectionId=${encodeURIComponent(section.sectionId)}`
+                ),
+                readJson<AssignmentsResponse>(
+                  `/api/classroom/assignments?sectionId=${encodeURIComponent(section.sectionId)}`
               ),
-              readJson<AssignmentsResponse>(
-                `/api/classroom/assignments?sectionId=${encodeURIComponent(section.sectionId)}`
-              ),
-              readJson<SectionGradeSummaryResponse>(
-                `/api/classroom/sections/export?sectionId=${encodeURIComponent(
-                  section.sectionId
-                )}&format=json`
-              ),
-            ]);
+                readJson<SectionGradeSummaryResponse>(
+                  `/api/classroom/sections/export?sectionId=${encodeURIComponent(
+                    section.sectionId
+                  )}&format=json`
+                ),
+                readJson<SectionAssignmentBreakdownResponse>(
+                  `/api/classroom/sections/assignment-breakdown?sectionId=${encodeURIComponent(
+                    section.sectionId
+                  )}`
+                ),
+              ]);
             return {
               section,
               metrics: metricsPayload.metrics,
               assignments: assignmentsPayload.assignments,
+              assignmentBreakdown: breakdownPayload.assignments,
               gradeSummary: summaryPayload.summary,
             } as SectionPanel;
           } catch (error) {
@@ -120,6 +130,7 @@ export default function ClassroomDashboardClient() {
               section,
               metrics: [],
               assignments: [],
+              assignmentBreakdown: [],
               gradeSummary: [],
               error:
                 error instanceof Error
@@ -465,6 +476,9 @@ export default function ClassroomDashboardClient() {
                 );
                 const pageStart = (currentPage - 1) * pageSize;
                 const visibleRows = learnerRows.slice(pageStart, pageStart + pageSize);
+                const breakdownByAssignmentId = new Map(
+                  panel.assignmentBreakdown.map((item) => [item.assignmentId, item])
+                );
 
                 return (
                   <div
@@ -716,6 +730,9 @@ export default function ClassroomDashboardClient() {
                                 <th className="py-1 pr-2">Title</th>
                                 <th className="py-1 pr-2">Exercise</th>
                                 <th className="py-1 pr-2">Due</th>
+                                <th className="py-1 pr-2">Completed</th>
+                                <th className="py-1 pr-2">Rate</th>
+                                <th className="py-1 pr-2">Last completion</th>
                                 <th className="py-1">Status</th>
                               </tr>
                             </thead>
@@ -725,6 +742,19 @@ export default function ClassroomDashboardClient() {
                                 const isLate =
                                   assignment.dueAt !== null && assignment.dueAt < now;
                                 const hasDueDate = assignment.dueAt !== null;
+                                const breakdown = breakdownByAssignmentId.get(
+                                  assignment.assignmentId
+                                );
+                                const completedLabel = breakdown
+                                  ? `${breakdown.completedLearners}/${breakdown.learnersTotal}`
+                                  : "—";
+                                const completionRateLabel = breakdown
+                                  ? `${breakdown.completionRate.toFixed(1)}%`
+                                  : "—";
+                                const stalled =
+                                  isLate &&
+                                  breakdown !== undefined &&
+                                  breakdown.completionRate < 60;
                                 return (
                                   <tr
                                     key={assignment.assignmentId}
@@ -739,7 +769,19 @@ export default function ClassroomDashboardClient() {
                                         ? new Date(assignment.dueAt as number).toLocaleString()
                                         : "No due date"}
                                     </td>
+                                    <td className="py-1.5 pr-2">{completedLabel}</td>
+                                    <td className="py-1.5 pr-2">{completionRateLabel}</td>
+                                    <td className="py-1.5 pr-2">
+                                      {breakdown?.lastCompletionAt
+                                        ? new Date(breakdown.lastCompletionAt).toLocaleString()
+                                        : "—"}
+                                    </td>
                                     <td className="py-1.5">
+                                      {stalled && (
+                                        <span className="mr-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                                          Stalled
+                                        </span>
+                                      )}
                                       {!hasDueDate && (
                                         <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
                                           Open

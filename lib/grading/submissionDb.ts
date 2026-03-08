@@ -12,6 +12,7 @@ import {
   ExerciseProgressRecord,
   GradingResult,
   SectionEnrollmentRecord,
+  SectionAssignmentBreakdownRecord,
   SectionGradeSummaryRecord,
   SectionLearnerMetric,
   SubmissionStatus,
@@ -244,6 +245,19 @@ interface SectionGradeSummaryRow {
   completion_rate: number;
   attempts_count: number;
   last_attempt_at: number | null;
+}
+
+interface SectionAssignmentBreakdownRow {
+  assignment_id: string;
+  section_id: string;
+  title: string;
+  chapter_id: string;
+  exercise_id: string;
+  due_at: number | null;
+  learners_total: number;
+  completed_learners: number;
+  completion_rate: number;
+  last_completion_at: number | null;
 }
 
 function hasColumn(tableName: string, columnName: string) {
@@ -1144,4 +1158,71 @@ export function listSectionGradeSummary(sectionId: string): SectionGradeSummaryR
     .all(sectionId) as SectionGradeSummaryRow[];
 
   return rows.map(mapSectionGradeSummaryRow);
+}
+
+function mapSectionAssignmentBreakdownRow(
+  row: SectionAssignmentBreakdownRow
+): SectionAssignmentBreakdownRecord {
+  return {
+    assignmentId: row.assignment_id,
+    sectionId: row.section_id,
+    title: row.title,
+    chapterId: row.chapter_id,
+    exerciseId: row.exercise_id,
+    dueAt: row.due_at,
+    learnersTotal: row.learners_total,
+    completedLearners: row.completed_learners,
+    completionRate: row.completion_rate,
+    lastCompletionAt: row.last_completion_at,
+  };
+}
+
+export function listSectionAssignmentBreakdown(
+  sectionId: string
+): SectionAssignmentBreakdownRecord[] {
+  const rows = db
+    .prepare(
+      `
+        SELECT
+          ass.assignment_id,
+          ass.section_id,
+          ass.title,
+          ass.chapter_id,
+          ass.exercise_id,
+          ass.due_at,
+          COUNT(DISTINCT e.user_id) AS learners_total,
+          COUNT(DISTINCT p.user_id) AS completed_learners,
+          CASE
+            WHEN COUNT(DISTINCT e.user_id) = 0 THEN 0
+            ELSE ROUND((COUNT(DISTINCT p.user_id) * 100.0) / COUNT(DISTINCT e.user_id), 2)
+          END AS completion_rate,
+          MAX(p.completed_at) AS last_completion_at
+        FROM assignments ass
+        LEFT JOIN section_enrollments e
+          ON e.section_id = ass.section_id
+          AND e.status = 'active'
+          AND e.role = 'student'
+        LEFT JOIN progress p
+          ON p.user_id = e.user_id
+          AND p.course_slug = ass.course_slug
+          AND p.chapter_id = ass.chapter_id
+          AND p.exercise_id = ass.exercise_id
+        WHERE ass.section_id = ?
+        GROUP BY
+          ass.assignment_id,
+          ass.section_id,
+          ass.title,
+          ass.chapter_id,
+          ass.exercise_id,
+          ass.due_at,
+          ass.created_at
+        ORDER BY
+          ass.due_at IS NULL ASC,
+          ass.due_at ASC,
+          ass.created_at DESC
+      `
+    )
+    .all(sectionId) as SectionAssignmentBreakdownRow[];
+
+  return rows.map(mapSectionAssignmentBreakdownRow);
 }

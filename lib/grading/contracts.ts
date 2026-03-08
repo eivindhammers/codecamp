@@ -169,3 +169,20 @@ export interface SectionGradeSummaryRecord {
 export interface SectionGradeSummaryResponse {
   summary: SectionGradeSummaryRecord[];
 }
+
+export interface SectionAssignmentBreakdownRecord {
+  assignmentId: string;
+  sectionId: string;
+  title: string;
+  chapterId: string;
+  exerciseId: string;
+  dueAt: number | null;
+  learnersTotal: number;
+  completedLearners: number;
+  completionRate: number;
+  lastCompletionAt: number | null;
+}
+
+export interface SectionAssignmentBreakdownResponse {
+  assignments: SectionAssignmentBreakdownRecord[];
+}
