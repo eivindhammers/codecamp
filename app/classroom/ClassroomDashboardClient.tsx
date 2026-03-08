@@ -3,6 +3,8 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { courses } from "@/lib/courses";
 import type {
+  AcademicTermRecord,
+  AcademicTermsResponse,
   AssignmentRecord,
   AssignmentsResponse,
   AuthConfigResponse,
@@ -119,6 +121,8 @@ export default function ClassroomDashboardClient() {
   const [assignmentBusy, setAssignmentBusy] = useState<Record<string, boolean>>({});
   const [assignmentError, setAssignmentError] = useState<Record<string, string>>({});
   const [courseFilter, setCourseFilter] = useState<string>("all");
+  const [termFilter, setTermFilter] = useState<string>("all");
+  const [terms, setTerms] = useState<AcademicTermRecord[]>([]);
   const [sectionSearch, setSectionSearch] = useState("");
   const [sectionSort, setSectionSort] = useState<
     "created_desc" | "created_asc" | "title_asc" | "title_desc"
@@ -158,6 +162,7 @@ export default function ClassroomDashboardClient() {
         sort: sectionSort,
       });
       if (courseFilter !== "all") params.set("courseSlug", courseFilter);
+      if (termFilter !== "all") params.set("termId", termFilter);
       if (sectionSearch.trim().length > 0) params.set("search", sectionSearch.trim());
       const sectionsPayload = await readJson<ClassSectionsResponse>(
         `/api/classroom/sections?${params.toString()}`
@@ -306,7 +311,7 @@ export default function ClassroomDashboardClient() {
     } finally {
       setLoadingSections(false);
     }
-  }, [courseFilter, isStaff, sectionSearch, sectionSort]);
+  }, [courseFilter, isStaff, sectionSearch, sectionSort, termFilter]);
 
   useEffect(() => {
     const loadAuth = async () => {
@@ -330,6 +335,22 @@ export default function ClassroomDashboardClient() {
     url.searchParams.delete("authError");
     window.history.replaceState(null, "", url.toString());
   }, []);
+
+  useEffect(() => {
+    if (!profile || !isStaff) {
+      setTerms([]);
+      return;
+    }
+    const loadTerms = async () => {
+      try {
+        const payload = await readJson<AcademicTermsResponse>("/api/classroom/terms");
+        setTerms(payload.terms);
+      } catch {
+        setTerms([]);
+      }
+    };
+    void loadTerms();
+  }, [isStaff, profile]);
 
   useEffect(() => {
     void loadSections(0, false);
@@ -647,9 +668,12 @@ export default function ClassroomDashboardClient() {
   }, [sections]);
 
   const filteredSections = useMemo(() => {
-    if (courseFilter === "all") return sections;
-    return sections.filter((panel) => panel.section.courseSlug === courseFilter);
-  }, [courseFilter, sections]);
+    return sections.filter((panel) => {
+      if (courseFilter !== "all" && panel.section.courseSlug !== courseFilter) return false;
+      if (termFilter !== "all" && panel.section.termId !== termFilter) return false;
+      return true;
+    });
+  }, [courseFilter, sections, termFilter]);
 
   const auditRows = useMemo(() => {
     const actorNeedle = auditActorFilter.trim().toLowerCase();
@@ -881,6 +905,18 @@ export default function ClassroomDashboardClient() {
                     )
                   )}
                 </select>
+                <select
+                  value={termFilter}
+                  onChange={(event) => setTermFilter(event.target.value)}
+                  className="border border-gray-300 rounded px-2 py-1 text-xs"
+                >
+                  <option value="all">All terms</option>
+                  {terms.map((term) => (
+                    <option key={term.termId} value={term.termId}>
+                      {term.title}
+                    </option>
+                  ))}
+                </select>
                 <span className="text-xs text-gray-500">
                   {sections.length}/{totalSectionsCount} loaded
                 </span>
@@ -891,7 +927,7 @@ export default function ClassroomDashboardClient() {
               <p className="text-sm text-gray-600">No sections available yet.</p>
             )}
             {sections.length > 0 && filteredSections.length === 0 && (
-              <p className="text-sm text-gray-600">No sections match this course filter.</p>
+              <p className="text-sm text-gray-600">No sections match these filters.</p>
             )}
             <div className="space-y-4">
               {filteredSections.map((panel) => {
