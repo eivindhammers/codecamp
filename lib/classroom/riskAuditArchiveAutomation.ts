@@ -98,6 +98,28 @@ function validateWebhookDestination(urlRaw: string): URL {
   return url;
 }
 
+function webhookRetryCount(): number {
+  const raw = Number.parseInt(
+    process.env.CLASSROOM_RISK_ARCHIVE_DELIVERY_RETRY_COUNT ?? "",
+    10
+  );
+  if (!Number.isFinite(raw)) return 2;
+  return Math.min(Math.max(raw, 0), 10);
+}
+
+function webhookRetryBackoffMs(): number {
+  const raw = Number.parseInt(
+    process.env.CLASSROOM_RISK_ARCHIVE_DELIVERY_RETRY_BACKOFF_MS ?? "",
+    10
+  );
+  if (!Number.isFinite(raw)) return 1000;
+  return Math.min(Math.max(raw, 100), 10000);
+}
+
+async function wait(ms: number): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function deliverToWebhook(
   destinationUrl: URL,
   artifactPath: string,
@@ -112,27 +134,39 @@ async function deliverToWebhook(
   const timeoutMs = Number.isFinite(timeoutMsRaw)
     ? Math.min(Math.max(timeoutMsRaw, 1000), 30000)
     : 5000;
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const response = await fetch(destinationUrl.toString(), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      signal: controller.signal,
-      body: JSON.stringify({
-        sectionId,
-        exportedAt,
-        recordsCount,
-        artifactPath,
-      }),
-    });
-    if (!response.ok) {
-      throw new Error(`Webhook delivery failed with status ${response.status}.`);
+  const retryCount = webhookRetryCount();
+  const backoffMs = webhookRetryBackoffMs();
+  let lastError: Error | undefined;
+  for (let attempt = 0; attempt <= retryCount; attempt += 1) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const response = await fetch(destinationUrl.toString(), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
+        body: JSON.stringify({
+          sectionId,
+          exportedAt,
+          recordsCount,
+          artifactPath,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error(`Webhook delivery failed with status ${response.status}.`);
+      }
+      return `webhook:${destinationUrl.toString()}`;
+    } catch (error) {
+      lastError =
+        error instanceof Error ? error : new Error("Webhook delivery failed.");
+      if (attempt < retryCount) {
+        await wait(backoffMs * (attempt + 1));
+      }
+    } finally {
+      clearTimeout(timeout);
     }
-    return `webhook:${destinationUrl.toString()}`;
-  } finally {
-    clearTimeout(timeout);
   }
+  throw lastError ?? new Error("Webhook delivery failed.");
 }
 
 function resolveWindowStart(policy: SectionRiskArchivePolicyRecord, now: number): number {
