@@ -76,6 +76,7 @@ Protected classroom routes now use session-backed identity (`codecamp_session` c
 `/api/classroom/sections/risk-policy/archive` manages section-level audit archival cadence/retention policy metadata.
 `/api/classroom/sections/risk-policy/archive/report` exposes archive run outcomes (success/failure), recent runs, and failure-rate reporting.
 `/api/classroom/risk-archive/run` executes due archive policies (or a specific section) for operational automation.
+`/api/classroom/sections/overview` returns aggregated section dashboard data to reduce multi-endpoint fetch fanout.
 `/api/classroom/sections` supports server-backed filtering/sorting/pagination via query params (`termId`, `search`, `courseSlug`, `sort`, `limit`, `offset`).
 Auth supports two modes via `AUTH_MODE`: `bootstrap` (email POST to `/api/auth/session`) and `oidc` (redirect via `/api/auth/login` and callback at `/api/auth/callback`).
 `/classroom` provides an instructor dashboard client for section metrics and exports.

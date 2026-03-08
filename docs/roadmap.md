@@ -238,6 +238,10 @@ Primary target users are economics students, with platform usage planned across 
 - `POST /api/classroom/terms` and `POST /api/classroom/sections` now require the actor profile role to be `instructor`.
 - TA staff retain read/operational access but can no longer create new academic terms or sections.
 
+50. Section overview aggregation API (phase 2 progress)
+- Added `GET /api/classroom/sections/overview?sectionId=...` to aggregate section dashboard data in one response (metrics, assignments, breakdowns, risk config/history, archive health).
+- Classroom dashboard section loading now uses the overview endpoint, reducing multi-endpoint fanout during paged section refreshes.
+
 ## Runtime Setup
 
 From repo root:
