@@ -234,6 +234,10 @@ Primary target users are economics students, with platform usage planned across 
 - Archive automation now supports `destinationLabel=puturl:<url>` to upload archive artifact JSON via HTTP PUT (for pre-signed/object-storage style destinations).
 - PUT destination host allowlisting and timeout controls are configurable for safer outbound delivery.
 
+49. Instructor-only term/section creation guardrails (phase 2 progress)
+- `POST /api/classroom/terms` and `POST /api/classroom/sections` now require the actor profile role to be `instructor`.
+- TA staff retain read/operational access but can no longer create new academic terms or sections.
+
 ## Runtime Setup
 
 From repo root:
@@ -286,7 +290,7 @@ npm run redis:down
 - Add optional network/isolation regression checks to complement current timeout/memory/process pressure coverage.
 
 2. Classroom identity and enrollment model (phase 2 completion)
-- Continue hardening instructor/TA/student authorization edge cases on classroom routes.
+- Continue hardening instructor/TA/student authorization edge cases on classroom routes (especially write-level privilege boundaries).
 - Keep migration path from local IDs where possible.
 
 3. Instructor workflow (teaching operations, phase 2)
