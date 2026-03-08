@@ -4,6 +4,7 @@ import {
   SectionRiskArchiveReportResponse,
 } from "@/lib/grading/contracts";
 import {
+  getUserProfile,
   getSectionRiskArchiveReport,
   listClassSections,
   listSectionRiskArchiveRuns,
@@ -15,6 +16,10 @@ export const runtime = "nodejs";
 
 function badRequest(message: string) {
   return NextResponse.json({ error: message }, { status: 400 });
+}
+
+function forbidden(message: string) {
+  return NextResponse.json({ error: message }, { status: 403 });
 }
 
 function parseSectionId(req: Request): string {
@@ -92,6 +97,13 @@ export async function POST(req: Request) {
   if (!sectionId) return badRequest("Missing required query param: sectionId.");
   const auth = requireSectionStaff(req, sectionId);
   if (!auth.ok) return auth.response;
+  const actorProfile = getUserProfile(auth.value.actorUserId);
+  if (!actorProfile) {
+    return forbidden("Actor profile not found.");
+  }
+  if (actorProfile.role !== "instructor") {
+    return forbidden("Only instructors can record archive runs.");
+  }
   ensureSectionExists(sectionId);
 
   let body: RecordArchiveRunPayload;

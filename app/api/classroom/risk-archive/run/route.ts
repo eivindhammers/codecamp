@@ -4,13 +4,17 @@ import {
   executeDueRiskAuditArchives,
   executeSectionRiskAuditArchive,
 } from "@/lib/classroom/riskAuditArchiveAutomation";
-import { listClassSections } from "@/lib/grading/submissionDb";
+import { getUserProfile, listClassSections } from "@/lib/grading/submissionDb";
 import { requireGlobalStaff } from "@/app/api/classroom/_auth";
 
 export const runtime = "nodejs";
 
 function badRequest(message: string) {
   return NextResponse.json({ error: message }, { status: 400 });
+}
+
+function forbidden(message: string) {
+  return NextResponse.json({ error: message }, { status: 403 });
 }
 
 interface RunArchivePayload {
@@ -27,6 +31,13 @@ function ensureSectionExists(sectionId: string) {
 export async function POST(req: Request) {
   const auth = requireGlobalStaff(req);
   if (!auth.ok) return auth.response;
+  const actorProfile = getUserProfile(auth.value.actorUserId);
+  if (!actorProfile) {
+    return forbidden("Actor profile not found.");
+  }
+  if (actorProfile.role !== "instructor") {
+    return forbidden("Only instructors can run archive automation.");
+  }
 
   let body: RunArchivePayload = {};
   try {
