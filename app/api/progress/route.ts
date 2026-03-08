@@ -2,10 +2,12 @@ import { NextResponse } from "next/server";
 import {
   CourseProgressResponse,
   ExerciseProgressResponse,
+  UserCatalogProgressResponse,
 } from "@/lib/grading/contracts";
 import {
   getExerciseProgress,
   listCourseProgress,
+  listUserProgress,
 } from "@/lib/grading/submissionDb";
 
 export const runtime = "nodejs";
@@ -21,8 +23,8 @@ export async function GET(req: Request) {
   const chapterId = url.searchParams.get("chapterId")?.trim() ?? "";
   const exerciseId = url.searchParams.get("exerciseId")?.trim() ?? "";
 
-  if (!userId || !courseSlug) {
-    return badRequest("Missing required query params: userId, courseSlug.");
+  if (!userId) {
+    return badRequest("Missing required query param: userId.");
   }
 
   const hasChapter = Boolean(chapterId);
@@ -33,6 +35,9 @@ export async function GET(req: Request) {
   }
 
   if (hasChapter && hasExercise) {
+    if (!courseSlug) {
+      return badRequest("courseSlug is required when chapterId/exerciseId are provided.");
+    }
     const progress = getExerciseProgress(userId, courseSlug, chapterId, exerciseId);
     const response: ExerciseProgressResponse = {
       completed: Boolean(progress),
@@ -41,7 +46,13 @@ export async function GET(req: Request) {
     return NextResponse.json(response);
   }
 
-  const progress = listCourseProgress(userId, courseSlug);
-  const response: CourseProgressResponse = { progress };
+  if (courseSlug) {
+    const progress = listCourseProgress(userId, courseSlug);
+    const response: CourseProgressResponse = { progress };
+    return NextResponse.json(response);
+  }
+
+  const progress = listUserProgress(userId);
+  const response: UserCatalogProgressResponse = { progress };
   return NextResponse.json(response);
 }

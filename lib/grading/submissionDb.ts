@@ -725,6 +725,21 @@ export function listCourseProgress(
   return rows.map(mapProgressRowToRecord);
 }
 
+export function listUserProgress(userId: string): ExerciseProgressRecord[] {
+  const rows = db
+    .prepare(
+      `
+        SELECT user_id, course_slug, chapter_id, exercise_id, first_pass_submission_id, xp_awarded, completed_at
+        FROM progress
+        WHERE user_id = ?
+        ORDER BY completed_at DESC
+      `
+    )
+    .all(userId) as ProgressRow[];
+
+  return rows.map(mapProgressRowToRecord);
+}
+
 function mapUserProfileRow(row: UserProfileRow): UserProfileRecord {
   return {
     userId: row.user_id,

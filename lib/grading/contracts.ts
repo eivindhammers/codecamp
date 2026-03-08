@@ -63,6 +63,10 @@ export interface CourseProgressResponse {
   progress: ExerciseProgressRecord[];
 }
 
+export interface UserCatalogProgressResponse {
+  progress: ExerciseProgressRecord[];
+}
+
 export type ClassroomRole = "student" | "instructor" | "ta";
 export type EnrollmentStatus = "active" | "dropped";
 

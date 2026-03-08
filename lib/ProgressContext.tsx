@@ -7,9 +7,11 @@ import React, {
   useReducer,
 } from "react";
 import { courses } from "@/lib/courses";
+import { ExerciseProgressRecord, UserCatalogProgressResponse } from "@/lib/grading/contracts";
 import { UserProgress } from "@/lib/types";
 
 const STORAGE_KEY = "codecamp_progress";
+const USER_STORAGE_KEY = "codecamp_user_id";
 
 const initialState: UserProgress = {
   completedExercises: {},
@@ -59,6 +61,64 @@ interface ProgressContextValue {
 
 const ProgressContext = createContext<ProgressContextValue | null>(null);
 
+function getOrCreateUserId(): string {
+  if (typeof window === "undefined") return "";
+  const existing = localStorage.getItem(USER_STORAGE_KEY);
+  if (existing) return existing;
+  const generated =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `user-${Date.now()}`;
+  localStorage.setItem(USER_STORAGE_KEY, generated);
+  return generated;
+}
+
+function getExerciseXpByKey(): Record<string, number> {
+  const xpByKey: Record<string, number> = {};
+  for (const course of courses) {
+    for (const chapter of course.chapters) {
+      for (const exercise of chapter.exercises) {
+        xpByKey[`${course.slug}/${chapter.id}/${exercise.id}`] = exercise.xp;
+      }
+    }
+  }
+  return xpByKey;
+}
+
+function deriveCompletedCourses(completedExercises: Record<string, boolean>): string[] {
+  return courses
+    .filter((course) =>
+      course.chapters.every((chapter) =>
+        chapter.exercises.every(
+          (exercise) => completedExercises[`${course.slug}/${chapter.id}/${exercise.id}`]
+        )
+      )
+    )
+    .map((course) => course.slug);
+}
+
+function mergeBackendProgress(
+  local: UserProgress,
+  backend: ExerciseProgressRecord[]
+): UserProgress {
+  const mergedExercises: Record<string, boolean> = { ...local.completedExercises };
+  for (const row of backend) {
+    mergedExercises[`${row.courseSlug}/${row.chapterId}/${row.exerciseId}`] = true;
+  }
+
+  const xpByKey = getExerciseXpByKey();
+  const mergedXp = Object.keys(mergedExercises).reduce(
+    (acc, key) => acc + (mergedExercises[key] ? (xpByKey[key] ?? 0) : 0),
+    0
+  );
+
+  return {
+    completedExercises: mergedExercises,
+    completedCourses: deriveCompletedCourses(mergedExercises),
+    xp: mergedXp,
+  };
+}
+
 export function ProgressProvider({ children }: { children: React.ReactNode }) {
   const [progress, dispatch] = useReducer(reducer, initialState);
 
@@ -71,6 +131,45 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // ignore
     }
+  }, []);
+
+  useEffect(() => {
+    const userId = getOrCreateUserId();
+    if (!userId) return;
+
+    let cancelled = false;
+    async function hydrateFromBackend() {
+      try {
+        const response = await fetch(`/api/progress?userId=${encodeURIComponent(userId)}`, {
+          cache: "no-store",
+        });
+        if (!response.ok) return;
+        const payload = (await response.json()) as UserCatalogProgressResponse;
+        if (cancelled) return;
+
+        let localState = initialState;
+        try {
+          const saved = localStorage.getItem(STORAGE_KEY);
+          if (saved) {
+            localState = JSON.parse(saved) as UserProgress;
+          }
+        } catch {
+          // ignore
+        }
+
+        dispatch({
+          type: "LOAD",
+          state: mergeBackendProgress(localState, payload.progress),
+        });
+      } catch {
+        // ignore
+      }
+    }
+
+    void hydrateFromBackend();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
