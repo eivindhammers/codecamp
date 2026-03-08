@@ -69,6 +69,7 @@ Protected classroom routes now use session-backed identity (`codecamp_session` c
 `/api/classroom/sections/export` provides JSON/CSV grade-summary exports for section instructors.
 `/api/classroom/sections/assignment-breakdown` provides assignment-level completion rollups for section staff.
 `/api/classroom/risk-config` returns environment-backed thresholds used by dashboard risk indicators.
+`/api/classroom/sections/risk-policy` supports per-section staff overrides of classroom risk thresholds.
 Auth supports two modes via `AUTH_MODE`: `bootstrap` (email POST to `/api/auth/session`) and `oidc` (redirect via `/api/auth/login` and callback at `/api/auth/callback`).
 `/classroom` provides an instructor dashboard client for section metrics and exports.
 The classroom dashboard also supports assignment creation and due-state indicators per section.
@@ -109,6 +110,7 @@ Use these for API response shapes. Add new types here rather than inline.
 - OIDC mode requires `AUTH_OIDC_AUTHORIZATION_URL`, `AUTH_OIDC_TOKEN_URL`, `AUTH_OIDC_USERINFO_URL`, `AUTH_OIDC_CLIENT_ID`, `AUTH_OIDC_CLIENT_SECRET` (+ optional `AUTH_OIDC_REDIRECT_URI`, `AUTH_OIDC_SCOPE`).
 - OIDC role sync supports env-driven claim mapping: `AUTH_OIDC_ROLE_CLAIM`, `AUTH_OIDC_GROUP_CLAIM`, `AUTH_OIDC_INSTRUCTOR_ROLE_VALUES`, `AUTH_OIDC_TA_ROLE_VALUES`, `AUTH_OIDC_INSTRUCTOR_GROUP_VALUES`, `AUTH_OIDC_TA_GROUP_VALUES`, `AUTH_OIDC_INSTRUCTOR_EMAILS`, `AUTH_OIDC_TA_EMAILS`, `AUTH_OIDC_DEFAULT_ROLE`.
 - Risk indicator thresholds are env-configurable via `CLASSROOM_RISK_MIN_ATTEMPTS`, `CLASSROOM_RISK_MAX_COMPLETION_RATE`, `CLASSROOM_RISK_OVERDUE_INCOMPLETE_ENABLED`, `CLASSROOM_STALLED_MAX_COMPLETION_RATE`.
+- Dashboard applies per-section effective risk policies when overrides are saved via section risk-policy API.
 - In production, sandbox mode defaults to Docker when `GRADER_SANDBOX_MODE` is unset.
 - CI workflow (`.github/workflows/ci.yml`) enforces `check:sandbox`, `check:sandbox-policy`, `check:sandbox-runtime`, `check:sandbox-faults`, lint, and build.
 

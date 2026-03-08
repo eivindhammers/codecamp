@@ -160,6 +160,10 @@ Primary target users are economics students, with platform usage planned across 
 - Added `GET /api/classroom/risk-config` with env-driven defaults for learner/assignment risk thresholds.
 - Dashboard now applies configurable thresholds for stuck-learner, at-risk learner, and stalled assignment indicators.
 
+31. Section-level risk policy overrides (phase 2 progress)
+- Added `GET|PUT|DELETE /api/classroom/sections/risk-policy?sectionId=...` for section staff to manage risk policy overrides.
+- Dashboard now includes per-section risk policy controls and applies effective section policy values to learner/assignment indicators.
+
 ## Runtime Setup
 
 From repo root:
@@ -219,7 +223,7 @@ npm run redis:down
 3. Instructor workflow (teaching operations, phase 2)
 - Add server-backed sorting/pagination support and term/course filters for very large section datasets.
 - Add assignment authoring validation against course pacing milestones and enforce max publish horizon per section policy.
-- Add section-specific risk policy overrides and instructor-facing risk policy editing UI.
+- Add policy history/audit trail for section risk configuration changes.
 
 4. Multi-course content pipeline expansion
 - Migrate more exercises from inline definitions to `content/exercises/...`.
