@@ -148,6 +148,18 @@ export default function ExerciseEditor({
     void loadServerHistory();
   }, [loadServerHistory]);
 
+  useEffect(() => {
+    if (!serverProgress || alreadyDone) return;
+    completeExercise(courseSlug, chapterId, exercise.id, serverProgress.xpAwarded);
+  }, [
+    alreadyDone,
+    chapterId,
+    completeExercise,
+    courseSlug,
+    exercise.id,
+    serverProgress,
+  ]);
+
   async function handleSubmit() {
     setSubmitted(true);
     setIsSubmitting(true);
