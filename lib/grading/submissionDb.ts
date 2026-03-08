@@ -19,6 +19,9 @@ import {
   SectionRiskPolicyRecord,
   SectionRiskPolicyAuditRecord,
   SectionRiskArchivePolicyRecord,
+  SectionRiskArchiveRunRecord,
+  SectionRiskArchiveReport,
+  RiskAuditArchiveRunStatus,
   RiskAuditArchiveCadence,
   SubmissionStatus,
   SubmissionStatusResponse,
@@ -162,6 +165,16 @@ db.exec(`
     destination_label TEXT,
     last_archived_at INTEGER,
     updated_at INTEGER NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS section_risk_archive_runs (
+    run_id TEXT PRIMARY KEY,
+    section_id TEXT NOT NULL,
+    status TEXT NOT NULL,
+    archived_records INTEGER NOT NULL,
+    error_message TEXT,
+    actor_user_id TEXT NOT NULL,
+    created_at INTEGER NOT NULL
   );
 `);
 
@@ -325,6 +338,16 @@ interface SectionRiskArchivePolicyRow {
   destination_label: string | null;
   last_archived_at: number | null;
   updated_at: number;
+}
+
+interface SectionRiskArchiveRunRow {
+  run_id: string;
+  section_id: string;
+  status: RiskAuditArchiveRunStatus;
+  archived_records: number;
+  error_message: string | null;
+  actor_user_id: string;
+  created_at: number;
 }
 
 function hasColumn(tableName: string, columnName: string) {
@@ -1697,4 +1720,161 @@ export function upsertSectionRiskArchivePolicy(
     throw new Error("Failed to save section risk archive policy.");
   }
   return saved;
+}
+
+interface RecordSectionRiskArchiveRunInput {
+  sectionId: string;
+  status: RiskAuditArchiveRunStatus;
+  archivedRecords: number;
+  errorMessage: string | null;
+  actorUserId: string;
+}
+
+function mapSectionRiskArchiveRunRow(
+  row: SectionRiskArchiveRunRow
+): SectionRiskArchiveRunRecord {
+  return {
+    runId: row.run_id,
+    sectionId: row.section_id,
+    status: row.status,
+    archivedRecords: row.archived_records,
+    errorMessage: row.error_message,
+    actorUserId: row.actor_user_id,
+    createdAt: row.created_at,
+  };
+}
+
+export function recordSectionRiskArchiveRun(
+  input: RecordSectionRiskArchiveRunInput
+): SectionRiskArchiveRunRecord {
+  const now = Date.now();
+  const runId = randomUUID();
+  db.prepare(
+    `
+      INSERT INTO section_risk_archive_runs (
+        run_id,
+        section_id,
+        status,
+        archived_records,
+        error_message,
+        actor_user_id,
+        created_at
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `
+  ).run(
+    runId,
+    input.sectionId,
+    input.status,
+    input.archivedRecords,
+    input.errorMessage,
+    input.actorUserId,
+    now
+  );
+
+  if (input.status === "success") {
+    const policy = getSectionRiskArchivePolicy(input.sectionId);
+    if (policy) {
+      db.prepare(
+        `
+          UPDATE section_risk_archive_policies
+          SET last_archived_at = ?, updated_at = ?
+          WHERE section_id = ?
+        `
+      ).run(now, now, input.sectionId);
+    }
+  }
+
+  const row = db
+    .prepare(
+      `
+        SELECT
+          run_id,
+          section_id,
+          status,
+          archived_records,
+          error_message,
+          actor_user_id,
+          created_at
+        FROM section_risk_archive_runs
+        WHERE run_id = ?
+      `
+    )
+    .get(runId) as SectionRiskArchiveRunRow | undefined;
+  if (!row) {
+    throw new Error("Failed to record section risk archive run.");
+  }
+  return mapSectionRiskArchiveRunRow(row);
+}
+
+interface ListSectionRiskArchiveRunsOptions {
+  limit?: number;
+}
+
+export function listSectionRiskArchiveRuns(
+  sectionId: string,
+  options: ListSectionRiskArchiveRunsOptions = {}
+): SectionRiskArchiveRunRecord[] {
+  const safeLimit = Math.min(Math.max(options.limit ?? 10, 1), 100);
+  const rows = db
+    .prepare(
+      `
+        SELECT
+          run_id,
+          section_id,
+          status,
+          archived_records,
+          error_message,
+          actor_user_id,
+          created_at
+        FROM section_risk_archive_runs
+        WHERE section_id = ?
+        ORDER BY created_at DESC
+        LIMIT ?
+      `
+    )
+    .all(sectionId, safeLimit) as SectionRiskArchiveRunRow[];
+  return rows.map(mapSectionRiskArchiveRunRow);
+}
+
+export function getSectionRiskArchiveReport(
+  sectionId: string,
+  windowDays: number
+): SectionRiskArchiveReport {
+  const safeWindowDays = Math.min(Math.max(windowDays, 1), 3650);
+  const cutoff = Date.now() - safeWindowDays * 24 * 60 * 60 * 1000;
+  const aggregate = db
+    .prepare(
+      `
+        SELECT
+          COUNT(*) AS total_runs,
+          SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) AS success_runs,
+          SUM(CASE WHEN status = 'failure' THEN 1 ELSE 0 END) AS failed_runs,
+          MAX(CASE WHEN status = 'success' THEN created_at ELSE NULL END) AS last_success_at,
+          MAX(CASE WHEN status = 'failure' THEN created_at ELSE NULL END) AS last_failure_at
+        FROM section_risk_archive_runs
+        WHERE section_id = ? AND created_at >= ?
+      `
+    )
+    .get(sectionId, cutoff) as {
+    total_runs: number | null;
+    success_runs: number | null;
+    failed_runs: number | null;
+    last_success_at: number | null;
+    last_failure_at: number | null;
+  };
+
+  const totalRuns = aggregate.total_runs ?? 0;
+  const successRuns = aggregate.success_runs ?? 0;
+  const failedRuns = aggregate.failed_runs ?? 0;
+  return {
+    sectionId,
+    windowDays: safeWindowDays,
+    totalRuns,
+    successRuns,
+    failedRuns,
+    failureRate: totalRuns === 0 ? 0 : (failedRuns / totalRuns) * 100,
+    lastSuccessAt: aggregate.last_success_at,
+    lastFailureAt: aggregate.last_failure_at,
+  };
 }

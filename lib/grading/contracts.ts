@@ -246,3 +246,31 @@ export interface SectionRiskArchivePolicyResponse {
   policy: SectionRiskArchivePolicyRecord;
   nextArchiveAt: number;
 }
+
+export type RiskAuditArchiveRunStatus = "success" | "failure";
+
+export interface SectionRiskArchiveRunRecord {
+  runId: string;
+  sectionId: string;
+  status: RiskAuditArchiveRunStatus;
+  archivedRecords: number;
+  errorMessage: string | null;
+  actorUserId: string;
+  createdAt: number;
+}
+
+export interface SectionRiskArchiveReport {
+  sectionId: string;
+  windowDays: number;
+  totalRuns: number;
+  successRuns: number;
+  failedRuns: number;
+  failureRate: number;
+  lastSuccessAt: number | null;
+  lastFailureAt: number | null;
+}
+
+export interface SectionRiskArchiveReportResponse {
+  report: SectionRiskArchiveReport;
+  recentRuns: SectionRiskArchiveRunRecord[];
+}

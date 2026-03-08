@@ -19,6 +19,8 @@ import type {
   SectionRiskPolicyAuditRecord,
   SectionRiskArchivePolicyRecord,
   SectionRiskArchivePolicyResponse,
+  SectionRiskArchiveReportResponse,
+  SectionRiskArchiveRunRecord,
   SectionRiskPolicyRecord,
   SectionRiskPolicyResponse,
   UserProfileRecord,
@@ -35,6 +37,15 @@ interface SectionPanel {
   riskPolicyHistory: SectionRiskPolicyAuditRecord[];
   riskArchivePolicy: SectionRiskArchivePolicyRecord;
   riskArchiveNextAt: number;
+  riskArchiveRecentRuns: SectionRiskArchiveRunRecord[];
+  riskArchiveWindow: {
+    totalRuns: number;
+    successRuns: number;
+    failedRuns: number;
+    failureRate: number;
+    lastSuccessAt: number | null;
+    lastFailureAt: number | null;
+  };
   effectiveRiskConfig: ClassroomRiskConfig;
   error?: string;
 }
@@ -125,6 +136,7 @@ export default function ClassroomDashboardClient() {
   const [riskArchiveDrafts, setRiskArchiveDrafts] = useState<Record<string, RiskArchiveDraft>>({});
   const [riskArchiveBusy, setRiskArchiveBusy] = useState<Record<string, boolean>>({});
   const [riskArchiveError, setRiskArchiveError] = useState<Record<string, string>>({});
+  const [riskArchiveRunBusy, setRiskArchiveRunBusy] = useState<Record<string, boolean>>({});
   const [auditActorFilter, setAuditActorFilter] = useState("");
   const [auditActionFilter, setAuditActionFilter] = useState<"all" | "upsert" | "reset">("all");
 
@@ -160,6 +172,7 @@ export default function ClassroomDashboardClient() {
               breakdownPayload,
               riskPayload,
               archivePayload,
+              archiveReportPayload,
             ] =
               await Promise.all([
                 readJson<SectionLearnerMetricsResponse>(
@@ -188,6 +201,11 @@ export default function ClassroomDashboardClient() {
                     section.sectionId
                   )}`
                 ),
+                readJson<SectionRiskArchiveReportResponse>(
+                  `/api/classroom/sections/risk-policy/archive/report?sectionId=${encodeURIComponent(
+                    section.sectionId
+                  )}&windowDays=30&limit=5`
+                ),
               ]);
             return {
               section,
@@ -199,6 +217,15 @@ export default function ClassroomDashboardClient() {
               riskPolicyHistory: riskPayload.history,
               riskArchivePolicy: archivePayload.policy,
               riskArchiveNextAt: archivePayload.nextArchiveAt,
+              riskArchiveRecentRuns: archiveReportPayload.recentRuns,
+              riskArchiveWindow: {
+                totalRuns: archiveReportPayload.report.totalRuns,
+                successRuns: archiveReportPayload.report.successRuns,
+                failedRuns: archiveReportPayload.report.failedRuns,
+                failureRate: archiveReportPayload.report.failureRate,
+                lastSuccessAt: archiveReportPayload.report.lastSuccessAt,
+                lastFailureAt: archiveReportPayload.report.lastFailureAt,
+              },
               effectiveRiskConfig: riskPayload.effectiveConfig,
             } as SectionPanel;
           } catch (error) {
@@ -219,6 +246,15 @@ export default function ClassroomDashboardClient() {
                 updatedAt: Date.now(),
               },
               riskArchiveNextAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
+              riskArchiveRecentRuns: [],
+              riskArchiveWindow: {
+                totalRuns: 0,
+                successRuns: 0,
+                failedRuns: 0,
+                failureRate: 0,
+                lastSuccessAt: null,
+                lastFailureAt: null,
+              },
               effectiveRiskConfig: DEFAULT_RISK_CONFIG,
               error:
                 error instanceof Error
@@ -475,6 +511,40 @@ export default function ClassroomDashboardClient() {
       }));
     } finally {
       setRiskArchiveBusy((prev) => ({ ...prev, [sectionId]: false }));
+    }
+  }
+
+  async function onRecordArchiveRun(sectionId: string, status: "success" | "failure") {
+    setRiskArchiveRunBusy((prev) => ({ ...prev, [sectionId]: true }));
+    setRiskArchiveError((prev) => ({ ...prev, [sectionId]: "" }));
+    try {
+      await readJson<SectionRiskArchiveRunRecord>(
+        `/api/classroom/sections/risk-policy/archive/report?sectionId=${encodeURIComponent(
+          sectionId
+        )}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(
+            status === "success"
+              ? { status: "success", archivedRecords: 25 }
+              : {
+                  status: "failure",
+                  archivedRecords: 0,
+                  errorMessage: "Archive delivery failed (destination unavailable).",
+                }
+          ),
+        }
+      );
+      await loadSections(0, false);
+    } catch (error) {
+      setRiskArchiveError((prev) => ({
+        ...prev,
+        [sectionId]:
+          error instanceof Error ? error.message : "Failed to record archive run.",
+      }));
+    } finally {
+      setRiskArchiveRunBusy((prev) => ({ ...prev, [sectionId]: false }));
     }
   }
 
@@ -1124,6 +1194,55 @@ export default function ClassroomDashboardClient() {
                           Next archive {new Date(panel.riskArchiveNextAt).toLocaleString()}
                         </span>
                       </div>
+                      <div className="mt-2 text-xs text-gray-600">
+                        Runs (30d): {panel.riskArchiveWindow.totalRuns} total ·{" "}
+                        {panel.riskArchiveWindow.successRuns} success ·{" "}
+                        {panel.riskArchiveWindow.failedRuns} failed ·{" "}
+                        {panel.riskArchiveWindow.failureRate.toFixed(1)}% failure rate
+                      </div>
+                      <div className="mt-1 text-xs text-gray-500">
+                        Last success:{" "}
+                        {panel.riskArchiveWindow.lastSuccessAt
+                          ? new Date(panel.riskArchiveWindow.lastSuccessAt).toLocaleString()
+                          : "never"}
+                        {" · "}
+                        Last failure:{" "}
+                        {panel.riskArchiveWindow.lastFailureAt
+                          ? new Date(panel.riskArchiveWindow.lastFailureAt).toLocaleString()
+                          : "never"}
+                      </div>
+                      <div className="mt-2 flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => onRecordArchiveRun(panel.section.sectionId, "success")}
+                          disabled={riskArchiveRunBusy[panel.section.sectionId]}
+                          className="border border-emerald-300 text-emerald-700 rounded px-2 py-1 text-xs disabled:opacity-50"
+                        >
+                          Record success run
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onRecordArchiveRun(panel.section.sectionId, "failure")}
+                          disabled={riskArchiveRunBusy[panel.section.sectionId]}
+                          className="border border-rose-300 text-rose-700 rounded px-2 py-1 text-xs disabled:opacity-50"
+                        >
+                          Record failed run
+                        </button>
+                      </div>
+                      {panel.riskArchiveRecentRuns.length > 0 && (
+                        <div className="mt-2 text-xs text-gray-500">
+                          <p className="font-medium text-gray-600 mb-1">Recent archive runs</p>
+                          <ul className="space-y-1">
+                            {panel.riskArchiveRecentRuns.slice(0, 3).map((run) => (
+                              <li key={run.runId}>
+                                {new Date(run.createdAt).toLocaleString()} · {run.status} ·{" "}
+                                records {run.archivedRecords}
+                                {run.errorMessage ? ` · ${run.errorMessage}` : ""}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
                       {riskArchiveError[panel.section.sectionId] && (
                         <p className="text-xs text-rose-700 mt-2">
                           {riskArchiveError[panel.section.sectionId]}
