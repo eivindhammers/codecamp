@@ -9,6 +9,8 @@ import type {
   AuthSessionResponse,
   ClassSectionRecord,
   ClassSectionsResponse,
+  ClassroomRiskConfig,
+  ClassroomRiskConfigResponse,
   SectionAssignmentBreakdownRecord,
   SectionAssignmentBreakdownResponse,
   SectionGradeSummaryRecord,
@@ -34,6 +36,13 @@ interface AssignmentDraft {
   exerciseId: string;
   dueAtLocal: string;
 }
+
+const DEFAULT_RISK_CONFIG: ClassroomRiskConfig = {
+  minAttemptsAtRisk: 5,
+  maxCompletionRateAtRisk: 25,
+  overdueIncompleteFlagsAtRisk: true,
+  maxCompletionRateStalledAssignment: 60,
+};
 
 function getDefaultDraftForCourse(courseSlug: string): AssignmentDraft {
   const course = courses.find((item) => item.slug === courseSlug);
@@ -86,6 +95,7 @@ export default function ClassroomDashboardClient() {
   const [learnerSearch, setLearnerSearch] = useState<Record<string, string>>({});
   const [learnerRiskFilter, setLearnerRiskFilter] = useState<Record<string, "all" | "at-risk" | "on-track">>({});
   const [learnerPage, setLearnerPage] = useState<Record<string, number>>({});
+  const [riskConfig, setRiskConfig] = useState<ClassroomRiskConfig>(DEFAULT_RISK_CONFIG);
 
   const isStaff = profile?.role === "instructor" || profile?.role === "ta";
 
@@ -171,6 +181,18 @@ export default function ClassroomDashboardClient() {
       }
     };
     void loadAuth();
+  }, []);
+
+  useEffect(() => {
+    const loadRiskConfig = async () => {
+      try {
+        const payload = await readJson<ClassroomRiskConfigResponse>("/api/classroom/risk-config");
+        setRiskConfig(payload.config);
+      } catch {
+        setRiskConfig(DEFAULT_RISK_CONFIG);
+      }
+    };
+    void loadRiskConfig();
   }, []);
 
   useEffect(() => {
@@ -317,7 +339,9 @@ export default function ClassroomDashboardClient() {
       (acc, section) =>
         acc +
         section.gradeSummary.filter(
-          (row) => row.attemptsCount >= 5 && row.completionRate < 25
+          (row) =>
+            row.attemptsCount >= riskConfig.minAttemptsAtRisk &&
+            row.completionRate < riskConfig.maxCompletionRateAtRisk
         ).length,
       0
     );
@@ -328,7 +352,7 @@ export default function ClassroomDashboardClient() {
       avgCompletionRate,
       stuckLearners,
     };
-  }, [sections]);
+  }, [riskConfig.maxCompletionRateAtRisk, riskConfig.minAttemptsAtRisk, sections]);
 
   const filteredSections = useMemo(() => {
     if (courseFilter === "all") return sections;
@@ -477,9 +501,15 @@ export default function ClassroomDashboardClient() {
                       (row) => row.userId === metric.userId
                     );
                     const completionRate = learnerSummary?.completionRate ?? 0;
+                    const overdueRuleTriggered =
+                      riskConfig.overdueIncompleteFlagsAtRisk &&
+                      overdueAssignments > 0 &&
+                      completionRate < 100;
+                    const attemptsRuleTriggered =
+                      metric.attemptsCount >= riskConfig.minAttemptsAtRisk &&
+                      completionRate < riskConfig.maxCompletionRateAtRisk;
                     const atRisk =
-                      (overdueAssignments > 0 && completionRate < 100) ||
-                      (metric.attemptsCount >= 5 && completionRate < 25);
+                      overdueRuleTriggered || attemptsRuleTriggered;
                     return {
                       metric,
                       completionRate,
@@ -530,7 +560,9 @@ export default function ClassroomDashboardClient() {
                           % · Stuck:{" "}
                           {
                             panel.gradeSummary.filter(
-                              (row) => row.attemptsCount >= 5 && row.completionRate < 25
+                              (row) =>
+                                row.attemptsCount >= riskConfig.minAttemptsAtRisk &&
+                                row.completionRate < riskConfig.maxCompletionRateAtRisk
                             ).length
                           }
                         </p>
@@ -781,7 +813,8 @@ export default function ClassroomDashboardClient() {
                                 const stalled =
                                   isLate &&
                                   breakdown !== undefined &&
-                                  breakdown.completionRate < 60;
+                                  breakdown.completionRate <
+                                    riskConfig.maxCompletionRateStalledAssignment;
                                 return (
                                   <tr
                                     key={assignment.assignmentId}

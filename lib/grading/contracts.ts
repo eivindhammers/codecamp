@@ -191,3 +191,14 @@ export interface SectionAssignmentBreakdownRecord {
 export interface SectionAssignmentBreakdownResponse {
   assignments: SectionAssignmentBreakdownRecord[];
 }
+
+export interface ClassroomRiskConfig {
+  minAttemptsAtRisk: number;
+  maxCompletionRateAtRisk: number;
+  overdueIncompleteFlagsAtRisk: boolean;
+  maxCompletionRateStalledAssignment: number;
+}
+
+export interface ClassroomRiskConfigResponse {
+  config: ClassroomRiskConfig;
+}
