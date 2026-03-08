@@ -71,6 +71,7 @@ Dashboard cards and section headers include pass-rate and stuck-learner indicato
 Assignment authoring in the dashboard uses chapter/exercise options derived from `lib/courses.ts` for the selected section course.
 Learner rows in section activity include completion-rate and risk-state badges derived from assignment due dates and summary metrics.
 Section activity supports course filtering plus per-section learner search/risk filters with pagination for larger rosters.
+Assignment creation API validates section/course alignment, exercise existence in `lib/courses.ts`, and due dates within the section term window.
 
 ## Conventions
 

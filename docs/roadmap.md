@@ -131,6 +131,10 @@ Primary target users are economics students, with platform usage planned across 
 - Added per-section learner filtering (search + risk state) and paginated learner tables for larger cohorts.
 - Added overdue-assignment visibility directly in learner activity rows.
 
+24. Assignment authoring guardrails (phase 2 progress)
+- `POST /api/classroom/assignments` now validates section/course consistency and requires valid course/chapter/exercise targets.
+- Due dates are now validated against section term windows to prevent out-of-term assignment deadlines.
+
 ## Runtime Setup
 
 From repo root:
@@ -189,7 +193,7 @@ npm run redis:down
 
 3. Instructor workflow (teaching operations, phase 2)
 - Add server-backed sorting/pagination support and term/course filters for very large section datasets.
-- Add assignment authoring validation against course pacing, due date windows, and section term dates.
+- Add assignment authoring validation against course pacing milestones and enforce max publish horizon per section policy.
 - Add configurable risk rules and per-assignment learner status breakdowns.
 
 4. Multi-course content pipeline expansion
