@@ -367,6 +367,10 @@ Primary target users are economics students, with platform usage planned across 
 - `GET /api/classroom/terms` and `GET /api/classroom/sections` now require authenticated global staff sessions, preventing unauthenticated classroom metadata reads.
 - This aligns read access with existing staff-only dashboard usage and closes a classroom identity exposure gap.
 
+81. Instructor-triggered archive execution from dashboard (phase 2 progress)
+- Section archive controls now run real archive automation via `POST /api/classroom/risk-archive/run` instead of synthetic run recording actions.
+- Dashboard shows immediate per-section execution outcome (`success`/`skipped`/`failure`) and then refreshes archive run history.
+
 ## Runtime Setup
 
 From repo root:
@@ -460,14 +464,14 @@ Use this queue for day-to-day execution; keep it small and rotate items after ea
 - Acceptance: `GRADER_REQUIRE_IMAGE_DIGESTS=true` passes in enforced environments and docs reflect pinned-image policy.
 
 ### Next
-1. Archive credential lifecycle automation depth
-- Extend runbook guidance with operational automation hooks (alerting/escalation/checklists) as governance surfaces mature.
-
-2. Progress sync UX hardening
+1. Progress sync UX hardening
 - Add user-visible sync/error affordances so backend-progress failures are explicit instead of silent.
 
-3. Content migration throughput (next tranche)
+2. Content migration throughput (next tranche)
 - Continue migrating additional exercises into `content/exercises/...` with parity checks and scaffold workflow.
+
+3. Archive credential lifecycle automation depth
+- Extend archive automation with richer operational hooks (alerting/escalation/checklists) beyond manual run-now + runbook guidance.
 
 ### Later
 1. Broader server-side grading coverage across additional exercises/courses.
