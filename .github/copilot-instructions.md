@@ -112,6 +112,7 @@ Use these for API response shapes. Add new types here rather than inline.
 - `AUTH_BOOTSTRAP_INSTRUCTOR_EMAILS` (comma-separated) grants bootstrap instructor role for listed emails during session sign-in.
 - OIDC mode requires `AUTH_OIDC_AUTHORIZATION_URL`, `AUTH_OIDC_TOKEN_URL`, `AUTH_OIDC_USERINFO_URL`, `AUTH_OIDC_CLIENT_ID`, `AUTH_OIDC_CLIENT_SECRET` (+ optional `AUTH_OIDC_REDIRECT_URI`, `AUTH_OIDC_SCOPE`).
 - OIDC role sync supports env-driven claim mapping: `AUTH_OIDC_ROLE_CLAIM`, `AUTH_OIDC_GROUP_CLAIM`, `AUTH_OIDC_INSTRUCTOR_ROLE_VALUES`, `AUTH_OIDC_TA_ROLE_VALUES`, `AUTH_OIDC_INSTRUCTOR_GROUP_VALUES`, `AUTH_OIDC_TA_GROUP_VALUES`, `AUTH_OIDC_INSTRUCTOR_EMAILS`, `AUTH_OIDC_TA_EMAILS`, `AUTH_OIDC_DEFAULT_ROLE`.
+- Section-staff auth can be role-derived via `AUTH_SECTION_STAFF_ROLE_BYPASS` (defaults true in OIDC mode, false in bootstrap mode).
 - Risk indicator thresholds are env-configurable via `CLASSROOM_RISK_MIN_ATTEMPTS`, `CLASSROOM_RISK_MAX_COMPLETION_RATE`, `CLASSROOM_RISK_OVERDUE_INCOMPLETE_ENABLED`, `CLASSROOM_STALLED_MAX_COMPLETION_RATE`.
 - Dashboard applies per-section effective risk policies when overrides are saved via section risk-policy API.
 - Risk policy changes are audit-recorded with actor user ID and timestamp for section governance visibility.

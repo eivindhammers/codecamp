@@ -193,6 +193,10 @@ Primary target users are economics students, with platform usage planned across 
 - `POST /api/classroom/assignments` now enforces `CLASSROOM_ASSIGNMENT_MAX_DUE_DAYS_AHEAD` (default 180) to prevent long-range publish drift.
 - Assignment due dates now also enforce chapter pacing windows derived from section term duration, with an early tolerance via `CLASSROOM_ASSIGNMENT_PACING_EARLY_TOLERANCE_DAYS` (default 14).
 
+39. IdP-aligned section staff authorization (phase 2 progress)
+- Section-scoped classroom APIs now support role-based staff access in OIDC mode without requiring explicit per-section staff enrollment.
+- `AUTH_SECTION_STAFF_ROLE_BYPASS` controls this behavior (defaults to enabled for `AUTH_MODE=oidc`, disabled for bootstrap mode).
+
 ## Runtime Setup
 
 From repo root:
@@ -245,7 +249,6 @@ npm run redis:down
 - Add optional network/isolation regression checks to complement current timeout/memory/process pressure coverage.
 
 2. Classroom identity and enrollment model (phase 2 completion)
-- Expand role mapping governance (policy docs/audit logs) and align section-staff enrollment workflows with IdP-derived roles.
 - Keep and harden instructor/TA/student authorization rules on classroom routes.
 - Keep migration path from local IDs where possible.
 
