@@ -52,6 +52,7 @@ ExerciseEditor (client)
 
 Backend progress now supports full-catalog hydration via `/api/progress?userId=...`, and client-validated completions are persisted via `POST /api/progress` for backend-first XP/progress continuity.
 `ProgressContext` now treats backend rows as authoritative on hydration when backend records exist, using local cache only as fallback when backend is empty.
+`ProgressContext` also surfaces sync status/error state consumed by header XP UI so backend sync failures are visible to users.
 
 ### All courses are defined in TypeScript
 `lib/courses.ts` (~645 lines) contains all `Course → Chapter → Exercise` data as typed objects. There is no CMS or database for course content.

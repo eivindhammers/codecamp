@@ -371,6 +371,10 @@ Primary target users are economics students, with platform usage planned across 
 - Section archive controls now run real archive automation via `POST /api/classroom/risk-archive/run` instead of synthetic run recording actions.
 - Dashboard shows immediate per-section execution outcome (`success`/`skipped`/`failure`) and then refreshes archive run history.
 
+82. Progress sync UX visibility hardening (phase 2 progress)
+- `ProgressContext` now exposes backend hydration sync state (`syncing`/`synced`/`error`) and surfaces explicit error text when catalog sync fails.
+- Header XP UI now shows sync-in-progress and sync-issue indicators so backend progress failures are no longer silent.
+
 ## Runtime Setup
 
 From repo root:
@@ -464,14 +468,14 @@ Use this queue for day-to-day execution; keep it small and rotate items after ea
 - Acceptance: `GRADER_REQUIRE_IMAGE_DIGESTS=true` passes in enforced environments and docs reflect pinned-image policy.
 
 ### Next
-1. Progress sync UX hardening
-- Add user-visible sync/error affordances so backend-progress failures are explicit instead of silent.
-
-2. Content migration throughput (next tranche)
+1. Content migration throughput (next tranche)
 - Continue migrating additional exercises into `content/exercises/...` with parity checks and scaffold workflow.
 
-3. Archive credential lifecycle automation depth
+2. Archive credential lifecycle automation depth
 - Extend archive automation with richer operational hooks (alerting/escalation/checklists) beyond manual run-now + runbook guidance.
+
+3. Broader server-side grading coverage
+- Enable server-graded checkers for more migrated filesystem exercises across both R and Python tracks.
 
 ### Later
 1. Broader server-side grading coverage across additional exercises/courses.
