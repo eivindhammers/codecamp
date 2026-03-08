@@ -71,6 +71,28 @@ export function resolveProfileFromEmail(emailRaw: string, displayName?: string):
   });
 }
 
+interface UpsertIdentityProfileInput {
+  emailRaw: string;
+  displayName?: string;
+  role?: ClassroomRole;
+}
+
+export function upsertProfileFromIdentity(input: UpsertIdentityProfileInput): UserProfileRecord {
+  const email = input.emailRaw.trim().toLowerCase();
+  const existing = getUserProfileByEmail(email);
+  const role = input.role ?? existing?.role ?? getBootstrapRole(email);
+  const userId = existing?.userId ?? randomUUID();
+  const displayName =
+    input.displayName?.trim() || existing?.displayName || email.split("@")[0] || "student";
+
+  return upsertUserProfile({
+    userId,
+    displayName,
+    email,
+    role,
+  });
+}
+
 export function createSessionForProfile(profile: UserProfileRecord): {
   sessionId: string;
   ttlMs: number;

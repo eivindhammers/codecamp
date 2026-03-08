@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import {
   createSessionForProfile,
   parseCookie,
-  resolveProfileFromEmail,
   setSessionCookieHeaders,
+  upsertProfileFromIdentity,
 } from "@/app/api/auth/_session";
+import { ClassroomRole } from "@/lib/grading/contracts";
 
 export const runtime = "nodejs";
 
@@ -18,6 +19,9 @@ interface OidcUserInfo {
   email?: string;
   preferred_username?: string;
   name?: string;
+  roles?: unknown;
+  groups?: unknown;
+  [key: string]: unknown;
 }
 
 function getAuthMode(): "bootstrap" | "oidc" {
@@ -47,6 +51,69 @@ function clearAuthStateCookie(headers: Headers) {
     "Set-Cookie",
     `${AUTH_STATE_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${secure}`
   );
+}
+
+function parseCsvEnv(name: string): Set<string> {
+  return new Set(
+    (process.env[name] ?? "")
+      .split(",")
+      .map((value) => value.trim().toLowerCase())
+      .filter((value) => value.length > 0)
+  );
+}
+
+function toStringArrayClaim(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value
+      .filter((item): item is string => typeof item === "string")
+      .map((item) => item.trim())
+      .filter((item) => item.length > 0);
+  }
+  if (typeof value === "string") {
+    return value
+      .split(/[,\s]+/)
+      .map((item) => item.trim())
+      .filter((item) => item.length > 0);
+  }
+  return [];
+}
+
+function resolveRoleFromClaims(userInfo: OidcUserInfo, email: string): ClassroomRole {
+  const instructorEmails = parseCsvEnv("AUTH_OIDC_INSTRUCTOR_EMAILS");
+  const taEmails = parseCsvEnv("AUTH_OIDC_TA_EMAILS");
+  if (instructorEmails.has(email)) return "instructor";
+  if (taEmails.has(email)) return "ta";
+
+  const roleClaimKey = process.env.AUTH_OIDC_ROLE_CLAIM?.trim() || "roles";
+  const groupClaimKey = process.env.AUTH_OIDC_GROUP_CLAIM?.trim() || "groups";
+  const normalizedRoles = new Set(
+    toStringArrayClaim(userInfo[roleClaimKey]).map((value) => value.toLowerCase())
+  );
+  const normalizedGroups = new Set(
+    toStringArrayClaim(userInfo[groupClaimKey]).map((value) => value.toLowerCase())
+  );
+
+  const instructorRoleValues = parseCsvEnv("AUTH_OIDC_INSTRUCTOR_ROLE_VALUES");
+  const taRoleValues = parseCsvEnv("AUTH_OIDC_TA_ROLE_VALUES");
+  const instructorGroupValues = parseCsvEnv("AUTH_OIDC_INSTRUCTOR_GROUP_VALUES");
+  const taGroupValues = parseCsvEnv("AUTH_OIDC_TA_GROUP_VALUES");
+
+  for (const value of instructorRoleValues) {
+    if (normalizedRoles.has(value)) return "instructor";
+  }
+  for (const value of taRoleValues) {
+    if (normalizedRoles.has(value)) return "ta";
+  }
+  for (const value of instructorGroupValues) {
+    if (normalizedGroups.has(value)) return "instructor";
+  }
+  for (const value of taGroupValues) {
+    if (normalizedGroups.has(value)) return "ta";
+  }
+
+  const existingRole = process.env.AUTH_OIDC_DEFAULT_ROLE?.trim().toLowerCase();
+  if (existingRole === "instructor" || existingRole === "ta") return existingRole;
+  return "student";
 }
 
 function redirectWithError(req: Request, message: string): NextResponse {
@@ -123,7 +190,12 @@ export async function GET(req: Request) {
       throw new Error("OIDC profile is missing a valid email claim.");
     }
 
-    const profile = resolveProfileFromEmail(email, userInfo.name ?? undefined);
+    const role = resolveRoleFromClaims(userInfo, email);
+    const profile = upsertProfileFromIdentity({
+      emailRaw: email,
+      displayName: userInfo.name ?? undefined,
+      role,
+    });
     const { sessionId, ttlMs } = createSessionForProfile(profile);
     const redirect = new URL("/classroom", url.origin);
     const response = NextResponse.redirect(redirect.toString());
