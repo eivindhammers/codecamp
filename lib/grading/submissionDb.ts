@@ -15,6 +15,7 @@ import {
   SectionAssignmentBreakdownRecord,
   SectionGradeSummaryRecord,
   SectionLearnerMetric,
+  SectionRiskPolicyRecord,
   SubmissionStatus,
   SubmissionStatusResponse,
   UserProfileRecord,
@@ -126,6 +127,15 @@ db.exec(`
     created_at INTEGER NOT NULL,
     expires_at INTEGER NOT NULL,
     last_seen_at INTEGER NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS section_risk_policies (
+    section_id TEXT PRIMARY KEY,
+    min_attempts_at_risk INTEGER,
+    max_completion_rate_at_risk REAL,
+    overdue_incomplete_flags_at_risk INTEGER,
+    max_completion_rate_stalled_assignment REAL,
+    updated_at INTEGER NOT NULL
   );
 `);
 
@@ -258,6 +268,15 @@ interface SectionAssignmentBreakdownRow {
   completed_learners: number;
   completion_rate: number;
   last_completion_at: number | null;
+}
+
+interface SectionRiskPolicyRow {
+  section_id: string;
+  min_attempts_at_risk: number | null;
+  max_completion_rate_at_risk: number | null;
+  overdue_incomplete_flags_at_risk: number | null;
+  max_completion_rate_stalled_assignment: number | null;
+  updated_at: number;
 }
 
 function hasColumn(tableName: string, columnName: string) {
@@ -1225,4 +1244,92 @@ export function listSectionAssignmentBreakdown(
     .all(sectionId) as SectionAssignmentBreakdownRow[];
 
   return rows.map(mapSectionAssignmentBreakdownRow);
+}
+
+interface UpsertSectionRiskPolicyInput {
+  sectionId: string;
+  minAttemptsAtRisk: number | null;
+  maxCompletionRateAtRisk: number | null;
+  overdueIncompleteFlagsAtRisk: boolean | null;
+  maxCompletionRateStalledAssignment: number | null;
+}
+
+function mapSectionRiskPolicyRow(row: SectionRiskPolicyRow): SectionRiskPolicyRecord {
+  return {
+    sectionId: row.section_id,
+    minAttemptsAtRisk: row.min_attempts_at_risk,
+    maxCompletionRateAtRisk: row.max_completion_rate_at_risk,
+    overdueIncompleteFlagsAtRisk:
+      row.overdue_incomplete_flags_at_risk === null
+        ? null
+        : row.overdue_incomplete_flags_at_risk === 1,
+    maxCompletionRateStalledAssignment: row.max_completion_rate_stalled_assignment,
+    updatedAt: row.updated_at,
+  };
+}
+
+export function getSectionRiskPolicy(sectionId: string): SectionRiskPolicyRecord | undefined {
+  const row = db
+    .prepare(
+      `
+        SELECT
+          section_id,
+          min_attempts_at_risk,
+          max_completion_rate_at_risk,
+          overdue_incomplete_flags_at_risk,
+          max_completion_rate_stalled_assignment,
+          updated_at
+        FROM section_risk_policies
+        WHERE section_id = ?
+      `
+    )
+    .get(sectionId) as SectionRiskPolicyRow | undefined;
+
+  return row ? mapSectionRiskPolicyRow(row) : undefined;
+}
+
+export function upsertSectionRiskPolicy(
+  input: UpsertSectionRiskPolicyInput
+): SectionRiskPolicyRecord {
+  const now = Date.now();
+  db.prepare(
+    `
+      INSERT INTO section_risk_policies (
+        section_id,
+        min_attempts_at_risk,
+        max_completion_rate_at_risk,
+        overdue_incomplete_flags_at_risk,
+        max_completion_rate_stalled_assignment,
+        updated_at
+      )
+      VALUES (?, ?, ?, ?, ?, ?)
+      ON CONFLICT(section_id) DO UPDATE SET
+        min_attempts_at_risk = excluded.min_attempts_at_risk,
+        max_completion_rate_at_risk = excluded.max_completion_rate_at_risk,
+        overdue_incomplete_flags_at_risk = excluded.overdue_incomplete_flags_at_risk,
+        max_completion_rate_stalled_assignment = excluded.max_completion_rate_stalled_assignment,
+        updated_at = excluded.updated_at
+    `
+  ).run(
+    input.sectionId,
+    input.minAttemptsAtRisk,
+    input.maxCompletionRateAtRisk,
+    input.overdueIncompleteFlagsAtRisk === null
+      ? null
+      : input.overdueIncompleteFlagsAtRisk
+        ? 1
+        : 0,
+    input.maxCompletionRateStalledAssignment,
+    now
+  );
+
+  const saved = getSectionRiskPolicy(input.sectionId);
+  if (!saved) {
+    throw new Error("Failed to save section risk policy.");
+  }
+  return saved;
+}
+
+export function deleteSectionRiskPolicy(sectionId: string) {
+  db.prepare(`DELETE FROM section_risk_policies WHERE section_id = ?`).run(sectionId);
 }

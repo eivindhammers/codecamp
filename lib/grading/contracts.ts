@@ -202,3 +202,17 @@ export interface ClassroomRiskConfig {
 export interface ClassroomRiskConfigResponse {
   config: ClassroomRiskConfig;
 }
+
+export interface SectionRiskPolicyRecord {
+  sectionId: string;
+  minAttemptsAtRisk: number | null;
+  maxCompletionRateAtRisk: number | null;
+  overdueIncompleteFlagsAtRisk: boolean | null;
+  maxCompletionRateStalledAssignment: number | null;
+  updatedAt: number;
+}
+
+export interface SectionRiskPolicyResponse {
+  policy?: SectionRiskPolicyRecord;
+  effectiveConfig: ClassroomRiskConfig;
+}

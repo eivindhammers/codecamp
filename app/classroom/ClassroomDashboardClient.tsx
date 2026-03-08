@@ -10,13 +10,14 @@ import type {
   ClassSectionRecord,
   ClassSectionsResponse,
   ClassroomRiskConfig,
-  ClassroomRiskConfigResponse,
   SectionAssignmentBreakdownRecord,
   SectionAssignmentBreakdownResponse,
   SectionGradeSummaryRecord,
   SectionGradeSummaryResponse,
   SectionLearnerMetric,
   SectionLearnerMetricsResponse,
+  SectionRiskPolicyRecord,
+  SectionRiskPolicyResponse,
   UserProfileRecord,
   UserProfileResponse,
 } from "@/lib/grading/contracts";
@@ -27,6 +28,8 @@ interface SectionPanel {
   assignments: AssignmentRecord[];
   assignmentBreakdown: SectionAssignmentBreakdownRecord[];
   gradeSummary: SectionGradeSummaryRecord[];
+  riskPolicy?: SectionRiskPolicyRecord;
+  effectiveRiskConfig: ClassroomRiskConfig;
   error?: string;
 }
 
@@ -95,7 +98,11 @@ export default function ClassroomDashboardClient() {
   const [learnerSearch, setLearnerSearch] = useState<Record<string, string>>({});
   const [learnerRiskFilter, setLearnerRiskFilter] = useState<Record<string, "all" | "at-risk" | "on-track">>({});
   const [learnerPage, setLearnerPage] = useState<Record<string, number>>({});
-  const [riskConfig, setRiskConfig] = useState<ClassroomRiskConfig>(DEFAULT_RISK_CONFIG);
+  const [riskPolicyDrafts, setRiskPolicyDrafts] = useState<Record<string, ClassroomRiskConfig>>(
+    {}
+  );
+  const [riskPolicyBusy, setRiskPolicyBusy] = useState<Record<string, boolean>>({});
+  const [riskPolicyError, setRiskPolicyError] = useState<Record<string, string>>({});
 
   const isStaff = profile?.role === "instructor" || profile?.role === "ta";
 
@@ -111,7 +118,7 @@ export default function ClassroomDashboardClient() {
       const panels = await Promise.all(
         sectionsPayload.sections.map(async (section) => {
           try {
-            const [metricsPayload, assignmentsPayload, summaryPayload, breakdownPayload] =
+            const [metricsPayload, assignmentsPayload, summaryPayload, breakdownPayload, riskPayload] =
               await Promise.all([
                 readJson<SectionLearnerMetricsResponse>(
                   `/api/classroom/sections/metrics?sectionId=${encodeURIComponent(section.sectionId)}`
@@ -129,6 +136,11 @@ export default function ClassroomDashboardClient() {
                     section.sectionId
                   )}`
                 ),
+                readJson<SectionRiskPolicyResponse>(
+                  `/api/classroom/sections/risk-policy?sectionId=${encodeURIComponent(
+                    section.sectionId
+                  )}`
+                ),
               ]);
             return {
               section,
@@ -136,6 +148,8 @@ export default function ClassroomDashboardClient() {
               assignments: assignmentsPayload.assignments,
               assignmentBreakdown: breakdownPayload.assignments,
               gradeSummary: summaryPayload.summary,
+              riskPolicy: riskPayload.policy,
+              effectiveRiskConfig: riskPayload.effectiveConfig,
             } as SectionPanel;
           } catch (error) {
             return {
@@ -144,6 +158,7 @@ export default function ClassroomDashboardClient() {
               assignments: [],
               assignmentBreakdown: [],
               gradeSummary: [],
+              effectiveRiskConfig: DEFAULT_RISK_CONFIG,
               error:
                 error instanceof Error
                   ? `Could not load classroom data: ${error.message}`
@@ -164,6 +179,13 @@ export default function ClassroomDashboardClient() {
         }
         return next;
       });
+      setRiskPolicyDrafts((prev) => {
+        const next = { ...prev };
+        for (const panel of panels) {
+          next[panel.section.sectionId] = panel.effectiveRiskConfig;
+        }
+        return next;
+      });
     } finally {
       setLoadingSections(false);
     }
@@ -181,18 +203,6 @@ export default function ClassroomDashboardClient() {
       }
     };
     void loadAuth();
-  }, []);
-
-  useEffect(() => {
-    const loadRiskConfig = async () => {
-      try {
-        const payload = await readJson<ClassroomRiskConfigResponse>("/api/classroom/risk-config");
-        setRiskConfig(payload.config);
-      } catch {
-        setRiskConfig(DEFAULT_RISK_CONFIG);
-      }
-    };
-    void loadRiskConfig();
   }, []);
 
   useEffect(() => {
@@ -271,6 +281,69 @@ export default function ClassroomDashboardClient() {
     setLearnerPage((prev) => ({ ...prev, [sectionId]: 1 }));
   }
 
+  function setRiskPolicyDraftValue(
+    sectionId: string,
+    field: keyof ClassroomRiskConfig,
+    value: number | boolean
+  ) {
+    setRiskPolicyDrafts((prev) => {
+      const current = prev[sectionId] ?? DEFAULT_RISK_CONFIG;
+      return {
+        ...prev,
+        [sectionId]: {
+          ...current,
+          [field]: value,
+        },
+      };
+    });
+  }
+
+  async function onSaveRiskPolicy(sectionId: string) {
+    const draft = riskPolicyDrafts[sectionId];
+    if (!draft) return;
+    setRiskPolicyBusy((prev) => ({ ...prev, [sectionId]: true }));
+    setRiskPolicyError((prev) => ({ ...prev, [sectionId]: "" }));
+    try {
+      await readJson<SectionRiskPolicyResponse>(
+        `/api/classroom/sections/risk-policy?sectionId=${encodeURIComponent(sectionId)}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(draft),
+        }
+      );
+      await loadSections();
+    } catch (error) {
+      setRiskPolicyError((prev) => ({
+        ...prev,
+        [sectionId]:
+          error instanceof Error ? error.message : "Failed to save section risk policy.",
+      }));
+    } finally {
+      setRiskPolicyBusy((prev) => ({ ...prev, [sectionId]: false }));
+    }
+  }
+
+  async function onResetRiskPolicy(sectionId: string) {
+    setRiskPolicyBusy((prev) => ({ ...prev, [sectionId]: true }));
+    setRiskPolicyError((prev) => ({ ...prev, [sectionId]: "" }));
+    try {
+      await readJson<SectionRiskPolicyResponse>(
+        `/api/classroom/sections/risk-policy?sectionId=${encodeURIComponent(sectionId)}`,
+        { method: "DELETE" }
+      );
+      await loadSections();
+    } catch (error) {
+      setRiskPolicyError((prev) => ({
+        ...prev,
+        [sectionId]:
+          error instanceof Error ? error.message : "Failed to reset section risk policy.",
+      }));
+    } finally {
+      setRiskPolicyBusy((prev) => ({ ...prev, [sectionId]: false }));
+    }
+  }
+
   async function onCreateAssignment(event: FormEvent<HTMLFormElement>, section: ClassSectionRecord) {
     event.preventDefault();
     const draft = assignmentDrafts[section.sectionId];
@@ -340,8 +413,8 @@ export default function ClassroomDashboardClient() {
         acc +
         section.gradeSummary.filter(
           (row) =>
-            row.attemptsCount >= riskConfig.minAttemptsAtRisk &&
-            row.completionRate < riskConfig.maxCompletionRateAtRisk
+            row.attemptsCount >= section.effectiveRiskConfig.minAttemptsAtRisk &&
+            row.completionRate < section.effectiveRiskConfig.maxCompletionRateAtRisk
         ).length,
       0
     );
@@ -352,7 +425,7 @@ export default function ClassroomDashboardClient() {
       avgCompletionRate,
       stuckLearners,
     };
-  }, [riskConfig.maxCompletionRateAtRisk, riskConfig.minAttemptsAtRisk, sections]);
+  }, [sections]);
 
   const filteredSections = useMemo(() => {
     if (courseFilter === "all") return sections;
@@ -490,6 +563,7 @@ export default function ClassroomDashboardClient() {
             )}
             <div className="space-y-4">
               {filteredSections.map((panel) => {
+                const panelRiskConfig = panel.effectiveRiskConfig;
                 const searchQuery = (learnerSearch[panel.section.sectionId] ?? "").trim().toLowerCase();
                 const riskMode = learnerRiskFilter[panel.section.sectionId] ?? "all";
                 const overdueAssignments = panel.assignments.filter(
@@ -502,12 +576,12 @@ export default function ClassroomDashboardClient() {
                     );
                     const completionRate = learnerSummary?.completionRate ?? 0;
                     const overdueRuleTriggered =
-                      riskConfig.overdueIncompleteFlagsAtRisk &&
+                      panelRiskConfig.overdueIncompleteFlagsAtRisk &&
                       overdueAssignments > 0 &&
                       completionRate < 100;
                     const attemptsRuleTriggered =
-                      metric.attemptsCount >= riskConfig.minAttemptsAtRisk &&
-                      completionRate < riskConfig.maxCompletionRateAtRisk;
+                      metric.attemptsCount >= panelRiskConfig.minAttemptsAtRisk &&
+                      completionRate < panelRiskConfig.maxCompletionRateAtRisk;
                     const atRisk =
                       overdueRuleTriggered || attemptsRuleTriggered;
                     return {
@@ -561,8 +635,8 @@ export default function ClassroomDashboardClient() {
                           {
                             panel.gradeSummary.filter(
                               (row) =>
-                                row.attemptsCount >= riskConfig.minAttemptsAtRisk &&
-                                row.completionRate < riskConfig.maxCompletionRateAtRisk
+                                row.attemptsCount >= panelRiskConfig.minAttemptsAtRisk &&
+                                row.completionRate < panelRiskConfig.maxCompletionRateAtRisk
                             ).length
                           }
                         </p>
@@ -576,6 +650,127 @@ export default function ClassroomDashboardClient() {
                     >
                       Download CSV
                     </a>
+                  </div>
+                  <div className="mb-3 rounded border border-gray-200 bg-gray-50 p-3">
+                    <p className="text-xs font-medium text-gray-700 mb-2">Section risk policy</p>
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-4">
+                      <label className="text-xs text-gray-600">
+                        Min attempts
+                        <input
+                          type="number"
+                          min={1}
+                          max={100}
+                          value={
+                            riskPolicyDrafts[panel.section.sectionId]?.minAttemptsAtRisk ??
+                            panelRiskConfig.minAttemptsAtRisk
+                          }
+                          onChange={(event) =>
+                            setRiskPolicyDraftValue(
+                              panel.section.sectionId,
+                              "minAttemptsAtRisk",
+                              Number.parseInt(event.target.value, 10) || 1
+                            )
+                          }
+                          className="mt-1 w-full border border-gray-300 rounded px-2 py-1 text-xs"
+                        />
+                      </label>
+                      <label className="text-xs text-gray-600">
+                        Max learner rate %
+                        <input
+                          type="number"
+                          min={0}
+                          max={100}
+                          step={0.1}
+                          value={
+                            riskPolicyDrafts[panel.section.sectionId]?.maxCompletionRateAtRisk ??
+                            panelRiskConfig.maxCompletionRateAtRisk
+                          }
+                          onChange={(event) =>
+                            setRiskPolicyDraftValue(
+                              panel.section.sectionId,
+                              "maxCompletionRateAtRisk",
+                              Number.parseFloat(event.target.value) || 0
+                            )
+                          }
+                          className="mt-1 w-full border border-gray-300 rounded px-2 py-1 text-xs"
+                        />
+                      </label>
+                      <label className="text-xs text-gray-600">
+                        Max stalled rate %
+                        <input
+                          type="number"
+                          min={0}
+                          max={100}
+                          step={0.1}
+                          value={
+                            riskPolicyDrafts[panel.section.sectionId]
+                              ?.maxCompletionRateStalledAssignment ??
+                            panelRiskConfig.maxCompletionRateStalledAssignment
+                          }
+                          onChange={(event) =>
+                            setRiskPolicyDraftValue(
+                              panel.section.sectionId,
+                              "maxCompletionRateStalledAssignment",
+                              Number.parseFloat(event.target.value) || 0
+                            )
+                          }
+                          className="mt-1 w-full border border-gray-300 rounded px-2 py-1 text-xs"
+                        />
+                      </label>
+                      <label className="text-xs text-gray-600">
+                        Overdue incomplete at-risk
+                        <select
+                          value={
+                            (
+                              riskPolicyDrafts[panel.section.sectionId]
+                                ?.overdueIncompleteFlagsAtRisk ??
+                              panelRiskConfig.overdueIncompleteFlagsAtRisk
+                            )
+                              ? "true"
+                              : "false"
+                          }
+                          onChange={(event) =>
+                            setRiskPolicyDraftValue(
+                              panel.section.sectionId,
+                              "overdueIncompleteFlagsAtRisk",
+                              event.target.value === "true"
+                            )
+                          }
+                          className="mt-1 w-full border border-gray-300 rounded px-2 py-1 text-xs"
+                        >
+                          <option value="true">Enabled</option>
+                          <option value="false">Disabled</option>
+                        </select>
+                      </label>
+                    </div>
+                    <div className="mt-2 flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => onSaveRiskPolicy(panel.section.sectionId)}
+                        disabled={riskPolicyBusy[panel.section.sectionId]}
+                        className="border border-indigo-300 text-indigo-700 rounded px-2 py-1 text-xs disabled:opacity-50"
+                      >
+                        Save policy
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onResetRiskPolicy(panel.section.sectionId)}
+                        disabled={riskPolicyBusy[panel.section.sectionId]}
+                        className="border border-gray-300 text-gray-700 rounded px-2 py-1 text-xs disabled:opacity-50"
+                      >
+                        Reset to default
+                      </button>
+                      {panel.riskPolicy && (
+                        <span className="text-xs text-gray-500">
+                          Updated {new Date(panel.riskPolicy.updatedAt).toLocaleString()}
+                        </span>
+                      )}
+                    </div>
+                    {riskPolicyError[panel.section.sectionId] && (
+                      <p className="text-xs text-rose-700 mt-2">
+                        {riskPolicyError[panel.section.sectionId]}
+                      </p>
+                    )}
                   </div>
                   {panel.error && <p className="text-xs text-rose-700">{panel.error}</p>}
                   {!panel.error && panel.metrics.length === 0 && (
@@ -814,7 +1009,7 @@ export default function ClassroomDashboardClient() {
                                   isLate &&
                                   breakdown !== undefined &&
                                   breakdown.completionRate <
-                                    riskConfig.maxCompletionRateStalledAssignment;
+                                    panelRiskConfig.maxCompletionRateStalledAssignment;
                                 return (
                                   <tr
                                     key={assignment.assignmentId}
