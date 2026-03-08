@@ -9,6 +9,7 @@ npm run lint        # ESLint
 npm run check:sandbox # Validate grader sandbox production config
 npm run check:sandbox-policy # Verify sandbox policy flags are enforced in runner
 npm run check:sandbox-runtime # Execute R/Python graders in docker sandbox as smoke check
+npm run check:sandbox-faults # Assert timeout fault handling in docker sandbox
 npm run worker      # Background grading worker (requires Redis)
 npm run redis:up    # Start Redis via Docker Compose
 npm run redis:down  # Stop Redis
@@ -106,7 +107,7 @@ Use these for API response shapes. Add new types here rather than inline.
 - `AUTH_BOOTSTRAP_INSTRUCTOR_EMAILS` (comma-separated) grants bootstrap instructor role for listed emails during session sign-in.
 - OIDC mode requires `AUTH_OIDC_AUTHORIZATION_URL`, `AUTH_OIDC_TOKEN_URL`, `AUTH_OIDC_USERINFO_URL`, `AUTH_OIDC_CLIENT_ID`, `AUTH_OIDC_CLIENT_SECRET` (+ optional `AUTH_OIDC_REDIRECT_URI`, `AUTH_OIDC_SCOPE`).
 - In production, sandbox mode defaults to Docker when `GRADER_SANDBOX_MODE` is unset.
-- CI workflow (`.github/workflows/ci.yml`) enforces `check:sandbox`, `check:sandbox-policy`, `check:sandbox-runtime`, lint, and build.
+- CI workflow (`.github/workflows/ci.yml`) enforces `check:sandbox`, `check:sandbox-policy`, `check:sandbox-runtime`, `check:sandbox-faults`, lint, and build.
 
 ### Working style (from project Copilot.md)
 - Read relevant files before editing.
