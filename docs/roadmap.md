@@ -343,6 +343,10 @@ Primary target users are economics students, with platform usage planned across 
 - Docker grader execution now runs with `--cap-drop ALL` and `--security-opt no-new-privileges` in addition to existing network/memory/pid/read-only constraints.
 - `check:sandbox-policy` now gates these flags in CI so sandbox runtime hardening remains enforced across future changes.
 
+75. Production sandbox fallback governance + digest-strict readiness (phase 2 progress)
+- Runtime sandbox selection now forces Docker in production even if `GRADER_SANDBOX_MODE=host`, unless explicit breakglass override (`GRADER_ALLOW_HOST_MODE_IN_PRODUCTION=true`) is set.
+- `check:sandbox-images` now supports optional digest-only enforcement via `GRADER_REQUIRE_IMAGE_DIGESTS=true` to enable staged rollout toward fully digest-pinned grader images.
+
 ## Runtime Setup
 
 From repo root:
@@ -425,23 +429,23 @@ Use this queue for day-to-day execution; keep it small and rotate items after ea
 - On completion: ship code + update roadmap + move the next highest-priority **Next** item into **Now**.
 
 ### Now
-1. Sandbox image strategy completion
-- Outcome: digest-pinned grader image guidance and production fallback policy documented/enforced.
-- Acceptance: CI/check scripts validate image refs and docs include production fallback stance.
-
-2. Enrollment/identity edge-case hardening
+1. Enrollment/identity edge-case hardening
 - Outcome: remaining write-boundary gaps closed for instructor/TA/student transitions.
 - Acceptance: protected routes reject invalid role mutations with explicit errors; lint/build pass.
 
-### Next
-1. Archive credential lifecycle runbooks
-- Rotation/revocation and failure-recovery workflows documented and linked from classroom governance surfaces.
+2. Archive credential lifecycle runbooks
+- Outcome: rotation/revocation and delivery-failure workflows are explicit for instructor operations.
+- Acceptance: runbook steps are documented and linked from governance surfaces/docs.
 
-2. Progress reconciliation policy
+### Next
+1. Progress reconciliation policy
 - Define and implement backend-first conflict resolution rules for local cache vs backend XP/progress.
 
-3. Content migration throughput
+2. Content migration throughput
 - Use scaffolding to migrate additional exercises into `content/exercises/...` with parity checks green.
+
+3. Sandbox digest-only rollout
+- Move CI/production grader image references to digests and enable `GRADER_REQUIRE_IMAGE_DIGESTS` in enforcement environments.
 
 ### Later
 1. Broader server-side grading coverage across additional exercises/courses.

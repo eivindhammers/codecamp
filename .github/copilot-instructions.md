@@ -141,6 +141,8 @@ Use these for API response shapes. Add new types here rather than inline.
 - `GRADER_SANDBOX_MODE=docker` enables Docker-isolated checker execution.
 - `GRADER_TIMEOUT_MS` controls checker timeout (1000-30000ms, default 8000).
 - Docker mode uses `GRADER_DOCKER_R_IMAGE` / `GRADER_DOCKER_PYTHON_IMAGE` when set.
+- Production runtime ignores `GRADER_SANDBOX_MODE=host` unless breakglass override `GRADER_ALLOW_HOST_MODE_IN_PRODUCTION=true` is explicitly set.
+- `GRADER_REQUIRE_IMAGE_DIGESTS=true` enables digest-only enforcement in `check:sandbox-images` for staged rollout toward fully pinned grader images.
 - Startup check thresholds are env-configurable via `GRADER_STARTUP_MAX_MS_R` and `GRADER_STARTUP_MAX_MS_PYTHON`.
 - `AUTH_BOOTSTRAP_INSTRUCTOR_EMAILS` (comma-separated) grants bootstrap instructor role for listed emails during session sign-in.
 - OIDC mode requires `AUTH_OIDC_AUTHORIZATION_URL`, `AUTH_OIDC_TOKEN_URL`, `AUTH_OIDC_USERINFO_URL`, `AUTH_OIDC_CLIENT_ID`, `AUTH_OIDC_CLIENT_SECRET` (+ optional `AUTH_OIDC_REDIRECT_URI`, `AUTH_OIDC_SCOPE`).
