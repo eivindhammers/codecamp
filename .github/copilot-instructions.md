@@ -59,9 +59,10 @@ export const runtime = 'nodejs';
 ```
 
 ### Classroom backend foundation exists
-`/api/classroom/*` now includes terms, sections, enrollments, assignments, and profile endpoints backed by SQLite tables in `submissionDb.ts`. These routes are currently unauthenticated and need auth/authorization in the next milestone.
+`/api/classroom/*` includes terms, sections, enrollments, assignments, profile, metrics, and export endpoints backed by SQLite tables in `submissionDb.ts`.
 `/api/classroom/sections/metrics` provides instructor-oriented learner progress rollups per section.
 Protected classroom routes now use session-backed identity (`codecamp_session` cookie) with role/section checks; production identity provider integration is still pending.
+`/api/classroom/sections/export` provides JSON/CSV grade-summary exports for section instructors.
 
 ## Conventions
 

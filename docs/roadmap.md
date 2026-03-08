@@ -87,6 +87,10 @@ Primary target users are economics students, with platform usage planned across 
 - Added `POST|GET|DELETE /api/auth/session` with HttpOnly session cookie (`codecamp_session`).
 - Switched classroom authorization helpers from header-based identity to session-backed identity.
 
+15. Instructor export API (phase 1)
+- Added `GET /api/classroom/sections/export?sectionId=...&format=json|csv`.
+- Endpoint returns per-student assignment completion summaries and supports CSV downloads for gradebook workflows.
+
 13. Backend-to-frontend progress sync (phase 1)
 - Exercise editor now hydrates local `ProgressContext` from backend `/api/progress` for server-graded exercises.
 - Existing local completion state is preserved while backend truth fills missing completion state for returning learners on the same device.
@@ -150,7 +154,7 @@ npm run redis:down
 
 3. Instructor workflow (teaching operations, phase 2)
 - Add UI views for instructor monitoring: completion, attempts, pass rate, and stuck learners.
-- Add exportable progress/grade summaries for classroom use.
+- Add UI integration for exportable progress/grade summaries.
 - Add assignment due-date status and late submission indicators.
 
 4. Multi-course content pipeline expansion
