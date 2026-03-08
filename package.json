@@ -12,6 +12,7 @@
     "check:sandbox-runtime": "tsx scripts/checkSandboxRuntime.ts",
     "check:sandbox-startup": "tsx scripts/checkSandboxStartup.ts",
     "check:sandbox-faults": "tsx scripts/checkSandboxFaults.ts",
+    "archive:risk-audit": "tsx scripts/runRiskArchiveAutomation.ts",
     "worker": "tsx worker/submissionWorker.ts",
     "redis:up": "docker compose up -d redis",
     "redis:down": "docker compose down"

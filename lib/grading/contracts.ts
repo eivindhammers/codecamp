@@ -254,6 +254,7 @@ export interface SectionRiskArchiveRunRecord {
   sectionId: string;
   status: RiskAuditArchiveRunStatus;
   archivedRecords: number;
+  deliveryRef: string | null;
   errorMessage: string | null;
   actorUserId: string;
   createdAt: number;
@@ -273,4 +274,18 @@ export interface SectionRiskArchiveReport {
 export interface SectionRiskArchiveReportResponse {
   report: SectionRiskArchiveReport;
   recentRuns: SectionRiskArchiveRunRecord[];
+}
+
+export interface RiskArchiveAutomationItem {
+  sectionId: string;
+  due: boolean;
+  status: RiskAuditArchiveRunStatus | "skipped";
+  archivedRecords: number;
+  deliveryRef?: string | null;
+  errorMessage?: string;
+}
+
+export interface RiskArchiveAutomationResponse {
+  executedAt: number;
+  processed: RiskArchiveAutomationItem[];
 }

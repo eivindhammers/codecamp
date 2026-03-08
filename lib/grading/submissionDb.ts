@@ -172,6 +172,7 @@ db.exec(`
     section_id TEXT NOT NULL,
     status TEXT NOT NULL,
     archived_records INTEGER NOT NULL,
+    delivery_ref TEXT,
     error_message TEXT,
     actor_user_id TEXT NOT NULL,
     created_at INTEGER NOT NULL
@@ -345,6 +346,7 @@ interface SectionRiskArchiveRunRow {
   section_id: string;
   status: RiskAuditArchiveRunStatus;
   archived_records: number;
+  delivery_ref: string | null;
   error_message: string | null;
   actor_user_id: string;
   created_at: number;
@@ -369,6 +371,9 @@ function ensureLegacyColumns() {
   }
   if (!hasColumn("submissions", "xp")) {
     db.exec(`ALTER TABLE submissions ADD COLUMN xp INTEGER NOT NULL DEFAULT 0`);
+  }
+  if (!hasColumn("section_risk_archive_runs", "delivery_ref")) {
+    db.exec(`ALTER TABLE section_risk_archive_runs ADD COLUMN delivery_ref TEXT`);
   }
 }
 
@@ -1636,6 +1641,49 @@ export function listSectionRiskPolicyAudit(
   return rows.map(mapSectionRiskPolicyAuditRow);
 }
 
+interface ListSectionRiskPolicyAuditSinceOptions {
+  createdAtGte: number;
+  createdAtLt?: number;
+  limit?: number;
+}
+
+export function listSectionRiskPolicyAuditSince(
+  sectionId: string,
+  options: ListSectionRiskPolicyAuditSinceOptions
+): SectionRiskPolicyAuditRecord[] {
+  const safeLimit = Math.min(Math.max(options.limit ?? 5000, 1), 20000);
+  const params: Array<string | number> = [sectionId, options.createdAtGte];
+  const upperBoundClause =
+    options.createdAtLt !== undefined ? "AND created_at < ?" : "";
+  if (options.createdAtLt !== undefined) {
+    params.push(options.createdAtLt);
+  }
+  params.push(safeLimit);
+  const rows = db
+    .prepare(
+      `
+        SELECT
+          event_id,
+          section_id,
+          actor_user_id,
+          action,
+          min_attempts_at_risk,
+          max_completion_rate_at_risk,
+          overdue_incomplete_flags_at_risk,
+          max_completion_rate_stalled_assignment,
+          created_at
+        FROM section_risk_policy_audit
+        WHERE section_id = ?
+          AND created_at >= ?
+          ${upperBoundClause}
+        ORDER BY created_at ASC
+        LIMIT ?
+      `
+    )
+    .all(...params) as SectionRiskPolicyAuditRow[];
+  return rows.map(mapSectionRiskPolicyAuditRow);
+}
+
 interface UpsertSectionRiskArchivePolicyInput {
   sectionId: string;
   enabled: boolean;
@@ -1678,6 +1726,30 @@ export function getSectionRiskArchivePolicy(
     )
     .get(sectionId) as SectionRiskArchivePolicyRow | undefined;
   return row ? mapSectionRiskArchivePolicyRow(row) : undefined;
+}
+
+export function listSectionRiskArchivePolicies(
+  options: { enabledOnly?: boolean } = {}
+): SectionRiskArchivePolicyRecord[] {
+  const where = options.enabledOnly ? "WHERE enabled = 1" : "";
+  const rows = db
+    .prepare(
+      `
+        SELECT
+          section_id,
+          enabled,
+          cadence,
+          retention_days,
+          destination_label,
+          last_archived_at,
+          updated_at
+        FROM section_risk_archive_policies
+        ${where}
+        ORDER BY updated_at DESC
+      `
+    )
+    .all() as SectionRiskArchivePolicyRow[];
+  return rows.map(mapSectionRiskArchivePolicyRow);
 }
 
 export function upsertSectionRiskArchivePolicy(
@@ -1726,6 +1798,7 @@ interface RecordSectionRiskArchiveRunInput {
   sectionId: string;
   status: RiskAuditArchiveRunStatus;
   archivedRecords: number;
+  deliveryRef?: string | null;
   errorMessage: string | null;
   actorUserId: string;
 }
@@ -1738,6 +1811,7 @@ function mapSectionRiskArchiveRunRow(
     sectionId: row.section_id,
     status: row.status,
     archivedRecords: row.archived_records,
+    deliveryRef: row.delivery_ref,
     errorMessage: row.error_message,
     actorUserId: row.actor_user_id,
     createdAt: row.created_at,
@@ -1756,17 +1830,19 @@ export function recordSectionRiskArchiveRun(
         section_id,
         status,
         archived_records,
+        delivery_ref,
         error_message,
         actor_user_id,
         created_at
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `
   ).run(
     runId,
     input.sectionId,
     input.status,
     input.archivedRecords,
+    input.deliveryRef ?? null,
     input.errorMessage,
     input.actorUserId,
     now
@@ -1793,6 +1869,7 @@ export function recordSectionRiskArchiveRun(
           section_id,
           status,
           archived_records,
+          delivery_ref,
           error_message,
           actor_user_id,
           created_at
@@ -1824,6 +1901,7 @@ export function listSectionRiskArchiveRuns(
           section_id,
           status,
           archived_records,
+          delivery_ref,
           error_message,
           actor_user_id,
           created_at
