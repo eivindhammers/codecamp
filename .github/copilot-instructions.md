@@ -82,6 +82,7 @@ Dashboard cards and section headers include pass-rate and stuck-learner indicato
 Assignment authoring in the dashboard uses chapter/exercise options derived from `lib/courses.ts` for the selected section course.
 Learner rows in section activity include completion-rate and risk-state badges derived from assignment due dates and summary metrics.
 Section activity supports course filtering plus per-section learner search/risk filters with pagination for larger rosters.
+Enrollment API enforces role assignment guardrails: only instructor actors can assign `instructor`/`ta` roles in section enrollments.
 Assignment creation API validates section/course alignment, exercise existence in `lib/courses.ts`, and due dates within the section term window.
 Assignment creation also enforces max due-date publish horizon and chapter pacing windows via env-configurable policies.
 Assignment tables include per-assignment completion/last-completion data and stalled overdue indicators.

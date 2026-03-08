@@ -209,6 +209,10 @@ Primary target users are economics students, with platform usage planned across 
 - Added `npm run check:sandbox-startup` to measure docker grader startup runtime for R/Python checkers with configurable thresholds (`GRADER_STARTUP_MAX_MS_R`, `GRADER_STARTUP_MAX_MS_PYTHON`).
 - CI now enforces startup performance checks alongside sandbox config/policy/runtime/fault validations before lint/build.
 
+43. Enrollment role-assignment guardrails (phase 2 progress)
+- `POST /api/classroom/enrollments` now restricts staff-role assignments (`instructor`/`ta`) to instructor actors.
+- TA actors can continue enrolling students but can no longer elevate section staff roles.
+
 ## Runtime Setup
 
 From repo root:
@@ -261,7 +265,7 @@ npm run redis:down
 - Add optional network/isolation regression checks to complement current timeout/memory/process pressure coverage.
 
 2. Classroom identity and enrollment model (phase 2 completion)
-- Keep and harden instructor/TA/student authorization rules on classroom routes.
+- Continue hardening instructor/TA/student authorization edge cases on classroom routes.
 - Keep migration path from local IDs where possible.
 
 3. Instructor workflow (teaching operations, phase 2)
