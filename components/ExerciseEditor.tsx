@@ -10,6 +10,7 @@ import {
   ExerciseProgressRecord,
   ExerciseProgressResponse,
   SubmissionStatusResponse,
+  UpsertExerciseProgressResponse,
 } from "@/lib/grading/contracts";
 import { validateExerciseSubmission } from "@/lib/exerciseValidation";
 
@@ -249,8 +250,35 @@ export default function ExerciseEditor({
       setIsCorrect(validation.isCorrect);
       setFeedback(validation.message);
       if (validation.isCorrect && !alreadyDone) {
-        completeExercise(courseSlug, chapterId, exercise.id, exercise.xp);
-        setXpAwarded(true);
+        if (!userId) {
+          setIsCorrect(false);
+          setFeedback("Could not initialize user ID for progress sync.");
+          return;
+        }
+
+        const progressResponse = await fetch("/api/progress", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId,
+            courseSlug,
+            chapterId,
+            exerciseId: exercise.id,
+            xpAwarded: exercise.xp,
+            completionSource: "local-validation",
+          }),
+        });
+        if (!progressResponse.ok) {
+          const errorText = await progressResponse.text();
+          setIsCorrect(false);
+          setFeedback(`Progress sync failed: ${errorText}`);
+          return;
+        }
+
+        const progressPayload =
+          (await progressResponse.json()) as UpsertExerciseProgressResponse;
+        completeExercise(courseSlug, chapterId, exercise.id, progressPayload.awardedXp);
+        setXpAwarded(progressPayload.awardedXp > 0);
       }
     } catch (error) {
       setIsCorrect(false);

@@ -625,6 +625,15 @@ interface ListAttemptsInput {
   limit?: number;
 }
 
+interface RecordExerciseProgressInput {
+  userId: string;
+  courseSlug: string;
+  chapterId: string;
+  exerciseId: string;
+  xpAwarded: number;
+  firstPassSubmissionId?: string;
+}
+
 function mapAttemptRowToHistoryItem(row: AttemptRow): AttemptHistoryItem {
   return {
     attemptId: row.attempt_id,
@@ -738,6 +747,58 @@ export function listUserProgress(userId: string): ExerciseProgressRecord[] {
     .all(userId) as ProgressRow[];
 
   return rows.map(mapProgressRowToRecord);
+}
+
+export function recordExerciseProgress(input: RecordExerciseProgressInput): {
+  progress: ExerciseProgressRecord;
+  awardedXp: number;
+} {
+  const now = Date.now();
+  const submissionId = input.firstPassSubmissionId ?? `local-${randomUUID()}`;
+
+  db.prepare(
+    `
+      INSERT INTO users (user_id, created_at, last_seen_at)
+      VALUES (?, ?, ?)
+      ON CONFLICT(user_id) DO UPDATE SET
+        last_seen_at = excluded.last_seen_at
+    `
+  ).run(input.userId, now, now);
+
+  const inserted = db
+    .prepare(
+      `
+        INSERT INTO progress (
+          user_id, course_slug, chapter_id, exercise_id, first_pass_submission_id, xp_awarded, completed_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(user_id, course_slug, chapter_id, exercise_id) DO NOTHING
+      `
+    )
+    .run(
+      input.userId,
+      input.courseSlug,
+      input.chapterId,
+      input.exerciseId,
+      submissionId,
+      input.xpAwarded,
+      now
+    );
+
+  const progress = getExerciseProgress(
+    input.userId,
+    input.courseSlug,
+    input.chapterId,
+    input.exerciseId
+  );
+  if (!progress) {
+    throw new Error("Failed to record exercise progress.");
+  }
+
+  return {
+    progress,
+    awardedXp: inserted.changes > 0 ? input.xpAwarded : 0,
+  };
 }
 
 function mapUserProfileRow(row: UserProfileRow): UserProfileRecord {

@@ -67,6 +67,21 @@ export interface UserCatalogProgressResponse {
   progress: ExerciseProgressRecord[];
 }
 
+export interface UpsertExerciseProgressRequest {
+  userId: string;
+  courseSlug: string;
+  chapterId: string;
+  exerciseId: string;
+  xpAwarded: number;
+  completionSource?: "local-validation" | "server-grader";
+}
+
+export interface UpsertExerciseProgressResponse {
+  awardedXp: number;
+  created: boolean;
+  progress: ExerciseProgressRecord;
+}
+
 export type ClassroomRole = "student" | "instructor" | "ta";
 export type EnrollmentStatus = "active" | "dropped";
 
