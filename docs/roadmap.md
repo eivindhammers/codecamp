@@ -295,6 +295,10 @@ Primary target users are economics students, with platform usage planned across 
 - `POST /api/classroom/assignments` now requires the actor profile role to be `instructor`.
 - Section staff TAs retain assignment visibility (`GET`) but can no longer publish assignment writes.
 
+63. Content-pack metadata parity validation (phase 2 progress)
+- `check:content-packs` now validates each pack `exercise.json` contract (`id`, `language`, `title`, `instructions`, `starterCode`, `xp`, `checker`) in addition to checker/solution file presence.
+- Manifest fields are now cross-checked against `lib/courses.ts` so migrated filesystem packs stay in sync with course definitions.
+
 ## Runtime Setup
 
 From repo root:

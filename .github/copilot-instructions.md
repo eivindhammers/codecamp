@@ -153,6 +153,7 @@ Use these for API response shapes. Add new types here rather than inline.
 - In production, sandbox mode defaults to Docker when `GRADER_SANDBOX_MODE` is unset.
 - CI workflow (`.github/workflows/ci.yml`) enforces `check:sandbox`, `check:sandbox-policy`, `check:sandbox-runtime`, `check:sandbox-startup`, `check:sandbox-faults`, lint, and build.
 - CI workflow (`.github/workflows/ci.yml`) also enforces `check:content-packs` before lint/build.
+- `check:content-packs` validates pack manifests (`exercise.json`) against `lib/courses.ts` metadata plus required checker/solution files.
 - `check:sandbox-faults` covers timeout, memory pressure, process-limit pressure, and outbound-network isolation scenarios for Docker grader execution.
 - Sandbox runtime/startup/fault scripts avoid redundant pulls by inspecting local Docker images before pulling missing images.
 
