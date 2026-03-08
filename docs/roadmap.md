@@ -135,6 +135,10 @@ Primary target users are economics students, with platform usage planned across 
 - `POST /api/classroom/assignments` now validates section/course consistency and requires valid course/chapter/exercise targets.
 - Due dates are now validated against section term windows to prevent out-of-term assignment deadlines.
 
+25. Per-assignment learner breakdowns (phase 2 progress)
+- Added `GET /api/classroom/sections/assignment-breakdown?sectionId=...` for assignment-level completion rollups.
+- `/classroom` assignment tables now show completed learners, completion rate, last completion time, and stalled overdue indicators.
+
 ## Runtime Setup
 
 From repo root:
@@ -194,7 +198,7 @@ npm run redis:down
 3. Instructor workflow (teaching operations, phase 2)
 - Add server-backed sorting/pagination support and term/course filters for very large section datasets.
 - Add assignment authoring validation against course pacing milestones and enforce max publish horizon per section policy.
-- Add configurable risk rules and per-assignment learner status breakdowns.
+- Add configurable risk rules and section-level threshold tuning for learner/assignment risk indicators.
 
 4. Multi-course content pipeline expansion
 - Migrate more exercises from inline definitions to `content/exercises/...`.

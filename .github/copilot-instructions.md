@@ -65,6 +65,7 @@ export const runtime = 'nodejs';
 `/api/classroom/sections/metrics` provides instructor-oriented learner progress rollups per section.
 Protected classroom routes now use session-backed identity (`codecamp_session` cookie) with role/section checks; production identity provider integration is still pending.
 `/api/classroom/sections/export` provides JSON/CSV grade-summary exports for section instructors.
+`/api/classroom/sections/assignment-breakdown` provides assignment-level completion rollups for section staff.
 `/classroom` provides an instructor dashboard client for section metrics and exports.
 The classroom dashboard also supports assignment creation and due-state indicators per section.
 Dashboard cards and section headers include pass-rate and stuck-learner indicators derived from section export summaries.
@@ -72,6 +73,7 @@ Assignment authoring in the dashboard uses chapter/exercise options derived from
 Learner rows in section activity include completion-rate and risk-state badges derived from assignment due dates and summary metrics.
 Section activity supports course filtering plus per-section learner search/risk filters with pagination for larger rosters.
 Assignment creation API validates section/course alignment, exercise existence in `lib/courses.ts`, and due dates within the section term window.
+Assignment tables include per-assignment completion/last-completion data and stalled overdue indicators.
 
 ## Conventions
 
