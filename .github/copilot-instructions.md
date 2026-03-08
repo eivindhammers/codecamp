@@ -11,6 +11,7 @@ npm run check:sandbox-policy # Verify sandbox policy flags are enforced in runne
 npm run check:sandbox-runtime # Execute R/Python graders in docker sandbox as smoke check
 npm run check:sandbox-startup # Measure R/Python docker grader startup time against thresholds
 npm run check:sandbox-faults # Assert timeout fault handling in docker sandbox
+npm run archive:risk-audit # Execute due risk-audit archive runs and record outcomes
 npm run worker      # Background grading worker (requires Redis)
 npm run redis:up    # Start Redis via Docker Compose
 npm run redis:down  # Stop Redis
@@ -74,6 +75,7 @@ Protected classroom routes now use session-backed identity (`codecamp_session` c
 `/api/classroom/sections/risk-policy/export` provides CSV/JSON exports for section policy audit history.
 `/api/classroom/sections/risk-policy/archive` manages section-level audit archival cadence/retention policy metadata.
 `/api/classroom/sections/risk-policy/archive/report` exposes archive run outcomes (success/failure), recent runs, and failure-rate reporting.
+`/api/classroom/risk-archive/run` executes due archive policies (or a specific section) for operational automation.
 `/api/classroom/sections` supports server-backed filtering/sorting/pagination via query params (`search`, `courseSlug`, `sort`, `limit`, `offset`).
 Auth supports two modes via `AUTH_MODE`: `bootstrap` (email POST to `/api/auth/session`) and `oidc` (redirect via `/api/auth/login` and callback at `/api/auth/callback`).
 `/classroom` provides an instructor dashboard client for section metrics and exports.
@@ -87,6 +89,7 @@ Assignment creation API validates section/course alignment, exercise existence i
 Assignment creation also enforces max due-date publish horizon and chapter pacing windows via env-configurable policies.
 Assignment tables include per-assignment completion/last-completion data and stalled overdue indicators.
 Dashboard section risk panels include archive run governance summaries (30-day totals, failures, and last run outcomes).
+Archive automation writes local JSON artifacts to `.data/risk-audit-archives/` and stores delivery refs on archive runs.
 
 ## Conventions
 

@@ -213,6 +213,11 @@ Primary target users are economics students, with platform usage planned across 
 - `POST /api/classroom/enrollments` now restricts staff-role assignments (`instructor`/`ta`) to instructor actors.
 - TA actors can continue enrolling students but can no longer elevate section staff roles.
 
+44. Automated risk-audit archive execution (phase 2 progress)
+- Added archive automation service (`lib/classroom/riskAuditArchiveAutomation.ts`) with due-policy scheduling based on section archive cadence and last archive timestamp.
+- Added `POST /api/classroom/risk-archive/run` for staff-triggered execution (single section or all due sections) and `npm run archive:risk-audit` for scheduler/cron integration.
+- Archive deliveries are now persisted as JSON artifacts under `.data/risk-audit-archives/...`, and run records capture delivery references for governance traceability.
+
 ## Runtime Setup
 
 From repo root:
@@ -270,7 +275,7 @@ npm run redis:down
 
 3. Instructor workflow (teaching operations, phase 2)
 - Add section list virtualization/performance tuning and richer term-based filtering for very large datasets.
-- Automate archive execution scheduling and delivery (currently governance reporting is available, execution still manual).
+- Add destination integrations beyond local filesystem artifacts (e.g., object storage/webhooks) for archive delivery.
 
 4. Multi-course content pipeline expansion
 - Migrate more exercises from inline definitions to `content/exercises/...`.
