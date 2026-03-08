@@ -258,6 +258,10 @@ Primary target users are economics students, with platform usage planned across 
 - Added `GET /api/classroom/sections/risk-policy/archive/report/export` to export archive run history as CSV/JSON with optional status filter.
 - Dashboard archive policy panel now includes an archive-run CSV export shortcut for section governance workflows.
 
+55. Archive governance config visibility (phase 2 progress)
+- Added `GET /api/classroom/risk-archive/config` to expose archive-delivery governance settings (host allowlists, timeouts, retry/backoff, batch limit).
+- Classroom dashboard now surfaces archive governance configuration for instructor-facing operational visibility.
+
 ## Runtime Setup
 
 From repo root:
@@ -315,7 +319,7 @@ npm run redis:down
 
 3. Instructor workflow (teaching operations, phase 2)
 - Add section list virtualization/performance tuning for very large datasets.
-- Add destination credential/governance management for archive delivery integrations.
+- Add destination credential lifecycle management (rotation/revocation playbooks) for archive delivery integrations.
 
 4. Multi-course content pipeline expansion
 - Migrate more exercises from inline definitions to `content/exercises/...`.
