@@ -80,7 +80,12 @@ Primary target users are economics students, with platform usage planned across 
 12. Classroom authorization baseline (pre-auth)
 - Added classroom authorization helper checks for staff actions.
 - Protected term creation and section management endpoints with actor role checks.
-- Protected section-scoped enrollment, assignment, and metrics endpoints with section staff checks via `x-actor-user-id`.
+- Protected section-scoped enrollment, assignment, and metrics endpoints with section staff checks.
+
+14. Classroom session authentication (phase 1)
+- Added session persistence table and DB helpers for create/read/delete auth sessions.
+- Added `POST|GET|DELETE /api/auth/session` with HttpOnly session cookie (`codecamp_session`).
+- Switched classroom authorization helpers from header-based identity to session-backed identity.
 
 13. Backend-to-frontend progress sync (phase 1)
 - Exercise editor now hydrates local `ProgressContext` from backend `/api/progress` for server-graded exercises.
@@ -139,7 +144,7 @@ npm run redis:down
 - Add integration checks that enforce no-network and resource-limit policies in CI.
 
 2. Classroom identity and enrollment model (phase 2 completion)
-- Add real login/session and replace header-based actor identity with authenticated sessions.
+- Add production login integration replacing email-only session bootstrap.
 - Keep and harden instructor/TA/student authorization rules on classroom routes.
 - Keep migration path from local IDs where possible.
 
@@ -166,7 +171,7 @@ npm run redis:down
 4. Worker and API run in-process/local; no production orchestration yet.
 5. Docker daemon must be available for `redis:up`.
 6. Docker sandbox mode is optional and not yet default; host runtime fallback still exists.
-7. Classroom APIs still rely on caller-provided `x-actor-user-id` until real auth/session integration is implemented.
+7. Session auth currently uses email-based bootstrap and still needs production identity provider integration.
 
 ## Suggested Next Session Start
 
