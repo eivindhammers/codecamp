@@ -102,6 +102,7 @@ Section activity also supports virtualized list rendering (toggleable) so only a
 Enrollment API enforces role assignment guardrails: only instructor actors can assign `instructor`/`ta` roles in section enrollments.
 Enrollment upsert writes also treat existing role changes as instructor-only operations (preventing TA role demotion/escalation via re-enroll).
 Staff-role enrollment assignments reject targets explicitly profiled as `student` (while preserving profile-missing migration fallback IDs).
+`POST /api/classroom/profile` is now authenticated and self-scoped: actor must have an active session and can only update their own profile display name (email/role remain session identity controlled).
 Enrollment status updates (`PATCH /api/classroom/enrollments`) require section-staff auth and are instructor-only when changing staff (non-student) enrollment statuses.
 Enrollment routes validate section existence and prevent dropping/demoting the last active instructor in a section.
 Term/section creation endpoints are instructor-only (`POST /api/classroom/terms`, `POST /api/classroom/sections`).

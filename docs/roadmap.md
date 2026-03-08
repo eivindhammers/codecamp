@@ -359,6 +359,10 @@ Primary target users are economics students, with platform usage planned across 
 - Added scaffolded filesystem packs for `intermediate-python/pandas/groupby`, `economics-data-science/regression/ols`, and `r-for-economists/panel-data/fe-regression`.
 - `check:content-packs` now validates these additional packs successfully, increasing migration coverage across both Python and R course tracks.
 
+79. Authenticated self-profile write boundary (phase 2 progress)
+- `POST /api/classroom/profile` now requires an active session and only allows actors to update their own profile record (`userId` must match session user).
+- Profile writes can no longer override session identity email or role through this route, closing a profile-write privilege boundary gap.
+
 ## Runtime Setup
 
 From repo root:
@@ -403,6 +407,7 @@ npm run redis:down
 4. Classroom enrollment guardrails
 - Verify TA cannot mutate an existing enrollment role.
 - Verify staff-role assignment to an explicitly student-profile user is rejected.
+- Verify `/api/classroom/profile` rejects unauthenticated writes and rejects cross-user profile updates.
 
 5. Governance/sandbox gates
 - Run `npm run check:sandbox-images`, `npm run check:sandbox-policy`, `npm run check:sandbox-faults` (docker mode).
