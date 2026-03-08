@@ -980,6 +980,24 @@ export default function ClassroomDashboardClient() {
                     </table>
                   </div>
                 )}
+                <div className="mt-3 rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+                  <p className="font-medium">Archive incident runbook</p>
+                  <ol className="mt-1 list-decimal pl-4 space-y-1">
+                    <li>
+                      Before saving policy changes, use <span className="font-medium">Validate destination</span>{" "}
+                      in each section card to catch allowlist/protocol issues.
+                    </li>
+                    <li>
+                      If delivery failures rise, check reference health for{" "}
+                      <span className="font-medium">missing</span> or{" "}
+                      <span className="font-medium">revoked</span> refs and rotate to an active reference.
+                    </li>
+                    <li>
+                      If direct URLs fail, switch to an allowed host (webhook/upload allowlists above), then
+                      re-run archive delivery and export runs CSV for audit evidence.
+                    </li>
+                  </ol>
+                </div>
               </>
             )}
           </section>
