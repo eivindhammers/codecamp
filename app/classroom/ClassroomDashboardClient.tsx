@@ -534,6 +534,15 @@ export default function ClassroomDashboardClient() {
     return `/api/classroom/sections/risk-policy/export?${params.toString()}`;
   }
 
+  function getRiskArchiveRunExportHref(sectionId: string) {
+    const params = new URLSearchParams({
+      sectionId,
+      format: "csv",
+      limit: "100",
+    });
+    return `/api/classroom/sections/risk-policy/archive/report/export?${params.toString()}`;
+  }
+
   async function onCreateAssignment(event: FormEvent<HTMLFormElement>, section: ClassSectionRecord) {
     event.preventDefault();
     const draft = assignmentDrafts[section.sectionId];
@@ -1179,6 +1188,12 @@ export default function ClassroomDashboardClient() {
                         <span className="text-xs text-gray-500">
                           Next archive {new Date(panel.riskArchiveNextAt).toLocaleString()}
                         </span>
+                        <a
+                          href={getRiskArchiveRunExportHref(panel.section.sectionId)}
+                          className="border border-gray-300 text-gray-700 rounded px-2 py-1 text-xs hover:bg-white"
+                        >
+                          Export runs CSV
+                        </a>
                       </div>
                       <div className="mt-2 text-xs text-gray-600">
                         Runs (30d): {panel.riskArchiveWindow.totalRuns} total ·{" "}

@@ -1886,6 +1886,7 @@ export function recordSectionRiskArchiveRun(
 
 interface ListSectionRiskArchiveRunsOptions {
   limit?: number;
+  status?: RiskAuditArchiveRunStatus;
 }
 
 export function listSectionRiskArchiveRuns(
@@ -1893,6 +1894,13 @@ export function listSectionRiskArchiveRuns(
   options: ListSectionRiskArchiveRunsOptions = {}
 ): SectionRiskArchiveRunRecord[] {
   const safeLimit = Math.min(Math.max(options.limit ?? 10, 1), 100);
+  const whereParts = ["section_id = ?"];
+  const params: Array<string | number> = [sectionId];
+  if (options.status) {
+    whereParts.push("status = ?");
+    params.push(options.status);
+  }
+  params.push(safeLimit);
   const rows = db
     .prepare(
       `
@@ -1906,12 +1914,12 @@ export function listSectionRiskArchiveRuns(
           actor_user_id,
           created_at
         FROM section_risk_archive_runs
-        WHERE section_id = ?
+        WHERE ${whereParts.join(" AND ")}
         ORDER BY created_at DESC
         LIMIT ?
       `
     )
-    .all(sectionId, safeLimit) as SectionRiskArchiveRunRow[];
+    .all(...params) as SectionRiskArchiveRunRow[];
   return rows.map(mapSectionRiskArchiveRunRow);
 }
 
