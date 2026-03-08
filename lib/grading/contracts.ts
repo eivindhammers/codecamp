@@ -131,3 +131,16 @@ export interface SectionEnrollmentsResponse {
 export interface AssignmentsResponse {
   assignments: AssignmentRecord[];
 }
+
+export interface SectionLearnerMetric {
+  sectionId: string;
+  userId: string;
+  attemptsCount: number;
+  completedExercises: number;
+  lastAttemptAt: number | null;
+  lastCompletionAt: number | null;
+}
+
+export interface SectionLearnerMetricsResponse {
+  metrics: SectionLearnerMetric[];
+}

@@ -11,6 +11,7 @@ import {
   ExerciseProgressRecord,
   GradingResult,
   SectionEnrollmentRecord,
+  SectionLearnerMetric,
   SubmissionStatus,
   SubmissionStatusResponse,
   UserProfileRecord,
@@ -206,6 +207,15 @@ interface AssignmentRow {
   title: string;
   due_at: number | null;
   created_at: number;
+}
+
+interface SectionLearnerMetricRow {
+  section_id: string;
+  user_id: string;
+  attempts_count: number;
+  completed_exercises: number;
+  last_attempt_at: number | null;
+  last_completion_at: number | null;
 }
 
 function hasColumn(tableName: string, columnName: string) {
@@ -901,4 +911,46 @@ export function listSectionAssignments(sectionId: string): AssignmentRecord[] {
     .all(sectionId) as AssignmentRow[];
 
   return rows.map(mapAssignmentRow);
+}
+
+function mapSectionLearnerMetricRow(row: SectionLearnerMetricRow): SectionLearnerMetric {
+  return {
+    sectionId: row.section_id,
+    userId: row.user_id,
+    attemptsCount: row.attempts_count,
+    completedExercises: row.completed_exercises,
+    lastAttemptAt: row.last_attempt_at,
+    lastCompletionAt: row.last_completion_at,
+  };
+}
+
+export function listSectionLearnerMetrics(sectionId: string): SectionLearnerMetric[] {
+  const rows = db
+    .prepare(
+      `
+        SELECT
+          e.section_id,
+          e.user_id,
+          COUNT(a.attempt_id) AS attempts_count,
+          COUNT(DISTINCT p.exercise_id) AS completed_exercises,
+          MAX(a.submitted_at) AS last_attempt_at,
+          MAX(p.completed_at) AS last_completion_at
+        FROM section_enrollments e
+        INNER JOIN class_sections s ON s.section_id = e.section_id
+        LEFT JOIN attempts a
+          ON a.user_id = e.user_id
+          AND a.course_slug = s.course_slug
+        LEFT JOIN progress p
+          ON p.user_id = e.user_id
+          AND p.course_slug = s.course_slug
+        WHERE e.section_id = ?
+          AND e.status = 'active'
+          AND e.role = 'student'
+        GROUP BY e.section_id, e.user_id
+        ORDER BY completed_exercises DESC, attempts_count DESC, e.user_id ASC
+      `
+    )
+    .all(sectionId) as SectionLearnerMetricRow[];
+
+  return rows.map(mapSectionLearnerMetricRow);
 }
