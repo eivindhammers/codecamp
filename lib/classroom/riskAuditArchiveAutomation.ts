@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import {
   RiskArchiveAutomationItem,
@@ -15,6 +15,7 @@ import {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const WEBHOOK_PREFIX = "webhook:";
+const PUT_URL_PREFIX = "puturl:";
 
 function cadenceMs(policy: SectionRiskArchivePolicyRecord): number {
   if (policy.cadence === "daily") return DAY_MS;
@@ -86,6 +87,16 @@ function parseWebhookDestination(destinationLabel: string | null): string | null
   return url.length > 0 ? url : null;
 }
 
+function parsePutUrlDestination(destinationLabel: string | null): string | null {
+  if (!destinationLabel) return null;
+  const trimmed = destinationLabel.trim();
+  if (!trimmed.toLowerCase().startsWith(PUT_URL_PREFIX)) {
+    return null;
+  }
+  const url = trimmed.slice(PUT_URL_PREFIX.length).trim();
+  return url.length > 0 ? url : null;
+}
+
 function validateWebhookDestination(urlRaw: string): URL {
   const url = new URL(urlRaw);
   if (url.protocol !== "https:" && url.protocol !== "http:") {
@@ -94,6 +105,27 @@ function validateWebhookDestination(urlRaw: string): URL {
   const allowHosts = webhookAllowHosts();
   if (allowHosts.size > 0 && !allowHosts.has(url.host.toLowerCase())) {
     throw new Error(`Webhook host '${url.host}' is not allowed.`);
+  }
+  return url;
+}
+
+function uploadAllowHosts(): Set<string> {
+  return new Set(
+    (process.env.CLASSROOM_RISK_ARCHIVE_UPLOAD_ALLOW_HOSTS ?? "")
+      .split(",")
+      .map((item) => item.trim().toLowerCase())
+      .filter((item) => item.length > 0)
+  );
+}
+
+function validatePutDestination(urlRaw: string): URL {
+  const url = new URL(urlRaw);
+  if (url.protocol !== "https:" && url.protocol !== "http:") {
+    throw new Error("PUT destination must use http or https.");
+  }
+  const allowHosts = uploadAllowHosts();
+  if (allowHosts.size > 0 && !allowHosts.has(url.host.toLowerCase())) {
+    throw new Error(`PUT destination host '${url.host}' is not allowed.`);
   }
   return url;
 }
@@ -169,6 +201,47 @@ async function deliverToWebhook(
   throw lastError ?? new Error("Webhook delivery failed.");
 }
 
+async function deliverToPutUrl(
+  destinationUrl: URL,
+  artifactPath: string
+): Promise<string> {
+  const timeoutMsRaw = Number.parseInt(
+    process.env.CLASSROOM_RISK_ARCHIVE_UPLOAD_TIMEOUT_MS ?? "",
+    10
+  );
+  const timeoutMs = Number.isFinite(timeoutMsRaw)
+    ? Math.min(Math.max(timeoutMsRaw, 1000), 60000)
+    : 10000;
+  const retryCount = webhookRetryCount();
+  const backoffMs = webhookRetryBackoffMs();
+  const artifactBody = await readFile(artifactPath, "utf8");
+  let lastError: Error | undefined;
+  for (let attempt = 0; attempt <= retryCount; attempt += 1) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const response = await fetch(destinationUrl.toString(), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
+        body: artifactBody,
+      });
+      if (!response.ok) {
+        throw new Error(`PUT delivery failed with status ${response.status}.`);
+      }
+      return `puturl:${destinationUrl.toString()}`;
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error("PUT delivery failed.");
+      if (attempt < retryCount) {
+        await wait(backoffMs * (attempt + 1));
+      }
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+  throw lastError ?? new Error("PUT delivery failed.");
+}
+
 function resolveWindowStart(policy: SectionRiskArchivePolicyRecord, now: number): number {
   if (policy.lastArchivedAt !== null) {
     return policy.lastArchivedAt;
@@ -222,6 +295,13 @@ export async function executeSectionRiskAuditArchive(
         sectionId,
         now,
         events.length
+      );
+    }
+    const putUrlRaw = parsePutUrlDestination(policy.destinationLabel);
+    if (putUrlRaw) {
+      finalDeliveryRef = await deliverToPutUrl(
+        validatePutDestination(putUrlRaw),
+        deliveryRef
       );
     }
     const run = recordSectionRiskArchiveRun({
