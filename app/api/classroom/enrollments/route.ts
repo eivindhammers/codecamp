@@ -6,6 +6,7 @@ import {
 } from "@/lib/grading/contracts";
 import {
   enrollUserInSection,
+  getUserProfile,
   listSectionEnrollments,
 } from "@/lib/grading/submissionDb";
 import { requireSectionStaff } from "@/app/api/classroom/_auth";
@@ -14,6 +15,10 @@ export const runtime = "nodejs";
 
 function badRequest(message: string) {
   return NextResponse.json({ error: message }, { status: 400 });
+}
+
+function forbidden(message: string) {
+  return NextResponse.json({ error: message }, { status: 403 });
 }
 
 interface EnrollPayload {
@@ -56,6 +61,13 @@ export async function POST(req: Request) {
   }
   const auth = requireSectionStaff(req, sectionId);
   if (!auth.ok) return auth.response;
+  const actorProfile = getUserProfile(auth.value.actorUserId);
+  if (!actorProfile) {
+    return forbidden("Actor profile not found.");
+  }
+  if (role !== "student" && actorProfile.role !== "instructor") {
+    return forbidden("Only instructors can assign section staff roles.");
+  }
 
   const enrollment = enrollUserInSection({
     enrollmentId: randomUUID(),
