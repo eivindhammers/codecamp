@@ -119,16 +119,55 @@ function parsePutUrlDestinationRef(destinationLabel: string | null): string | nu
   return refName.length > 0 ? refName : null;
 }
 
-function destinationRefKey(refName: string): string {
-  const normalized = refName
+function normalizeDestinationRefName(input: string): string {
+  const normalized = input
     .trim()
-    .toUpperCase()
-    .replace(/[^A-Z0-9_]+/g, "_")
+    .toLowerCase()
+    .replace(/[^a-z0-9_]+/g, "_")
     .replace(/^_+|_+$/g, "");
   if (!normalized) {
     throw new Error("Destination reference name is invalid.");
   }
-  return `CLASSROOM_RISK_ARCHIVE_DESTINATION_${normalized}`;
+  return normalized;
+}
+
+function configuredDestinationRefs(): Set<string> {
+  return new Set(
+    (process.env.CLASSROOM_RISK_ARCHIVE_DESTINATION_REF_NAMES ?? "")
+      .split(",")
+      .map((item) => item.trim())
+      .filter((item) => item.length > 0)
+      .map((item) => normalizeDestinationRefName(item))
+  );
+}
+
+function revokedDestinationRefs(): Set<string> {
+  return new Set(
+    (process.env.CLASSROOM_RISK_ARCHIVE_DESTINATION_REVOKED_REF_NAMES ?? "")
+      .split(",")
+      .map((item) => item.trim())
+      .filter((item) => item.length > 0)
+      .map((item) => normalizeDestinationRefName(item))
+  );
+}
+
+function assertDestinationRefUsable(refName: string): string {
+  const normalized = normalizeDestinationRefName(refName);
+  const configured = configuredDestinationRefs();
+  if (configured.size > 0 && !configured.has(normalized)) {
+    throw new Error(
+      `Destination reference '${refName}' is not listed in CLASSROOM_RISK_ARCHIVE_DESTINATION_REF_NAMES.`
+    );
+  }
+  if (revokedDestinationRefs().has(normalized)) {
+    throw new Error(`Destination reference '${refName}' is revoked.`);
+  }
+  return normalized;
+}
+
+function destinationRefKey(refName: string): string {
+  const normalized = assertDestinationRefUsable(refName);
+  return `CLASSROOM_RISK_ARCHIVE_DESTINATION_${normalized.toUpperCase()}`;
 }
 
 function resolveDestinationRefUrl(refName: string): string {

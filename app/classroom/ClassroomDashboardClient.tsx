@@ -882,6 +882,12 @@ export default function ClassroomDashboardClient() {
                       ? archiveGovernanceConfig.destinationReferenceNames.join(", ")
                       : "none configured"}
                   </p>
+                  <p className="mt-1">
+                    revoked refs{" "}
+                    {archiveGovernanceConfig.destinationRevokedReferenceNames.length > 0
+                      ? archiveGovernanceConfig.destinationRevokedReferenceNames.join(", ")
+                      : "none"}
+                  </p>
                 </div>
               </div>
             )}
@@ -1349,7 +1355,7 @@ export default function ClassroomDashboardClient() {
                           />
                           <span className="mt-1 block text-[11px] text-gray-500">
                             Supports webhook:&lt;url&gt;, puturl:&lt;url&gt;, webhookref:&lt;name&gt;,
-                            puturlref:&lt;name&gt;, or local label.
+                            puturlref:&lt;name&gt;, or local label. Revoked refs are blocked.
                           </span>
                         </label>
                       </div>

@@ -20,7 +20,26 @@ function parseHosts(name: string): string[] {
 function parseReferenceNames(): string[] {
   return (process.env.CLASSROOM_RISK_ARCHIVE_DESTINATION_REF_NAMES ?? "")
     .split(",")
-    .map((value) => value.trim())
+    .map((value) =>
+      value
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9_]+/g, "_")
+        .replace(/^_+|_+$/g, "")
+    )
+    .filter((value) => value.length > 0);
+}
+
+function parseRevokedReferenceNames(): string[] {
+  return (process.env.CLASSROOM_RISK_ARCHIVE_DESTINATION_REVOKED_REF_NAMES ?? "")
+    .split(",")
+    .map((value) =>
+      value
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9_]+/g, "_")
+        .replace(/^_+|_+$/g, "")
+    )
     .filter((value) => value.length > 0);
 }
 
@@ -37,6 +56,7 @@ export async function GET(req: Request) {
       webhookAllowHosts: parseHosts("CLASSROOM_RISK_ARCHIVE_WEBHOOK_ALLOW_HOSTS"),
       uploadAllowHosts: parseHosts("CLASSROOM_RISK_ARCHIVE_UPLOAD_ALLOW_HOSTS"),
       destinationReferenceNames: parseReferenceNames(),
+      destinationRevokedReferenceNames: parseRevokedReferenceNames(),
       webhookTimeoutMs: readNumberEnv(
         "CLASSROOM_RISK_ARCHIVE_WEBHOOK_TIMEOUT_MS",
         5000,
