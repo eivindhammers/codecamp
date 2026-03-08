@@ -70,6 +70,9 @@ const DEFAULT_RISK_CONFIG: ClassroomRiskConfig = {
   overdueIncompleteFlagsAtRisk: true,
   maxCompletionRateStalledAssignment: 60,
 };
+const SECTION_VIRTUAL_ROW_HEIGHT = 170;
+const SECTION_VIRTUAL_OVERSCAN = 3;
+const SECTION_VIRTUAL_VIEWPORT_PX = 900;
 
 function getDefaultDraftForCourse(courseSlug: string): AssignmentDraft {
   const course = courses.find((item) => item.slug === courseSlug);
@@ -150,6 +153,8 @@ export default function ClassroomDashboardClient() {
   >({});
   const [riskArchiveRunBusy, setRiskArchiveRunBusy] = useState<Record<string, boolean>>({});
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
+  const [virtualizeSectionList, setVirtualizeSectionList] = useState(true);
+  const [sectionListScrollTop, setSectionListScrollTop] = useState(0);
   const [auditActorFilter, setAuditActorFilter] = useState("");
   const [auditActionFilter, setAuditActionFilter] = useState<"all" | "upsert" | "reset">("all");
 
@@ -733,6 +738,49 @@ export default function ClassroomDashboardClient() {
       .sort((a, b) => b.event.createdAt - a.event.createdAt);
   }, [auditActionFilter, auditActorFilter, filteredSections]);
 
+  const shouldVirtualizeSections = useMemo(
+    () => virtualizeSectionList && filteredSections.length > 8,
+    [filteredSections.length, virtualizeSectionList]
+  );
+
+  const sectionVirtualWindow = useMemo(() => {
+    if (!shouldVirtualizeSections) {
+      return {
+        startIndex: 0,
+        endIndex: filteredSections.length,
+        paddingTop: 0,
+        paddingBottom: 0,
+      };
+    }
+    const visibleRows = Math.ceil(SECTION_VIRTUAL_VIEWPORT_PX / SECTION_VIRTUAL_ROW_HEIGHT);
+    const startIndex = Math.max(
+      0,
+      Math.floor(sectionListScrollTop / SECTION_VIRTUAL_ROW_HEIGHT) - SECTION_VIRTUAL_OVERSCAN
+    );
+    const endIndex = Math.min(
+      filteredSections.length,
+      startIndex + visibleRows + SECTION_VIRTUAL_OVERSCAN * 2
+    );
+    return {
+      startIndex,
+      endIndex,
+      paddingTop: startIndex * SECTION_VIRTUAL_ROW_HEIGHT,
+      paddingBottom: Math.max(
+        0,
+        (filteredSections.length - endIndex) * SECTION_VIRTUAL_ROW_HEIGHT
+      ),
+    };
+  }, [filteredSections.length, sectionListScrollTop, shouldVirtualizeSections]);
+
+  const visibleSectionPanels = useMemo(
+    () => filteredSections.slice(sectionVirtualWindow.startIndex, sectionVirtualWindow.endIndex),
+    [filteredSections, sectionVirtualWindow.endIndex, sectionVirtualWindow.startIndex]
+  );
+
+  useEffect(() => {
+    setSectionListScrollTop(0);
+  }, [courseFilter, termFilter, sectionSearch, sectionSort, sectionPageSize, virtualizeSectionList]);
+
   return (
     <div className="space-y-6">
       <section className="bg-white border border-gray-200 rounded-xl p-5">
@@ -1040,6 +1088,14 @@ export default function ClassroomDashboardClient() {
                 >
                   Collapse all
                 </button>
+                <label className="flex items-center gap-1 text-xs text-gray-600">
+                  <input
+                    type="checkbox"
+                    checked={virtualizeSectionList}
+                    onChange={(event) => setVirtualizeSectionList(event.target.checked)}
+                  />
+                  Virtualized list
+                </label>
                 {loadingSections && <span className="text-xs text-gray-500">Refreshing...</span>}
               </div>
             </div>
@@ -1049,8 +1105,31 @@ export default function ClassroomDashboardClient() {
             {sections.length > 0 && filteredSections.length === 0 && (
               <p className="text-sm text-gray-600">No sections match these filters.</p>
             )}
-            <div className="space-y-4">
-              {filteredSections.map((panel) => {
+            {shouldVirtualizeSections && (
+              <p className="mb-2 text-xs text-gray-500">
+                Virtualized rendering active ({visibleSectionPanels.length}/{filteredSections.length} section cards in DOM).
+              </p>
+            )}
+            <div
+              className={shouldVirtualizeSections ? "max-h-[70vh] overflow-y-auto rounded border border-gray-200 p-3" : ""}
+              onScroll={
+                shouldVirtualizeSections
+                  ? (event) => setSectionListScrollTop(event.currentTarget.scrollTop)
+                  : undefined
+              }
+            >
+              <div
+                className="space-y-4"
+                style={
+                  shouldVirtualizeSections
+                    ? {
+                        paddingTop: sectionVirtualWindow.paddingTop,
+                        paddingBottom: sectionVirtualWindow.paddingBottom,
+                      }
+                    : undefined
+                }
+              >
+              {visibleSectionPanels.map((panel) => {
                 const panelRiskConfig = panel.effectiveRiskConfig;
                 const sectionExpanded = expandedSections[panel.section.sectionId] ?? false;
                 const searchQuery = (learnerSearch[panel.section.sectionId] ?? "").trim().toLowerCase();
@@ -1761,6 +1840,7 @@ export default function ClassroomDashboardClient() {
                 </div>
                 );
               })}
+              </div>
             </div>
             {hasMoreSections && (
               <div className="mt-3 flex justify-end">
