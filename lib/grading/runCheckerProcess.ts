@@ -34,7 +34,10 @@ function getCheckerTimeoutMs(timeoutMs?: number): number {
 }
 
 function getSandboxMode(): SandboxMode {
-  return process.env.GRADER_SANDBOX_MODE === "docker" ? "docker" : "host";
+  const configured = process.env.GRADER_SANDBOX_MODE?.trim().toLowerCase();
+  if (configured === "docker") return "docker";
+  if (configured === "host") return "host";
+  return process.env.NODE_ENV === "production" ? "docker" : "host";
 }
 
 function getRestrictedEnv(workDir: string): NodeJS.ProcessEnv {

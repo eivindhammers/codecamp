@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "check:sandbox": "node scripts/checkSandboxConfig.mjs",
     "worker": "tsx worker/submissionWorker.ts",
     "redis:up": "docker compose up -d redis",
     "redis:down": "docker compose down"
