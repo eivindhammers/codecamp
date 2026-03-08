@@ -339,6 +339,10 @@ Primary target users are economics students, with platform usage planned across 
 - `POST /api/classroom/enrollments` now treats role changes on existing enrollments as instructor-only writes, preventing TA-driven staff-role demotions via upsert behavior.
 - Staff-role enrollment assignments now reject targets explicitly profiled as `student`, while still allowing profile-missing IDs for migration compatibility.
 
+74. Sandbox capability drop and privilege escalation hardening (phase 2 progress)
+- Docker grader execution now runs with `--cap-drop ALL` and `--security-opt no-new-privileges` in addition to existing network/memory/pid/read-only constraints.
+- `check:sandbox-policy` now gates these flags in CI so sandbox runtime hardening remains enforced across future changes.
+
 ## Runtime Setup
 
 From repo root:
