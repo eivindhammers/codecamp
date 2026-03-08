@@ -109,6 +109,11 @@ Primary target users are economics students, with platform usage planned across 
 - Added assignment due-state indicators in dashboard (`Open`, `Upcoming`, `Late`).
 - Dashboard now loads section assignments alongside learner metrics for instructor operations.
 
+19. Instructor pass-rate and stuck-learner indicators (phase 1)
+- Classroom dashboard now loads section grade summary data from export API (`format=json`).
+- Added aggregate dashboard cards for average completion rate and stuck learner count.
+- Added per-section pass-rate and stuck-learner indicators in section headers.
+
 ## Runtime Setup
 
 From repo root:
@@ -166,9 +171,9 @@ npm run redis:down
 - Keep migration path from local IDs where possible.
 
 3. Instructor workflow (teaching operations, phase 2)
-- Extend instructor UI with pass-rate and stuck-learner indicators.
 - Add richer filtering/sorting and pagination for large sections.
 - Add learner-level assignment completion + late submission indicators in dashboard tables.
+- Add assignment authoring UX improvements (exercise picker and validation against course catalog).
 
 4. Multi-course content pipeline expansion
 - Migrate more exercises from inline definitions to `content/exercises/...`.
