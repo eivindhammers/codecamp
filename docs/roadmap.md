@@ -164,6 +164,10 @@ Primary target users are economics students, with platform usage planned across 
 - Added `GET|PUT|DELETE /api/classroom/sections/risk-policy?sectionId=...` for section staff to manage risk policy overrides.
 - Dashboard now includes per-section risk policy controls and applies effective section policy values to learner/assignment indicators.
 
+32. Risk policy audit trail (phase 2 progress)
+- Risk policy API now returns change history with actor + timestamp and records updates/resets in persistent audit storage.
+- Dashboard section cards now show recent policy changes for quick instructor governance visibility.
+
 ## Runtime Setup
 
 From repo root:
@@ -223,7 +227,7 @@ npm run redis:down
 3. Instructor workflow (teaching operations, phase 2)
 - Add server-backed sorting/pagination support and term/course filters for very large section datasets.
 - Add assignment authoring validation against course pacing milestones and enforce max publish horizon per section policy.
-- Add policy history/audit trail for section risk configuration changes.
+- Add dedicated audit/filters view for section risk policy governance and change search.
 
 4. Multi-course content pipeline expansion
 - Migrate more exercises from inline definitions to `content/exercises/...`.
