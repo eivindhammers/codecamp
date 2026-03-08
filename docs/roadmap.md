@@ -262,6 +262,10 @@ Primary target users are economics students, with platform usage planned across 
 - Added `GET /api/classroom/risk-archive/config` to expose archive-delivery governance settings (host allowlists, timeouts, retry/backoff, batch limit).
 - Classroom dashboard now surfaces archive governance configuration for instructor-facing operational visibility.
 
+56. Section page-size performance control (phase 2 progress)
+- Classroom dashboard section activity now supports configurable server-backed page sizes (10/25/50 per page).
+- Section page-size selection is wired into section list pagination requests to improve large-cohort browsing ergonomics.
+
 ## Runtime Setup
 
 From repo root:
@@ -318,7 +322,7 @@ npm run redis:down
 - Keep migration path from local IDs where possible.
 
 3. Instructor workflow (teaching operations, phase 2)
-- Add section list virtualization/performance tuning for very large datasets.
+- Add section list virtualization for very large datasets.
 - Add destination credential lifecycle management (rotation/revocation playbooks) for archive delivery integrations.
 
 4. Multi-course content pipeline expansion
