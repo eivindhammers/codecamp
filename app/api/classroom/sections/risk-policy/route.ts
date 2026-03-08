@@ -28,6 +28,26 @@ function parseSectionId(req: Request): string {
   return url.searchParams.get("sectionId")?.trim() ?? "";
 }
 
+function parseLimit(req: Request): number {
+  const url = new URL(req.url);
+  const raw = Number.parseInt(url.searchParams.get("limit") ?? "", 10);
+  if (!Number.isFinite(raw)) return 10;
+  return Math.min(Math.max(raw, 1), 100);
+}
+
+function parseAction(req: Request): "upsert" | "reset" | undefined {
+  const url = new URL(req.url);
+  const action = (url.searchParams.get("action") ?? "").trim().toLowerCase();
+  if (action === "upsert" || action === "reset") return action;
+  return undefined;
+}
+
+function parseActorSearch(req: Request): string | undefined {
+  const url = new URL(req.url);
+  const value = (url.searchParams.get("actor") ?? "").trim();
+  return value.length > 0 ? value : undefined;
+}
+
 function parseNumber(
   value: unknown,
   field: string,
@@ -59,11 +79,18 @@ interface SaveRiskPolicyPayload {
   maxCompletionRateStalledAssignment?: number;
 }
 
-function getEffective(sectionId: string) {
+function getEffective(
+  sectionId: string,
+  options?: { limit?: number; action?: "upsert" | "reset"; actorUserIdContains?: string }
+) {
   const defaults = getClassroomRiskDefaults();
   const policy = getSectionRiskPolicy(sectionId);
   const effectiveConfig = applySectionRiskPolicy(defaults, policy);
-  const history = listSectionRiskPolicyAudit(sectionId, 10);
+  const history = listSectionRiskPolicyAudit(sectionId, {
+    limit: options?.limit ?? 10,
+    action: options?.action,
+    actorUserIdContains: options?.actorUserIdContains,
+  });
   return { policy, effectiveConfig, history };
 }
 
@@ -81,7 +108,11 @@ export async function GET(req: Request) {
   if (!auth.ok) return auth.response;
   ensureSectionExists(sectionId);
 
-  const response: SectionRiskPolicyResponse = getEffective(sectionId);
+  const response: SectionRiskPolicyResponse = getEffective(sectionId, {
+    limit: parseLimit(req),
+    action: parseAction(req),
+    actorUserIdContains: parseActorSearch(req),
+  });
   return NextResponse.json(response);
 }
 
@@ -133,7 +164,7 @@ export async function PUT(req: Request) {
     const response: SectionRiskPolicyResponse = {
       policy,
       effectiveConfig,
-      history: listSectionRiskPolicyAudit(sectionId, 10),
+      history: listSectionRiskPolicyAudit(sectionId, { limit: 10 }),
     };
     return NextResponse.json(response);
   } catch (error) {

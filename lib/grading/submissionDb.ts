@@ -1412,6 +1412,7 @@ function mapSectionRiskPolicyAuditRow(
     row.max_completion_rate_stalled_assignment !== null;
 
   return {
+    eventId: row.event_id,
     sectionId: row.section_id,
     actorUserId: row.actor_user_id,
     action: row.action,
@@ -1433,11 +1434,28 @@ function mapSectionRiskPolicyAuditRow(
   };
 }
 
+interface ListSectionRiskPolicyAuditOptions {
+  limit?: number;
+  action?: "upsert" | "reset";
+  actorUserIdContains?: string;
+}
+
 export function listSectionRiskPolicyAudit(
   sectionId: string,
-  limit = 10
+  options: ListSectionRiskPolicyAuditOptions = {}
 ): SectionRiskPolicyAuditRecord[] {
-  const safeLimit = Math.min(Math.max(limit, 1), 100);
+  const safeLimit = Math.min(Math.max(options.limit ?? 10, 1), 100);
+  const whereParts = ["section_id = ?"];
+  const params: Array<string | number> = [sectionId];
+  if (options.action) {
+    whereParts.push("action = ?");
+    params.push(options.action);
+  }
+  if (options.actorUserIdContains && options.actorUserIdContains.trim().length > 0) {
+    whereParts.push("LOWER(actor_user_id) LIKE ?");
+    params.push(`%${options.actorUserIdContains.trim().toLowerCase()}%`);
+  }
+  params.push(safeLimit);
   const rows = db
     .prepare(
       `
@@ -1452,12 +1470,12 @@ export function listSectionRiskPolicyAudit(
           max_completion_rate_stalled_assignment,
           created_at
         FROM section_risk_policy_audit
-        WHERE section_id = ?
+        WHERE ${whereParts.join(" AND ")}
         ORDER BY created_at DESC
         LIMIT ?
       `
     )
-    .all(sectionId, safeLimit) as SectionRiskPolicyAuditRow[];
+    .all(...params) as SectionRiskPolicyAuditRow[];
 
   return rows.map(mapSectionRiskPolicyAuditRow);
 }

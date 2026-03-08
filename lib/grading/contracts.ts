@@ -213,6 +213,7 @@ export interface SectionRiskPolicyRecord {
 }
 
 export interface SectionRiskPolicyAuditRecord {
+  eventId: string;
   sectionId: string;
   actorUserId: string;
   action: "upsert" | "reset";

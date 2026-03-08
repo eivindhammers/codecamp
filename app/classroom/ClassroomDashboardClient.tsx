@@ -105,6 +105,8 @@ export default function ClassroomDashboardClient() {
   );
   const [riskPolicyBusy, setRiskPolicyBusy] = useState<Record<string, boolean>>({});
   const [riskPolicyError, setRiskPolicyError] = useState<Record<string, string>>({});
+  const [auditActorFilter, setAuditActorFilter] = useState("");
+  const [auditActionFilter, setAuditActionFilter] = useState<"all" | "upsert" | "reset">("all");
 
   const isStaff = profile?.role === "instructor" || profile?.role === "ta";
 
@@ -141,7 +143,7 @@ export default function ClassroomDashboardClient() {
                 readJson<SectionRiskPolicyResponse>(
                   `/api/classroom/sections/risk-policy?sectionId=${encodeURIComponent(
                     section.sectionId
-                  )}`
+                  )}&limit=50`
                 ),
               ]);
             return {
@@ -436,6 +438,27 @@ export default function ClassroomDashboardClient() {
     return sections.filter((panel) => panel.section.courseSlug === courseFilter);
   }, [courseFilter, sections]);
 
+  const auditRows = useMemo(() => {
+    const actorNeedle = auditActorFilter.trim().toLowerCase();
+    return filteredSections
+      .flatMap((panel) =>
+        panel.riskPolicyHistory.map((event) => ({
+          event,
+          sectionId: panel.section.sectionId,
+          sectionTitle: panel.section.title,
+          courseSlug: panel.section.courseSlug,
+        }))
+      )
+      .filter((row) => {
+        if (auditActionFilter !== "all" && row.event.action !== auditActionFilter) return false;
+        if (actorNeedle.length > 0 && !row.event.actorUserId.toLowerCase().includes(actorNeedle)) {
+          return false;
+        }
+        return true;
+      })
+      .sort((a, b) => b.event.createdAt - a.event.createdAt);
+  }, [auditActionFilter, auditActorFilter, filteredSections]);
+
   return (
     <div className="space-y-6">
       <section className="bg-white border border-gray-200 rounded-xl p-5">
@@ -536,6 +559,68 @@ export default function ClassroomDashboardClient() {
               <p className="text-xs text-gray-500">Stuck learners</p>
               <p className="text-2xl font-semibold text-rose-700">{summary.stuckLearners}</p>
             </div>
+          </section>
+
+          <section className="bg-white border border-gray-200 rounded-xl p-5">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+              <h2 className="font-semibold text-gray-900">Risk Policy Audit</h2>
+              <div className="flex items-center gap-2">
+                <input
+                  value={auditActorFilter}
+                  onChange={(event) => setAuditActorFilter(event.target.value)}
+                  placeholder="Filter by actor"
+                  className="border border-gray-300 rounded px-2 py-1 text-xs"
+                />
+                <select
+                  value={auditActionFilter}
+                  onChange={(event) =>
+                    setAuditActionFilter(event.target.value as "all" | "upsert" | "reset")
+                  }
+                  className="border border-gray-300 rounded px-2 py-1 text-xs"
+                >
+                  <option value="all">All actions</option>
+                  <option value="upsert">Updates</option>
+                  <option value="reset">Resets</option>
+                </select>
+              </div>
+            </div>
+            {auditRows.length === 0 ? (
+              <p className="text-sm text-gray-600">No policy audit events match the current filters.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-xs">
+                  <thead>
+                    <tr className="text-left text-gray-500">
+                      <th className="py-1 pr-2">Time</th>
+                      <th className="py-1 pr-2">Section</th>
+                      <th className="py-1 pr-2">Actor</th>
+                      <th className="py-1 pr-2">Action</th>
+                      <th className="py-1 pr-2">Thresholds</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {auditRows.slice(0, 100).map((row) => (
+                      <tr key={row.event.eventId} className="border-t border-gray-100">
+                        <td className="py-1.5 pr-2">{new Date(row.event.createdAt).toLocaleString()}</td>
+                        <td className="py-1.5 pr-2">
+                          {row.sectionTitle}
+                          <span className="ml-1 text-gray-400">({row.courseSlug})</span>
+                        </td>
+                        <td className="py-1.5 pr-2 font-mono">{row.event.actorUserId}</td>
+                        <td className="py-1.5 pr-2">
+                          {row.event.action === "reset" ? "Reset defaults" : "Updated policy"}
+                        </td>
+                        <td className="py-1.5 pr-2">
+                          {row.event.policy
+                            ? `attempts>=${row.event.policy.minAttemptsAtRisk ?? "-"}, rate<${row.event.policy.maxCompletionRateAtRisk ?? "-"}%, stalled<${row.event.policy.maxCompletionRateStalledAssignment ?? "-"}%`
+                            : "Default reset"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </section>
 
           <section className="bg-white border border-gray-200 rounded-xl p-5">
