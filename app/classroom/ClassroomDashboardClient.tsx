@@ -17,6 +17,8 @@ import type {
   SectionLearnerMetric,
   SectionLearnerMetricsResponse,
   SectionRiskPolicyAuditRecord,
+  SectionRiskArchivePolicyRecord,
+  SectionRiskArchivePolicyResponse,
   SectionRiskPolicyRecord,
   SectionRiskPolicyResponse,
   UserProfileRecord,
@@ -31,6 +33,8 @@ interface SectionPanel {
   gradeSummary: SectionGradeSummaryRecord[];
   riskPolicy?: SectionRiskPolicyRecord;
   riskPolicyHistory: SectionRiskPolicyAuditRecord[];
+  riskArchivePolicy: SectionRiskArchivePolicyRecord;
+  riskArchiveNextAt: number;
   effectiveRiskConfig: ClassroomRiskConfig;
   error?: string;
 }
@@ -40,6 +44,13 @@ interface AssignmentDraft {
   chapterId: string;
   exerciseId: string;
   dueAtLocal: string;
+}
+
+interface RiskArchiveDraft {
+  enabled: boolean;
+  cadence: "daily" | "weekly" | "monthly";
+  retentionDays: number;
+  destinationLabel: string;
 }
 
 const DEFAULT_RISK_CONFIG: ClassroomRiskConfig = {
@@ -111,6 +122,9 @@ export default function ClassroomDashboardClient() {
   );
   const [riskPolicyBusy, setRiskPolicyBusy] = useState<Record<string, boolean>>({});
   const [riskPolicyError, setRiskPolicyError] = useState<Record<string, string>>({});
+  const [riskArchiveDrafts, setRiskArchiveDrafts] = useState<Record<string, RiskArchiveDraft>>({});
+  const [riskArchiveBusy, setRiskArchiveBusy] = useState<Record<string, boolean>>({});
+  const [riskArchiveError, setRiskArchiveError] = useState<Record<string, string>>({});
   const [auditActorFilter, setAuditActorFilter] = useState("");
   const [auditActionFilter, setAuditActionFilter] = useState<"all" | "upsert" | "reset">("all");
 
@@ -139,7 +153,14 @@ export default function ClassroomDashboardClient() {
       const panels = await Promise.all(
         sectionsPayload.sections.map(async (section) => {
           try {
-            const [metricsPayload, assignmentsPayload, summaryPayload, breakdownPayload, riskPayload] =
+            const [
+              metricsPayload,
+              assignmentsPayload,
+              summaryPayload,
+              breakdownPayload,
+              riskPayload,
+              archivePayload,
+            ] =
               await Promise.all([
                 readJson<SectionLearnerMetricsResponse>(
                   `/api/classroom/sections/metrics?sectionId=${encodeURIComponent(section.sectionId)}`
@@ -162,6 +183,11 @@ export default function ClassroomDashboardClient() {
                     section.sectionId
                   )}&limit=50`
                 ),
+                readJson<SectionRiskArchivePolicyResponse>(
+                  `/api/classroom/sections/risk-policy/archive?sectionId=${encodeURIComponent(
+                    section.sectionId
+                  )}`
+                ),
               ]);
             return {
               section,
@@ -171,6 +197,8 @@ export default function ClassroomDashboardClient() {
               gradeSummary: summaryPayload.summary,
               riskPolicy: riskPayload.policy,
               riskPolicyHistory: riskPayload.history,
+              riskArchivePolicy: archivePayload.policy,
+              riskArchiveNextAt: archivePayload.nextArchiveAt,
               effectiveRiskConfig: riskPayload.effectiveConfig,
             } as SectionPanel;
           } catch (error) {
@@ -181,6 +209,16 @@ export default function ClassroomDashboardClient() {
               assignmentBreakdown: [],
               gradeSummary: [],
               riskPolicyHistory: [],
+              riskArchivePolicy: {
+                sectionId: section.sectionId,
+                enabled: false,
+                cadence: "weekly",
+                retentionDays: 180,
+                destinationLabel: null,
+                lastArchivedAt: null,
+                updatedAt: Date.now(),
+              },
+              riskArchiveNextAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
               effectiveRiskConfig: DEFAULT_RISK_CONFIG,
               error:
                 error instanceof Error
@@ -214,6 +252,18 @@ export default function ClassroomDashboardClient() {
         const next = { ...prev };
         for (const panel of panels) {
           next[panel.section.sectionId] = panel.effectiveRiskConfig;
+        }
+        return next;
+      });
+      setRiskArchiveDrafts((prev) => {
+        const next = { ...prev };
+        for (const panel of panels) {
+          next[panel.section.sectionId] = {
+            enabled: panel.riskArchivePolicy.enabled,
+            cadence: panel.riskArchivePolicy.cadence,
+            retentionDays: panel.riskArchivePolicy.retentionDays,
+            destinationLabel: panel.riskArchivePolicy.destinationLabel ?? "",
+          };
         }
         return next;
       });
@@ -329,6 +379,28 @@ export default function ClassroomDashboardClient() {
     });
   }
 
+  function setRiskArchiveDraftValue(
+    sectionId: string,
+    field: keyof RiskArchiveDraft,
+    value: string | number | boolean
+  ) {
+    setRiskArchiveDrafts((prev) => {
+      const current = prev[sectionId] ?? {
+        enabled: false,
+        cadence: "weekly",
+        retentionDays: 180,
+        destinationLabel: "",
+      };
+      return {
+        ...prev,
+        [sectionId]: {
+          ...current,
+          [field]: value,
+        } as RiskArchiveDraft,
+      };
+    });
+  }
+
   async function onSaveRiskPolicy(sectionId: string) {
     const draft = riskPolicyDrafts[sectionId];
     if (!draft) return;
@@ -372,6 +444,37 @@ export default function ClassroomDashboardClient() {
       }));
     } finally {
       setRiskPolicyBusy((prev) => ({ ...prev, [sectionId]: false }));
+    }
+  }
+
+  async function onSaveRiskArchivePolicy(sectionId: string) {
+    const draft = riskArchiveDrafts[sectionId];
+    if (!draft) return;
+    setRiskArchiveBusy((prev) => ({ ...prev, [sectionId]: true }));
+    setRiskArchiveError((prev) => ({ ...prev, [sectionId]: "" }));
+    try {
+      await readJson<SectionRiskArchivePolicyResponse>(
+        `/api/classroom/sections/risk-policy/archive?sectionId=${encodeURIComponent(sectionId)}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            enabled: draft.enabled,
+            cadence: draft.cadence,
+            retentionDays: draft.retentionDays,
+            destinationLabel: draft.destinationLabel,
+          }),
+        }
+      );
+      await loadSections(0, false);
+    } catch (error) {
+      setRiskArchiveError((prev) => ({
+        ...prev,
+        [sectionId]:
+          error instanceof Error ? error.message : "Failed to save archive policy.",
+      }));
+    } finally {
+      setRiskArchiveBusy((prev) => ({ ...prev, [sectionId]: false }));
     }
   }
 
@@ -936,6 +1039,97 @@ export default function ClassroomDashboardClient() {
                         {riskPolicyError[panel.section.sectionId]}
                       </p>
                     )}
+                    <div className="mt-3 border-t border-gray-200 pt-3">
+                      <p className="text-xs font-medium text-gray-700 mb-2">Audit archival policy</p>
+                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-4">
+                        <label className="text-xs text-gray-600">
+                          Enabled
+                          <select
+                            value={riskArchiveDrafts[panel.section.sectionId]?.enabled ? "true" : "false"}
+                            onChange={(event) =>
+                              setRiskArchiveDraftValue(
+                                panel.section.sectionId,
+                                "enabled",
+                                event.target.value === "true"
+                              )
+                            }
+                            className="mt-1 w-full border border-gray-300 rounded px-2 py-1 text-xs"
+                          >
+                            <option value="false">Disabled</option>
+                            <option value="true">Enabled</option>
+                          </select>
+                        </label>
+                        <label className="text-xs text-gray-600">
+                          Cadence
+                          <select
+                            value={riskArchiveDrafts[panel.section.sectionId]?.cadence ?? "weekly"}
+                            onChange={(event) =>
+                              setRiskArchiveDraftValue(
+                                panel.section.sectionId,
+                                "cadence",
+                                event.target.value as "daily" | "weekly" | "monthly"
+                              )
+                            }
+                            className="mt-1 w-full border border-gray-300 rounded px-2 py-1 text-xs"
+                          >
+                            <option value="daily">Daily</option>
+                            <option value="weekly">Weekly</option>
+                            <option value="monthly">Monthly</option>
+                          </select>
+                        </label>
+                        <label className="text-xs text-gray-600">
+                          Retention (days)
+                          <input
+                            type="number"
+                            min={7}
+                            max={3650}
+                            value={riskArchiveDrafts[panel.section.sectionId]?.retentionDays ?? 180}
+                            onChange={(event) =>
+                              setRiskArchiveDraftValue(
+                                panel.section.sectionId,
+                                "retentionDays",
+                                Number.parseInt(event.target.value, 10) || 180
+                              )
+                            }
+                            className="mt-1 w-full border border-gray-300 rounded px-2 py-1 text-xs"
+                          />
+                        </label>
+                        <label className="text-xs text-gray-600">
+                          Destination label
+                          <input
+                            type="text"
+                            value={riskArchiveDrafts[panel.section.sectionId]?.destinationLabel ?? ""}
+                            onChange={(event) =>
+                              setRiskArchiveDraftValue(
+                                panel.section.sectionId,
+                                "destinationLabel",
+                                event.target.value
+                              )
+                            }
+                            placeholder="e.g. s3://bucket/section-a"
+                            className="mt-1 w-full border border-gray-300 rounded px-2 py-1 text-xs"
+                          />
+                        </label>
+                      </div>
+                      <div className="mt-2 flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => onSaveRiskArchivePolicy(panel.section.sectionId)}
+                          disabled={riskArchiveBusy[panel.section.sectionId]}
+                          className="border border-indigo-300 text-indigo-700 rounded px-2 py-1 text-xs disabled:opacity-50"
+                        >
+                          Save archive policy
+                        </button>
+                        <span className="text-xs text-gray-500">
+                          Next archive {new Date(panel.riskArchiveNextAt).toLocaleString()}
+                        </span>
+                      </div>
+                      {riskArchiveError[panel.section.sectionId] && (
+                        <p className="text-xs text-rose-700 mt-2">
+                          {riskArchiveError[panel.section.sectionId]}
+                        </p>
+                      )}
+                    </div>
                     {panel.riskPolicyHistory.length > 0 && (
                       <div className="mt-2 text-xs text-gray-500">
                         <p className="font-medium text-gray-600 mb-1">Recent policy changes</p>

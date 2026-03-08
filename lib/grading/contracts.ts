@@ -229,3 +229,20 @@ export interface SectionRiskPolicyResponse {
   effectiveConfig: ClassroomRiskConfig;
   history: SectionRiskPolicyAuditRecord[];
 }
+
+export type RiskAuditArchiveCadence = "daily" | "weekly" | "monthly";
+
+export interface SectionRiskArchivePolicyRecord {
+  sectionId: string;
+  enabled: boolean;
+  cadence: RiskAuditArchiveCadence;
+  retentionDays: number;
+  destinationLabel: string | null;
+  lastArchivedAt: number | null;
+  updatedAt: number;
+}
+
+export interface SectionRiskArchivePolicyResponse {
+  policy: SectionRiskArchivePolicyRecord;
+  nextArchiveAt: number;
+}

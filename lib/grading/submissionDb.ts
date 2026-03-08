@@ -18,6 +18,8 @@ import {
   SectionLearnerMetric,
   SectionRiskPolicyRecord,
   SectionRiskPolicyAuditRecord,
+  SectionRiskArchivePolicyRecord,
+  RiskAuditArchiveCadence,
   SubmissionStatus,
   SubmissionStatusResponse,
   UserProfileRecord,
@@ -150,6 +152,16 @@ db.exec(`
     overdue_incomplete_flags_at_risk INTEGER,
     max_completion_rate_stalled_assignment REAL,
     created_at INTEGER NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS section_risk_archive_policies (
+    section_id TEXT PRIMARY KEY,
+    enabled INTEGER NOT NULL,
+    cadence TEXT NOT NULL,
+    retention_days INTEGER NOT NULL,
+    destination_label TEXT,
+    last_archived_at INTEGER,
+    updated_at INTEGER NOT NULL
   );
 `);
 
@@ -303,6 +315,16 @@ interface SectionRiskPolicyAuditRow {
   overdue_incomplete_flags_at_risk: number | null;
   max_completion_rate_stalled_assignment: number | null;
   created_at: number;
+}
+
+interface SectionRiskArchivePolicyRow {
+  section_id: string;
+  enabled: number;
+  cadence: RiskAuditArchiveCadence;
+  retention_days: number;
+  destination_label: string | null;
+  last_archived_at: number | null;
+  updated_at: number;
 }
 
 function hasColumn(tableName: string, columnName: string) {
@@ -1589,4 +1611,90 @@ export function listSectionRiskPolicyAudit(
     .all(...params) as SectionRiskPolicyAuditRow[];
 
   return rows.map(mapSectionRiskPolicyAuditRow);
+}
+
+interface UpsertSectionRiskArchivePolicyInput {
+  sectionId: string;
+  enabled: boolean;
+  cadence: RiskAuditArchiveCadence;
+  retentionDays: number;
+  destinationLabel: string | null;
+}
+
+function mapSectionRiskArchivePolicyRow(
+  row: SectionRiskArchivePolicyRow
+): SectionRiskArchivePolicyRecord {
+  return {
+    sectionId: row.section_id,
+    enabled: row.enabled === 1,
+    cadence: row.cadence,
+    retentionDays: row.retention_days,
+    destinationLabel: row.destination_label,
+    lastArchivedAt: row.last_archived_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+export function getSectionRiskArchivePolicy(
+  sectionId: string
+): SectionRiskArchivePolicyRecord | undefined {
+  const row = db
+    .prepare(
+      `
+        SELECT
+          section_id,
+          enabled,
+          cadence,
+          retention_days,
+          destination_label,
+          last_archived_at,
+          updated_at
+        FROM section_risk_archive_policies
+        WHERE section_id = ?
+      `
+    )
+    .get(sectionId) as SectionRiskArchivePolicyRow | undefined;
+  return row ? mapSectionRiskArchivePolicyRow(row) : undefined;
+}
+
+export function upsertSectionRiskArchivePolicy(
+  input: UpsertSectionRiskArchivePolicyInput
+): SectionRiskArchivePolicyRecord {
+  const now = Date.now();
+  const current = getSectionRiskArchivePolicy(input.sectionId);
+  db.prepare(
+    `
+      INSERT INTO section_risk_archive_policies (
+        section_id,
+        enabled,
+        cadence,
+        retention_days,
+        destination_label,
+        last_archived_at,
+        updated_at
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(section_id) DO UPDATE SET
+        enabled = excluded.enabled,
+        cadence = excluded.cadence,
+        retention_days = excluded.retention_days,
+        destination_label = excluded.destination_label,
+        last_archived_at = excluded.last_archived_at,
+        updated_at = excluded.updated_at
+    `
+  ).run(
+    input.sectionId,
+    input.enabled ? 1 : 0,
+    input.cadence,
+    input.retentionDays,
+    input.destinationLabel,
+    current?.lastArchivedAt ?? null,
+    now
+  );
+
+  const saved = getSectionRiskArchivePolicy(input.sectionId);
+  if (!saved) {
+    throw new Error("Failed to save section risk archive policy.");
+  }
+  return saved;
 }
