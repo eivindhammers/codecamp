@@ -19,6 +19,16 @@ function assertPassed(label: string, status: string, feedback: string[]) {
   }
 }
 
+async function ensureImageAvailable(image: string) {
+  try {
+    await execFileAsync("docker", ["image", "inspect", image], {
+      timeout: 30 * 1000,
+    });
+  } catch {
+    await execFileAsync("docker", ["pull", image], { timeout: 5 * 60 * 1000 });
+  }
+}
+
 async function main() {
   if ((process.env.GRADER_SANDBOX_MODE ?? "").trim().toLowerCase() !== "docker") {
     throw new Error("GRADER_SANDBOX_MODE must be set to 'docker' for runtime checks.");
@@ -28,8 +38,8 @@ async function main() {
 
   const rImage = getImage("r");
   const pythonImage = getImage("python");
-  await execFileAsync("docker", ["pull", rImage], { timeout: 5 * 60 * 1000 });
-  await execFileAsync("docker", ["pull", pythonImage], { timeout: 5 * 60 * 1000 });
+  await ensureImageAvailable(rImage);
+  await ensureImageAvailable(pythonImage);
 
   const rResult = await gradeRSubmission("arithmetic", "result <- 42");
   assertPassed("R checker", rResult.status, rResult.feedback);

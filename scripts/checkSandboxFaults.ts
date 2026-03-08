@@ -14,9 +14,19 @@ function getImage(runtime: "r" | "python") {
   return process.env.GRADER_DOCKER_PYTHON_IMAGE?.trim() || "python:3.12-alpine";
 }
 
+async function ensureImageAvailable(image: string) {
+  try {
+    await execFileAsync("docker", ["image", "inspect", image], {
+      timeout: 30 * 1000,
+    });
+  } catch {
+    await execFileAsync("docker", ["pull", image], { timeout: 5 * 60 * 1000 });
+  }
+}
+
 async function ensureImages() {
-  await execFileAsync("docker", ["pull", getImage("r")], { timeout: 5 * 60 * 1000 });
-  await execFileAsync("docker", ["pull", getImage("python")], { timeout: 5 * 60 * 1000 });
+  await ensureImageAvailable(getImage("r"));
+  await ensureImageAvailable(getImage("python"));
 }
 
 async function assertPythonTimeout() {

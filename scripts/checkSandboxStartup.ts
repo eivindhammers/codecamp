@@ -25,6 +25,16 @@ function assertPassed(label: string, status: string, feedback: string[]) {
   }
 }
 
+async function ensureImageAvailable(image: string) {
+  try {
+    await execFileAsync("docker", ["image", "inspect", image], {
+      timeout: 30 * 1000,
+    });
+  } catch {
+    await execFileAsync("docker", ["pull", image], { timeout: 5 * 60 * 1000 });
+  }
+}
+
 async function measureMs<T>(work: () => Promise<T>): Promise<{ result: T; elapsedMs: number }> {
   const startedAt = Date.now();
   const result = await work();
@@ -40,8 +50,8 @@ async function main() {
 
   const rImage = getImage("r");
   const pythonImage = getImage("python");
-  await execFileAsync("docker", ["pull", rImage], { timeout: 5 * 60 * 1000 });
-  await execFileAsync("docker", ["pull", pythonImage], { timeout: 5 * 60 * 1000 });
+  await ensureImageAvailable(rImage);
+  await ensureImageAvailable(pythonImage);
 
   const maxRMs = readMaxMs("GRADER_STARTUP_MAX_MS_R", 25000);
   const maxPythonMs = readMaxMs("GRADER_STARTUP_MAX_MS_PYTHON", 20000);
