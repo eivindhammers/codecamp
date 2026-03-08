@@ -122,6 +122,7 @@ export default function ClassroomDashboardClient() {
   const [assignmentError, setAssignmentError] = useState<Record<string, string>>({});
   const [courseFilter, setCourseFilter] = useState<string>("all");
   const [termFilter, setTermFilter] = useState<string>("all");
+  const [sectionPageSize, setSectionPageSize] = useState<10 | 25 | 50>(10);
   const [terms, setTerms] = useState<AcademicTermRecord[]>([]);
   const [sectionSearch, setSectionSearch] = useState("");
   const [sectionSort, setSectionSort] = useState<
@@ -157,7 +158,7 @@ export default function ClassroomDashboardClient() {
     setLoadingSections(true);
     try {
       const params = new URLSearchParams({
-        limit: "10",
+        limit: String(sectionPageSize),
         offset: String(offset),
         sort: sectionSort,
       });
@@ -265,7 +266,7 @@ export default function ClassroomDashboardClient() {
     } finally {
       setLoadingSections(false);
     }
-  }, [courseFilter, isStaff, sectionSearch, sectionSort, termFilter]);
+  }, [courseFilter, isStaff, sectionPageSize, sectionSearch, sectionSort, termFilter]);
 
   useEffect(() => {
     const loadAuth = async () => {
@@ -922,6 +923,17 @@ export default function ClassroomDashboardClient() {
                   <option value="created_asc">Oldest</option>
                   <option value="title_asc">Title A-Z</option>
                   <option value="title_desc">Title Z-A</option>
+                </select>
+                <select
+                  value={sectionPageSize}
+                  onChange={(event) =>
+                    setSectionPageSize(Number.parseInt(event.target.value, 10) as 10 | 25 | 50)
+                  }
+                  className="border border-gray-300 rounded px-2 py-1 text-xs"
+                >
+                  <option value={10}>10 per page</option>
+                  <option value={25}>25 per page</option>
+                  <option value={50}>50 per page</option>
                 </select>
                 <select
                   value={courseFilter}
