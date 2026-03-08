@@ -81,6 +81,80 @@ async function assertRTimeout() {
   }
 }
 
+async function assertPythonMemoryPressureFailure() {
+  const workDir = await mkdtemp(path.join(tmpdir(), "codecamp-sandbox-fault-pymem-"));
+  const previousMemoryLimit = process.env.GRADER_DOCKER_MEMORY_LIMIT;
+  try {
+    process.env.GRADER_DOCKER_MEMORY_LIMIT = "96m";
+    const checkerPath = path.join(workDir, "checker.py");
+    const submissionPath = path.join(workDir, "submission.py");
+    const outputPath = path.join(workDir, "checker-output.txt");
+    await writeFile(
+      checkerPath,
+      "import sys\n"
+        + "x = bytearray(350 * 1024 * 1024)\n"
+        + "open(sys.argv[2], 'w', encoding='utf-8').write('STATUS:passed\\n')\n",
+      "utf8"
+    );
+    await writeFile(submissionPath, "print('noop')\n", "utf8");
+
+    const result = await runCheckerProcess({
+      runtime: "python",
+      command: "python3",
+      args: [checkerPath, submissionPath, outputPath],
+      outputPath,
+      workDir,
+      timeoutMs: 8000,
+    });
+    if (result.error?.kind !== "execution-failed") {
+      throw new Error(
+        `Expected python memory pressure execution failure, got: ${JSON.stringify(result.error)}`
+      );
+    }
+  } finally {
+    if (previousMemoryLimit === undefined) {
+      delete process.env.GRADER_DOCKER_MEMORY_LIMIT;
+    } else {
+      process.env.GRADER_DOCKER_MEMORY_LIMIT = previousMemoryLimit;
+    }
+    await rm(workDir, { recursive: true, force: true });
+  }
+}
+
+async function assertPythonPidPressureFailure() {
+  const workDir = await mkdtemp(path.join(tmpdir(), "codecamp-sandbox-fault-pypid-"));
+  try {
+    const checkerPath = path.join(workDir, "checker.py");
+    const submissionPath = path.join(workDir, "submission.py");
+    const outputPath = path.join(workDir, "checker-output.txt");
+    await writeFile(
+      checkerPath,
+      "import subprocess\n"
+        + "procs = []\n"
+        + "for _ in range(400):\n"
+        + "  procs.append(subprocess.Popen(['sh', '-c', 'sleep 10']))\n",
+      "utf8"
+    );
+    await writeFile(submissionPath, "print('noop')\n", "utf8");
+
+    const result = await runCheckerProcess({
+      runtime: "python",
+      command: "python3",
+      args: [checkerPath, submissionPath, outputPath],
+      outputPath,
+      workDir,
+      timeoutMs: 8000,
+    });
+    if (result.error?.kind !== "execution-failed") {
+      throw new Error(
+        `Expected python pid pressure execution failure, got: ${JSON.stringify(result.error)}`
+      );
+    }
+  } finally {
+    await rm(workDir, { recursive: true, force: true });
+  }
+}
+
 async function main() {
   if ((process.env.GRADER_SANDBOX_MODE ?? "").trim().toLowerCase() !== "docker") {
     throw new Error("GRADER_SANDBOX_MODE must be set to 'docker' for fault checks.");
@@ -89,6 +163,8 @@ async function main() {
   await ensureImages();
   await assertPythonTimeout();
   await assertRTimeout();
+  await assertPythonMemoryPressureFailure();
+  await assertPythonPidPressureFailure();
   console.log("[sandbox-faults] OK");
 }
 
