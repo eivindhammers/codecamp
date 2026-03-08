@@ -14,6 +14,20 @@ function unauthorized(message: string) {
   return NextResponse.json({ error: message }, { status: 403 });
 }
 
+function readBooleanEnv(name: string, fallback: boolean): boolean {
+  const value = process.env[name]?.trim().toLowerCase();
+  if (!value) return fallback;
+  if (value === "1" || value === "true" || value === "yes") return true;
+  if (value === "0" || value === "false" || value === "no") return false;
+  return fallback;
+}
+
+function allowRoleBasedSectionStaffBypass(): boolean {
+  const defaultByMode =
+    (process.env.AUTH_MODE ?? "bootstrap").trim().toLowerCase() === "oidc";
+  return readBooleanEnv("AUTH_SECTION_STAFF_ROLE_BYPASS", defaultByMode);
+}
+
 export function requireGlobalStaff(
   req: Request
 ): { ok: true; value: AuthResult } | { ok: false; response: NextResponse } {
@@ -57,6 +71,10 @@ export function requireSectionStaff(
 ): { ok: true; value: AuthResult } | { ok: false; response: NextResponse } {
   const globalAccess = requireGlobalStaff(req);
   if (!globalAccess.ok) return globalAccess;
+
+  if (allowRoleBasedSectionStaffBypass()) {
+    return globalAccess;
+  }
 
   const enrollment = getSectionEnrollment(sectionId, globalAccess.value.actorUserId);
   if (!enrollment || enrollment.status !== "active") {
