@@ -6,6 +6,7 @@
 npm run dev         # Dev server (Turbopack, http://localhost:3000)
 npm run build       # Production build
 npm run lint        # ESLint
+npm run check:sandbox # Validate grader sandbox production config
 npm run worker      # Background grading worker (requires Redis)
 npm run redis:up    # Start Redis via Docker Compose
 npm run redis:down  # Stop Redis
@@ -92,6 +93,7 @@ Use these for API response shapes. Add new types here rather than inline.
 - `GRADER_TIMEOUT_MS` controls checker timeout (1000-30000ms, default 8000).
 - Docker mode uses `GRADER_DOCKER_R_IMAGE` / `GRADER_DOCKER_PYTHON_IMAGE` when set.
 - `AUTH_BOOTSTRAP_INSTRUCTOR_EMAILS` (comma-separated) grants bootstrap instructor role for listed emails during session sign-in.
+- In production, sandbox mode defaults to Docker when `GRADER_SANDBOX_MODE` is unset.
 
 ### Working style (from project Copilot.md)
 - Read relevant files before editing.

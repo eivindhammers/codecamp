@@ -100,6 +100,10 @@ Primary target users are economics students, with platform usage planned across 
 - Added header navigation entry to classroom dashboard.
 - Added bootstrap instructor role mapping via `AUTH_BOOTSTRAP_INSTRUCTOR_EMAILS` for local staging.
 
+17. Sandbox production defaults (phase 2 progress)
+- Checker sandbox now defaults to Docker when `NODE_ENV=production` (host mode remains default in development).
+- Added `npm run check:sandbox` to enforce production sandbox config (Docker mode + explicit grader images).
+
 ## Runtime Setup
 
 From repo root:
@@ -148,7 +152,6 @@ npm run redis:down
 ## Next Milestones (Priority Order)
 
 1. Harden execution sandbox (phase 2 completion)
-- Add deployment/runtime configuration so Docker sandbox mode is enabled by default in production.
 - Validate and tune image strategy (`GRADER_DOCKER_R_IMAGE`, `GRADER_DOCKER_PYTHON_IMAGE`) and startup performance.
 - Add integration checks that enforce no-network and resource-limit policies in CI.
 
