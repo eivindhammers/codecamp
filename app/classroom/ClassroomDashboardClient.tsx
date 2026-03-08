@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { courses } from "@/lib/courses";
 import type {
   AssignmentRecord,
   AssignmentsResponse,
@@ -28,6 +29,31 @@ interface AssignmentDraft {
   chapterId: string;
   exerciseId: string;
   dueAtLocal: string;
+}
+
+function getDefaultDraftForCourse(courseSlug: string): AssignmentDraft {
+  const course = courses.find((item) => item.slug === courseSlug);
+  const firstChapter = course?.chapters[0];
+  const firstExercise = firstChapter?.exercises[0];
+  return {
+    title: "",
+    chapterId: firstChapter?.id ?? "",
+    exerciseId: firstExercise?.id ?? "",
+    dueAtLocal: "",
+  };
+}
+
+function getCourseBySlug(courseSlug: string) {
+  return courses.find((item) => item.slug === courseSlug);
+}
+
+function getExercisesForChapter(courseSlug: string, chapterId: string): { id: string; title: string }[] {
+  const course = getCourseBySlug(courseSlug);
+  const chapter = course?.chapters.find((item) => item.id === chapterId);
+  return (chapter?.exercises ?? []).map((exercise) => ({
+    id: exercise.id,
+    title: exercise.title,
+  }));
 }
 
 async function readJson<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
@@ -104,12 +130,9 @@ export default function ClassroomDashboardClient() {
         const next = { ...prev };
         for (const panel of panels) {
           if (!next[panel.section.sectionId]) {
-            next[panel.section.sectionId] = {
-              title: "",
-              chapterId: "",
-              exerciseId: "",
-              dueAtLocal: "",
-            };
+            next[panel.section.sectionId] = getDefaultDraftForCourse(
+              panel.section.courseSlug
+            );
           }
         }
         return next;
@@ -169,11 +192,9 @@ export default function ClassroomDashboardClient() {
 
   function setDraftValue(sectionId: string, field: keyof AssignmentDraft, value: string) {
     setAssignmentDrafts((prev) => {
+      const section = sections.find((item) => item.section.sectionId === sectionId);
       const current = prev[sectionId] ?? {
-        title: "",
-        chapterId: "",
-        exerciseId: "",
-        dueAtLocal: "",
+        ...getDefaultDraftForCourse(section?.section.courseSlug ?? ""),
       };
       return {
         ...prev,
@@ -214,12 +235,7 @@ export default function ClassroomDashboardClient() {
 
       setAssignmentDrafts((prev) => ({
         ...prev,
-        [section.sectionId]: {
-          title: "",
-          chapterId: "",
-          exerciseId: "",
-          dueAtLocal: "",
-        },
+        [section.sectionId]: getDefaultDraftForCourse(section.courseSlug),
       }));
       await loadSections();
     } catch (error) {
@@ -456,16 +472,33 @@ export default function ClassroomDashboardClient() {
                           required
                           className="border border-gray-300 rounded px-2 py-1.5 text-xs"
                         />
-                        <input
+                        <select
                           value={assignmentDrafts[panel.section.sectionId]?.chapterId ?? ""}
-                          onChange={(event) =>
-                            setDraftValue(panel.section.sectionId, "chapterId", event.target.value)
-                          }
-                          placeholder="Chapter ID"
+                          onChange={(event) => {
+                            const nextChapterId = event.target.value;
+                            setDraftValue(panel.section.sectionId, "chapterId", nextChapterId);
+                            const exercises = getExercisesForChapter(
+                              panel.section.courseSlug,
+                              nextChapterId
+                            );
+                            setDraftValue(
+                              panel.section.sectionId,
+                              "exerciseId",
+                              exercises[0]?.id ?? ""
+                            );
+                          }}
                           required
                           className="border border-gray-300 rounded px-2 py-1.5 text-xs"
-                        />
-                        <input
+                        >
+                          {(
+                            getCourseBySlug(panel.section.courseSlug)?.chapters ?? []
+                          ).map((chapter) => (
+                            <option key={chapter.id} value={chapter.id}>
+                              {chapter.title}
+                            </option>
+                          ))}
+                        </select>
+                        <select
                           value={assignmentDrafts[panel.section.sectionId]?.exerciseId ?? ""}
                           onChange={(event) =>
                             setDraftValue(
@@ -474,10 +507,18 @@ export default function ClassroomDashboardClient() {
                               event.target.value
                             )
                           }
-                          placeholder="Exercise ID"
                           required
                           className="border border-gray-300 rounded px-2 py-1.5 text-xs"
-                        />
+                        >
+                          {getExercisesForChapter(
+                            panel.section.courseSlug,
+                            assignmentDrafts[panel.section.sectionId]?.chapterId ?? ""
+                          ).map((exercise) => (
+                            <option key={exercise.id} value={exercise.id}>
+                              {exercise.title}
+                            </option>
+                          ))}
+                        </select>
                         <input
                           type="datetime-local"
                           value={assignmentDrafts[panel.section.sectionId]?.dueAtLocal ?? ""}
