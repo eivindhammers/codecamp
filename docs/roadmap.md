@@ -230,6 +230,10 @@ Primary target users are economics students, with platform usage planned across 
 - Classroom dashboard section activity controls now include term selection and server-backed `termId` filtering.
 - `/api/classroom/sections` term filtering is now wired into dashboard search/sort/pagination requests for larger multi-term datasets.
 
+48. Archive PUT destination delivery (phase 2 progress)
+- Archive automation now supports `destinationLabel=puturl:<url>` to upload archive artifact JSON via HTTP PUT (for pre-signed/object-storage style destinations).
+- PUT destination host allowlisting and timeout controls are configurable for safer outbound delivery.
+
 ## Runtime Setup
 
 From repo root:
@@ -287,7 +291,7 @@ npm run redis:down
 
 3. Instructor workflow (teaching operations, phase 2)
 - Add section list virtualization/performance tuning for very large datasets.
-- Add object-storage destination integrations for archive delivery.
+- Add destination credential/governance management for archive delivery integrations.
 
 4. Multi-course content pipeline expansion
 - Migrate more exercises from inline definitions to `content/exercises/...`.

@@ -92,6 +92,7 @@ Assignment tables include per-assignment completion/last-completion data and sta
 Dashboard section risk panels include archive run governance summaries (30-day totals, failures, and last run outcomes).
 Archive automation writes local JSON artifacts to `.data/risk-audit-archives/` and stores delivery refs on archive runs.
 Archive automation also supports webhook delivery via destination labels (`webhook:<url>`), with host allowlisting for outbound safety.
+Archive automation supports archive upload destinations via `puturl:<url>` (HTTP PUT of archive artifact JSON, useful for pre-signed object storage endpoints).
 
 ## Conventions
 
@@ -134,6 +135,7 @@ Use these for API response shapes. Add new types here rather than inline.
 - Risk audit archival defaults are env-configurable with `CLASSROOM_RISK_ARCHIVE_DEFAULT_CADENCE` and `CLASSROOM_RISK_ARCHIVE_DEFAULT_RETENTION_DAYS`.
 - Archive automation controls include `CLASSROOM_RISK_ARCHIVE_BASE_DIR`, `CLASSROOM_RISK_ARCHIVE_BATCH_LIMIT`, `CLASSROOM_RISK_ARCHIVE_ACTOR_USER_ID`, `CLASSROOM_RISK_ARCHIVE_WEBHOOK_ALLOW_HOSTS`, and `CLASSROOM_RISK_ARCHIVE_WEBHOOK_TIMEOUT_MS`.
 - Webhook delivery retries are configurable via `CLASSROOM_RISK_ARCHIVE_DELIVERY_RETRY_COUNT` and `CLASSROOM_RISK_ARCHIVE_DELIVERY_RETRY_BACKOFF_MS`.
+- PUT destination controls are env-configurable via `CLASSROOM_RISK_ARCHIVE_UPLOAD_ALLOW_HOSTS` and `CLASSROOM_RISK_ARCHIVE_UPLOAD_TIMEOUT_MS`.
 - In production, sandbox mode defaults to Docker when `GRADER_SANDBOX_MODE` is unset.
 - CI workflow (`.github/workflows/ci.yml`) enforces `check:sandbox`, `check:sandbox-policy`, `check:sandbox-runtime`, `check:sandbox-startup`, `check:sandbox-faults`, lint, and build.
 - `check:sandbox-faults` covers timeout, memory pressure, process-limit pressure, and outbound-network isolation scenarios for Docker grader execution.
