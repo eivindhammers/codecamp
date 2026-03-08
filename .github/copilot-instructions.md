@@ -61,6 +61,7 @@ export const runtime = 'nodejs';
 ### Classroom backend foundation exists
 `/api/classroom/*` now includes terms, sections, enrollments, assignments, and profile endpoints backed by SQLite tables in `submissionDb.ts`. These routes are currently unauthenticated and need auth/authorization in the next milestone.
 `/api/classroom/sections/metrics` provides instructor-oriented learner progress rollups per section.
+Current interim authorization for protected classroom routes uses `x-actor-user-id` and section-role checks; full session auth is still pending.
 
 ## Conventions
 

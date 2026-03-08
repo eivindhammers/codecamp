@@ -77,6 +77,11 @@ Primary target users are economics students, with platform usage planned across 
 - Added section learner metrics endpoint: `GET /api/classroom/sections/metrics?sectionId=...`.
 - Metrics currently include attempts count, completed exercise count, last attempt time, and last completion time per active student enrollment.
 
+12. Classroom authorization baseline (pre-auth)
+- Added classroom authorization helper checks for staff actions.
+- Protected term creation and section management endpoints with actor role checks.
+- Protected section-scoped enrollment, assignment, and metrics endpoints with section staff checks via `x-actor-user-id`.
+
 ## Runtime Setup
 
 From repo root:
@@ -129,9 +134,9 @@ npm run redis:down
 - Validate and tune image strategy (`GRADER_DOCKER_R_IMAGE`, `GRADER_DOCKER_PYTHON_IMAGE`) and startup performance.
 - Add integration checks that enforce no-network and resource-limit policies in CI.
 
-2. Classroom identity and enrollment model (phase 2)
-- Add real login/session and map classroom APIs from local IDs to authenticated users.
-- Add authorization rules for instructor/TA/student role boundaries on classroom routes.
+2. Classroom identity and enrollment model (phase 2 completion)
+- Add real login/session and replace header-based actor identity with authenticated sessions.
+- Keep and harden instructor/TA/student authorization rules on classroom routes.
 - Keep migration path from local IDs where possible.
 
 3. Instructor workflow (teaching operations, phase 2)
@@ -156,7 +161,7 @@ npm run redis:down
 4. Worker and API run in-process/local; no production orchestration yet.
 5. Docker daemon must be available for `redis:up`.
 6. Docker sandbox mode is optional and not yet default; host runtime fallback still exists.
-7. Classroom APIs currently have no authentication/authorization guardrails.
+7. Classroom APIs still rely on caller-provided `x-actor-user-id` until real auth/session integration is implemented.
 
 ## Suggested Next Session Start
 
