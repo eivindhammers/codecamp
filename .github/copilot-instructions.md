@@ -67,6 +67,7 @@ export const runtime = 'nodejs';
 Protected classroom routes now use session-backed identity (`codecamp_session` cookie) with role/section checks; production identity provider integration is still pending.
 `/api/classroom/sections/export` provides JSON/CSV grade-summary exports for section instructors.
 `/api/classroom/sections/assignment-breakdown` provides assignment-level completion rollups for section staff.
+Auth supports two modes via `AUTH_MODE`: `bootstrap` (email POST to `/api/auth/session`) and `oidc` (redirect via `/api/auth/login` and callback at `/api/auth/callback`).
 `/classroom` provides an instructor dashboard client for section metrics and exports.
 The classroom dashboard also supports assignment creation and due-state indicators per section.
 Dashboard cards and section headers include pass-rate and stuck-learner indicators derived from section export summaries.
@@ -103,6 +104,7 @@ Use these for API response shapes. Add new types here rather than inline.
 - `GRADER_TIMEOUT_MS` controls checker timeout (1000-30000ms, default 8000).
 - Docker mode uses `GRADER_DOCKER_R_IMAGE` / `GRADER_DOCKER_PYTHON_IMAGE` when set.
 - `AUTH_BOOTSTRAP_INSTRUCTOR_EMAILS` (comma-separated) grants bootstrap instructor role for listed emails during session sign-in.
+- OIDC mode requires `AUTH_OIDC_AUTHORIZATION_URL`, `AUTH_OIDC_TOKEN_URL`, `AUTH_OIDC_USERINFO_URL`, `AUTH_OIDC_CLIENT_ID`, `AUTH_OIDC_CLIENT_SECRET` (+ optional `AUTH_OIDC_REDIRECT_URI`, `AUTH_OIDC_SCOPE`).
 - In production, sandbox mode defaults to Docker when `GRADER_SANDBOX_MODE` is unset.
 - CI workflow (`.github/workflows/ci.yml`) enforces `check:sandbox`, `check:sandbox-policy`, `check:sandbox-runtime`, lint, and build.
 

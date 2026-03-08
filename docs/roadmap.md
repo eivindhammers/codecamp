@@ -143,6 +143,11 @@ Primary target users are economics students, with platform usage planned across 
 - Added `npm run check:sandbox-runtime` to execute both R and Python graders in Docker sandbox mode as a CI smoke check.
 - CI now runs config, policy, and runtime sandbox checks before lint/build.
 
+27. Production auth integration foundation (phase 2 progress)
+- Added OIDC auth endpoints: `GET /api/auth/config`, `GET /api/auth/login`, `GET /api/auth/callback`.
+- `AUTH_MODE=oidc` now enables authorization-code login flow with userinfo-based identity mapping into existing session auth (`codecamp_session` cookie).
+- Classroom dashboard now detects auth mode and shows SSO login flow for OIDC deployments (while retaining bootstrap email sign-in for local/dev mode).
+
 ## Runtime Setup
 
 From repo root:
@@ -195,7 +200,7 @@ npm run redis:down
 - Add fault-injection coverage (timeouts/resource exhaustion) for Docker sandbox checks in CI.
 
 2. Classroom identity and enrollment model (phase 2 completion)
-- Add production login integration replacing email-only session bootstrap.
+- Add role-claim mapping/synchronization from IdP (e.g., instructor/ta) instead of email bootstrap-only role seeding.
 - Keep and harden instructor/TA/student authorization rules on classroom routes.
 - Keep migration path from local IDs where possible.
 
