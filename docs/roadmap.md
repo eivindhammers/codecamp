@@ -73,6 +73,10 @@ Primary target users are economics students, with platform usage planned across 
   - `GET|POST /api/classroom/assignments`
 - Added typed contracts and DB helpers to support multi-course term/section enrollment and assignment publishing workflows.
 
+11. Instructor monitoring API (phase 1)
+- Added section learner metrics endpoint: `GET /api/classroom/sections/metrics?sectionId=...`.
+- Metrics currently include attempts count, completed exercise count, last attempt time, and last completion time per active student enrollment.
+
 ## Runtime Setup
 
 From repo root:
@@ -130,10 +134,10 @@ npm run redis:down
 - Add authorization rules for instructor/TA/student role boundaries on classroom routes.
 - Keep migration path from local IDs where possible.
 
-3. Instructor workflow (teaching operations)
-- Add assignment publishing per course/section/chapter.
-- Add views for instructor monitoring: completion, attempts, pass rate, and stuck learners.
+3. Instructor workflow (teaching operations, phase 2)
+- Add UI views for instructor monitoring: completion, attempts, pass rate, and stuck learners.
 - Add exportable progress/grade summaries for classroom use.
+- Add assignment due-date status and late submission indicators.
 
 4. Multi-course content pipeline expansion
 - Migrate more exercises from inline definitions to `content/exercises/...`.
