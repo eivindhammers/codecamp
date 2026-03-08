@@ -63,6 +63,16 @@ Primary target users are economics students, with platform usage planned across 
 - Docker mode runs checkers with `--network none`, memory/CPU/PID limits, read-only root FS, and tmpfs `/tmp`.
 - Checker files are copied into ephemeral work directories before execution for tighter isolation from repo paths.
 
+10. Classroom model foundation APIs
+- Added classroom data model tables for `academic_terms`, `class_sections`, `user_profiles`, `section_enrollments`, and `assignments`.
+- Added API routes:
+  - `POST /api/classroom/profile`
+  - `GET|POST /api/classroom/terms`
+  - `GET|POST /api/classroom/sections`
+  - `GET|POST /api/classroom/enrollments`
+  - `GET|POST /api/classroom/assignments`
+- Added typed contracts and DB helpers to support multi-course term/section enrollment and assignment publishing workflows.
+
 ## Runtime Setup
 
 From repo root:
@@ -115,9 +125,9 @@ npm run redis:down
 - Validate and tune image strategy (`GRADER_DOCKER_R_IMAGE`, `GRADER_DOCKER_PYTHON_IMAGE`) and startup performance.
 - Add integration checks that enforce no-network and resource-limit policies in CI.
 
-2. Classroom identity and enrollment model
-- Add real login/session and map `userId` to authenticated users.
-- Introduce course term + section + enrollment entities for multi-course delivery.
+2. Classroom identity and enrollment model (phase 2)
+- Add real login/session and map classroom APIs from local IDs to authenticated users.
+- Add authorization rules for instructor/TA/student role boundaries on classroom routes.
 - Keep migration path from local IDs where possible.
 
 3. Instructor workflow (teaching operations)
@@ -142,10 +152,11 @@ npm run redis:down
 4. Worker and API run in-process/local; no production orchestration yet.
 5. Docker daemon must be available for `redis:up`.
 6. Docker sandbox mode is optional and not yet default; host runtime fallback still exists.
+7. Classroom APIs currently have no authentication/authorization guardrails.
 
 ## Suggested Next Session Start
 
 1. Pull latest branch.
 2. Open this file and confirm priority milestone.
 3. Start Redis/dev/worker.
-4. Implement milestone 1 (execution sandbox hardening phase 2).
+4. Implement milestone 1 (sandbox phase-2 completion or classroom identity/auth phase-2).

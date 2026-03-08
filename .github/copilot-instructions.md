@@ -58,6 +58,9 @@ Required for `better-sqlite3` and Redis. Every `app/api/*/route.ts` must include
 export const runtime = 'nodejs';
 ```
 
+### Classroom backend foundation exists
+`/api/classroom/*` now includes terms, sections, enrollments, assignments, and profile endpoints backed by SQLite tables in `submissionDb.ts`. These routes are currently unauthenticated and need auth/authorization in the next milestone.
+
 ## Conventions
 
 ### Exercise key format
