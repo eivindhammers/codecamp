@@ -101,21 +101,39 @@ function mergeBackendProgress(
   local: UserProgress,
   backend: ExerciseProgressRecord[]
 ): UserProgress {
-  const mergedExercises: Record<string, boolean> = { ...local.completedExercises };
-  for (const row of backend) {
-    mergedExercises[`${row.courseSlug}/${row.chapterId}/${row.exerciseId}`] = true;
+  const xpByKey = getExerciseXpByKey();
+  const knownKeys = new Set(Object.keys(xpByKey));
+  if (backend.length === 0) {
+    const localExercises: Record<string, boolean> = {};
+    for (const key of Object.keys(local.completedExercises)) {
+      if (local.completedExercises[key] && knownKeys.has(key)) {
+        localExercises[key] = true;
+      }
+    }
+    const localXp = Object.keys(localExercises).reduce(
+      (acc, key) => acc + (localExercises[key] ? (xpByKey[key] ?? 0) : 0),
+      0
+    );
+    return {
+      completedExercises: localExercises,
+      completedCourses: deriveCompletedCourses(localExercises),
+      xp: localXp,
+    };
   }
 
-  const xpByKey = getExerciseXpByKey();
-  const mergedXp = Object.keys(mergedExercises).reduce(
-    (acc, key) => acc + (mergedExercises[key] ? (xpByKey[key] ?? 0) : 0),
-    0
-  );
+  const backendExercises: Record<string, boolean> = {};
+  let backendXp = 0;
+  for (const row of backend) {
+    const key = `${row.courseSlug}/${row.chapterId}/${row.exerciseId}`;
+    if (!knownKeys.has(key)) continue;
+    backendExercises[key] = true;
+    backendXp += row.xpAwarded;
+  }
 
   return {
-    completedExercises: mergedExercises,
-    completedCourses: deriveCompletedCourses(mergedExercises),
-    xp: mergedXp,
+    completedExercises: backendExercises,
+    completedCourses: deriveCompletedCourses(backendExercises),
+    xp: backendXp,
   };
 }
 
