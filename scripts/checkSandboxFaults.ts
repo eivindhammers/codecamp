@@ -203,6 +203,48 @@ async function assertNetworkIsolation() {
   }
 }
 
+async function assertReadOnlyRootFilesystem() {
+  const workDir = await mkdtemp(path.join(tmpdir(), "codecamp-sandbox-fault-pyrofs-"));
+  try {
+    const checkerPath = path.join(workDir, "checker.py");
+    const submissionPath = path.join(workDir, "submission.py");
+    const outputPath = path.join(workDir, "checker-output.txt");
+    await writeFile(
+      checkerPath,
+      "import sys\n"
+        + "blocked = False\n"
+        + "try:\n"
+        + "  with open('/codecamp-rofs-check.txt', 'w', encoding='utf-8') as handle:\n"
+        + "    handle.write('fail')\n"
+        + "except OSError:\n"
+        + "  blocked = True\n"
+        + "with open(sys.argv[2], 'w', encoding='utf-8') as handle:\n"
+        + "  handle.write('STATUS:' + ('passed' if blocked else 'failed') + '\\n')\n",
+      "utf8"
+    );
+    await writeFile(submissionPath, "print('noop')\n", "utf8");
+
+    const result = await runCheckerProcess({
+      runtime: "python",
+      command: "python3",
+      args: [checkerPath, submissionPath, outputPath],
+      outputPath,
+      workDir,
+      timeoutMs: 8000,
+    });
+    if (result.error) {
+      throw new Error(
+        `Expected read-only root filesystem check output, got ${result.error.kind}`
+      );
+    }
+    if (!result.output?.includes("STATUS:passed")) {
+      throw new Error("Expected docker read-only root filesystem to block root write.");
+    }
+  } finally {
+    await rm(workDir, { recursive: true, force: true });
+  }
+}
+
 async function main() {
   if ((process.env.GRADER_SANDBOX_MODE ?? "").trim().toLowerCase() !== "docker") {
     throw new Error("GRADER_SANDBOX_MODE must be set to 'docker' for fault checks.");
@@ -214,6 +256,7 @@ async function main() {
   await assertPythonMemoryPressureFailure();
   await assertPythonPidPressureFailure();
   await assertNetworkIsolation();
+  await assertReadOnlyRootFilesystem();
   console.log("[sandbox-faults] OK");
 }
 
