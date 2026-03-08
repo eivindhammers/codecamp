@@ -266,6 +266,11 @@ Primary target users are economics students, with platform usage planned across 
 - Classroom dashboard section activity now supports configurable server-backed page sizes (10/25/50 per page).
 - Section page-size selection is wired into section list pagination requests to improve large-cohort browsing ergonomics.
 
+57. Archive destination preflight validation (phase 2 progress)
+- Added `POST /api/classroom/sections/risk-policy/archive/validate?sectionId=...` so section staff can preflight destination labels before saving archive policy changes.
+- Validation now checks webhook/PUT destination protocol + host allowlist compatibility using the same governance rules as archive automation delivery.
+- Classroom dashboard archive policy controls now include a "Validate destination" action with inline pass/fail guidance.
+
 ## Runtime Setup
 
 From repo root:

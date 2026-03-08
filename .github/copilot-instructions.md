@@ -77,6 +77,7 @@ Protected classroom routes now use session-backed identity (`codecamp_session` c
 `/api/classroom/sections/risk-policy/archive` manages section-level audit archival cadence/retention policy metadata.
 `/api/classroom/sections/risk-policy/archive/report` exposes archive run outcomes (success/failure), recent runs, and failure-rate reporting.
 `/api/classroom/sections/risk-policy/archive/report/export` exports archive run history (CSV/JSON) for section governance reviews.
+`/api/classroom/sections/risk-policy/archive/validate` validates archive destination labels against webhook/PUT governance controls before save/run.
 `/api/classroom/risk-archive/run` executes due archive policies (or a specific section) for operational automation.
 `/api/classroom/risk-archive/config` exposes archive governance settings (timeouts, retries, allowlists, batch limits) for staff visibility.
 `/api/classroom/sections/overview` returns aggregated section dashboard data to reduce multi-endpoint fetch fanout.
@@ -143,6 +144,7 @@ Use these for API response shapes. Add new types here rather than inline.
 - Archive automation controls include `CLASSROOM_RISK_ARCHIVE_BASE_DIR`, `CLASSROOM_RISK_ARCHIVE_BATCH_LIMIT`, `CLASSROOM_RISK_ARCHIVE_ACTOR_USER_ID`, `CLASSROOM_RISK_ARCHIVE_WEBHOOK_ALLOW_HOSTS`, and `CLASSROOM_RISK_ARCHIVE_WEBHOOK_TIMEOUT_MS`.
 - Webhook delivery retries are configurable via `CLASSROOM_RISK_ARCHIVE_DELIVERY_RETRY_COUNT` and `CLASSROOM_RISK_ARCHIVE_DELIVERY_RETRY_BACKOFF_MS`.
 - PUT destination controls are env-configurable via `CLASSROOM_RISK_ARCHIVE_UPLOAD_ALLOW_HOSTS` and `CLASSROOM_RISK_ARCHIVE_UPLOAD_TIMEOUT_MS`.
+- Archive destination validation reuses delivery governance checks, including webhook/upload host allowlists and protocol enforcement.
 - In production, sandbox mode defaults to Docker when `GRADER_SANDBOX_MODE` is unset.
 - CI workflow (`.github/workflows/ci.yml`) enforces `check:sandbox`, `check:sandbox-policy`, `check:sandbox-runtime`, `check:sandbox-startup`, `check:sandbox-faults`, lint, and build.
 - CI workflow (`.github/workflows/ci.yml`) also enforces `check:content-packs` before lint/build.
