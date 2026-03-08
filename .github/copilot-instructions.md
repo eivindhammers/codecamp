@@ -132,6 +132,7 @@ Use these for API response shapes. Add new types here rather than inline.
 - Risk policy audit retention controls are env-driven: `CLASSROOM_RISK_AUDIT_RETENTION_DAYS`, `CLASSROOM_RISK_AUDIT_MAX_ROWS_PER_SECTION`.
 - Risk audit archival defaults are env-configurable with `CLASSROOM_RISK_ARCHIVE_DEFAULT_CADENCE` and `CLASSROOM_RISK_ARCHIVE_DEFAULT_RETENTION_DAYS`.
 - Archive automation controls include `CLASSROOM_RISK_ARCHIVE_BASE_DIR`, `CLASSROOM_RISK_ARCHIVE_BATCH_LIMIT`, `CLASSROOM_RISK_ARCHIVE_ACTOR_USER_ID`, `CLASSROOM_RISK_ARCHIVE_WEBHOOK_ALLOW_HOSTS`, and `CLASSROOM_RISK_ARCHIVE_WEBHOOK_TIMEOUT_MS`.
+- Webhook delivery retries are configurable via `CLASSROOM_RISK_ARCHIVE_DELIVERY_RETRY_COUNT` and `CLASSROOM_RISK_ARCHIVE_DELIVERY_RETRY_BACKOFF_MS`.
 - In production, sandbox mode defaults to Docker when `GRADER_SANDBOX_MODE` is unset.
 - CI workflow (`.github/workflows/ci.yml`) enforces `check:sandbox`, `check:sandbox-policy`, `check:sandbox-runtime`, `check:sandbox-startup`, `check:sandbox-faults`, lint, and build.
 - `check:sandbox-faults` covers timeout, memory pressure, process-limit pressure, and outbound-network isolation scenarios for Docker grader execution.

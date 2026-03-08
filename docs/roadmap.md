@@ -222,6 +222,10 @@ Primary target users are economics students, with platform usage planned across 
 - Archive automation now supports webhook destinations via `destinationLabel=webhook:<url>` with configurable host allowlist and request timeout controls.
 - Archive runs continue writing local artifacts and now attempt webhook delivery with section/export metadata, recording webhook delivery refs or failures in run history.
 
+46. Archive delivery retry/backoff controls (phase 2 progress)
+- Webhook archive delivery now retries failed attempts with configurable retry count/backoff policy.
+- Retry controls are configurable via `CLASSROOM_RISK_ARCHIVE_DELIVERY_RETRY_COUNT` and `CLASSROOM_RISK_ARCHIVE_DELIVERY_RETRY_BACKOFF_MS`.
+
 ## Runtime Setup
 
 From repo root:
@@ -279,7 +283,7 @@ npm run redis:down
 
 3. Instructor workflow (teaching operations, phase 2)
 - Add section list virtualization/performance tuning and richer term-based filtering for very large datasets.
-- Add object-storage destination integrations and retry policies for archive delivery.
+- Add object-storage destination integrations for archive delivery.
 
 4. Multi-course content pipeline expansion
 - Migrate more exercises from inline definitions to `content/exercises/...`.
