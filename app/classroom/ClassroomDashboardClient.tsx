@@ -350,6 +350,21 @@ export default function ClassroomDashboardClient() {
     }
   }
 
+  function getRiskPolicyExportHref(sectionId: string) {
+    const params = new URLSearchParams({
+      sectionId,
+      format: "csv",
+      limit: "500",
+    });
+    if (auditActionFilter !== "all") {
+      params.set("action", auditActionFilter);
+    }
+    if (auditActorFilter.trim().length > 0) {
+      params.set("actor", auditActorFilter.trim());
+    }
+    return `/api/classroom/sections/risk-policy/export?${params.toString()}`;
+  }
+
   async function onCreateAssignment(event: FormEvent<HTMLFormElement>, section: ClassSectionRecord) {
     event.preventDefault();
     const draft = assignmentDrafts[section.sectionId];
@@ -582,6 +597,9 @@ export default function ClassroomDashboardClient() {
                   <option value="upsert">Updates</option>
                   <option value="reset">Resets</option>
                 </select>
+                <span className="text-[11px] text-gray-500">
+                  Export from section cards below
+                </span>
               </div>
             </div>
             {auditRows.length === 0 ? (
@@ -849,6 +867,12 @@ export default function ClassroomDashboardClient() {
                       >
                         Reset to default
                       </button>
+                      <a
+                        href={getRiskPolicyExportHref(panel.section.sectionId)}
+                        className="border border-gray-300 text-gray-700 rounded px-2 py-1 text-xs hover:bg-white"
+                      >
+                        Export audit CSV
+                      </a>
                       {panel.riskPolicy && (
                         <span className="text-xs text-gray-500">
                           Updated {new Date(panel.riskPolicy.updatedAt).toLocaleString()}

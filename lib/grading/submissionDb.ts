@@ -1367,6 +1367,43 @@ interface RecordSectionRiskPolicyAuditInput {
   policy?: SectionRiskPolicyRecord;
 }
 
+function getRiskAuditRetentionDays(): number {
+  const configured = Number.parseInt(process.env.CLASSROOM_RISK_AUDIT_RETENTION_DAYS ?? "", 10);
+  if (!Number.isFinite(configured)) return 365;
+  return Math.min(Math.max(configured, 1), 3650);
+}
+
+function getRiskAuditMaxRowsPerSection(): number {
+  const configured = Number.parseInt(process.env.CLASSROOM_RISK_AUDIT_MAX_ROWS_PER_SECTION ?? "", 10);
+  if (!Number.isFinite(configured)) return 1000;
+  return Math.min(Math.max(configured, 50), 10000);
+}
+
+function purgeSectionRiskPolicyAudit(sectionId: string, now: number) {
+  const retentionCutoff = now - getRiskAuditRetentionDays() * 24 * 60 * 60 * 1000;
+  db.prepare(
+    `
+      DELETE FROM section_risk_policy_audit
+      WHERE section_id = ? AND created_at < ?
+    `
+  ).run(sectionId, retentionCutoff);
+
+  const maxRows = getRiskAuditMaxRowsPerSection();
+  db.prepare(
+    `
+      DELETE FROM section_risk_policy_audit
+      WHERE section_id = ?
+        AND event_id NOT IN (
+          SELECT event_id
+          FROM section_risk_policy_audit
+          WHERE section_id = ?
+          ORDER BY created_at DESC
+          LIMIT ?
+        )
+    `
+  ).run(sectionId, sectionId, maxRows);
+}
+
 export function recordSectionRiskPolicyAudit(input: RecordSectionRiskPolicyAuditInput) {
   const now = Date.now();
   db.prepare(
@@ -1400,6 +1437,7 @@ export function recordSectionRiskPolicyAudit(input: RecordSectionRiskPolicyAudit
     input.policy?.maxCompletionRateStalledAssignment ?? null,
     now
   );
+  purgeSectionRiskPolicyAudit(input.sectionId, now);
 }
 
 function mapSectionRiskPolicyAuditRow(
