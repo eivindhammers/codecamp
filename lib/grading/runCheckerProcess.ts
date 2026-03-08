@@ -139,6 +139,23 @@ function getErrorMessage(error: unknown): string {
   return "Unknown execution error.";
 }
 
+function isTimeoutError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const maybeTimed = error as Error & {
+    code?: number | string | null;
+    killed?: boolean;
+    signal?: string | null;
+  };
+  const message = error.message.toLowerCase();
+  return (
+    message.includes("timed out") ||
+    message.includes("etimedout") ||
+    maybeTimed.killed === true ||
+    maybeTimed.code === "ETIMEDOUT" ||
+    maybeTimed.signal === "SIGKILL"
+  );
+}
+
 export async function runCheckerProcess(
   input: RunCheckerProcessInput
 ): Promise<RunCheckerProcessResult> {
@@ -156,7 +173,7 @@ export async function runCheckerProcess(
     return { output };
   } catch (error) {
     const message = getErrorMessage(error);
-    const timeout = message.toLowerCase().includes("timed out");
+    const timeout = isTimeoutError(error);
     const missingRuntime = message.includes("ENOENT");
     const dockerUnavailable =
       sandboxMode === "docker" &&
