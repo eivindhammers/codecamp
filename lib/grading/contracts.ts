@@ -155,3 +155,17 @@ export interface SectionLearnerMetric {
 export interface SectionLearnerMetricsResponse {
   metrics: SectionLearnerMetric[];
 }
+
+export interface SectionGradeSummaryRecord {
+  sectionId: string;
+  userId: string;
+  assignmentsCount: number;
+  completedAssignments: number;
+  completionRate: number;
+  attemptsCount: number;
+  lastAttemptAt: number | null;
+}
+
+export interface SectionGradeSummaryResponse {
+  summary: SectionGradeSummaryRecord[];
+}

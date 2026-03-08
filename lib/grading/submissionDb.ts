@@ -12,6 +12,7 @@ import {
   ExerciseProgressRecord,
   GradingResult,
   SectionEnrollmentRecord,
+  SectionGradeSummaryRecord,
   SectionLearnerMetric,
   SubmissionStatus,
   SubmissionStatusResponse,
@@ -233,6 +234,16 @@ interface AuthSessionRow {
   created_at: number;
   expires_at: number;
   last_seen_at: number;
+}
+
+interface SectionGradeSummaryRow {
+  section_id: string;
+  user_id: string;
+  assignments_count: number;
+  completed_assignments: number;
+  completion_rate: number;
+  attempts_count: number;
+  last_attempt_at: number | null;
 }
 
 function hasColumn(tableName: string, columnName: string) {
@@ -1079,4 +1090,58 @@ export function listSectionLearnerMetrics(sectionId: string): SectionLearnerMetr
     .all(sectionId) as SectionLearnerMetricRow[];
 
   return rows.map(mapSectionLearnerMetricRow);
+}
+
+function mapSectionGradeSummaryRow(row: SectionGradeSummaryRow): SectionGradeSummaryRecord {
+  return {
+    sectionId: row.section_id,
+    userId: row.user_id,
+    assignmentsCount: row.assignments_count,
+    completedAssignments: row.completed_assignments,
+    completionRate: row.completion_rate,
+    attemptsCount: row.attempts_count,
+    lastAttemptAt: row.last_attempt_at,
+  };
+}
+
+export function listSectionGradeSummary(sectionId: string): SectionGradeSummaryRecord[] {
+  const rows = db
+    .prepare(
+      `
+        SELECT
+          e.section_id,
+          e.user_id,
+          COUNT(DISTINCT ass.assignment_id) AS assignments_count,
+          COUNT(DISTINCT p.exercise_id) AS completed_assignments,
+          CASE
+            WHEN COUNT(DISTINCT ass.assignment_id) = 0 THEN 0
+            ELSE ROUND(
+              (COUNT(DISTINCT p.exercise_id) * 100.0) / COUNT(DISTINCT ass.assignment_id),
+              2
+            )
+          END AS completion_rate,
+          COUNT(a.attempt_id) AS attempts_count,
+          MAX(a.submitted_at) AS last_attempt_at
+        FROM section_enrollments e
+        INNER JOIN class_sections s ON s.section_id = e.section_id
+        LEFT JOIN assignments ass
+          ON ass.section_id = e.section_id
+        LEFT JOIN attempts a
+          ON a.user_id = e.user_id
+          AND a.course_slug = s.course_slug
+        LEFT JOIN progress p
+          ON p.user_id = e.user_id
+          AND p.course_slug = ass.course_slug
+          AND p.chapter_id = ass.chapter_id
+          AND p.exercise_id = ass.exercise_id
+        WHERE e.section_id = ?
+          AND e.status = 'active'
+          AND e.role = 'student'
+        GROUP BY e.section_id, e.user_id
+        ORDER BY completion_rate DESC, completed_assignments DESC, e.user_id ASC
+      `
+    )
+    .all(sectionId) as SectionGradeSummaryRow[];
+
+  return rows.map(mapSectionGradeSummaryRow);
 }
