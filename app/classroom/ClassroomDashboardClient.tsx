@@ -8,6 +8,7 @@ import type {
   AssignmentRecord,
   AuthConfigResponse,
   RiskArchiveGovernanceConfigResponse,
+  RiskArchiveAutomationResponse,
   RiskArchiveDestinationValidation,
   AuthSessionResponse,
   ClassSectionRecord,
@@ -152,6 +153,7 @@ export default function ClassroomDashboardClient() {
     Record<string, RiskArchiveDestinationValidation | undefined>
   >({});
   const [riskArchiveRunBusy, setRiskArchiveRunBusy] = useState<Record<string, boolean>>({});
+  const [riskArchiveRunResult, setRiskArchiveRunResult] = useState<Record<string, string>>({});
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
   const [virtualizeSectionList, setVirtualizeSectionList] = useState(true);
   const [sectionListScrollTop, setSectionListScrollTop] = useState(0);
@@ -568,28 +570,41 @@ export default function ClassroomDashboardClient() {
     }
   }
 
-  async function onRecordArchiveRun(sectionId: string, status: "success" | "failure") {
+  async function onRunArchiveNow(sectionId: string) {
     setRiskArchiveRunBusy((prev) => ({ ...prev, [sectionId]: true }));
     setRiskArchiveError((prev) => ({ ...prev, [sectionId]: "" }));
+    setRiskArchiveRunResult((prev) => ({ ...prev, [sectionId]: "" }));
     try {
-      await readJson<SectionRiskArchiveRunRecord>(
-        `/api/classroom/sections/risk-policy/archive/report?sectionId=${encodeURIComponent(
-          sectionId
-        )}`,
+      const response = await readJson<RiskArchiveAutomationResponse>(
+        "/api/classroom/risk-archive/run",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(
-            status === "success"
-              ? { status: "success", archivedRecords: 25 }
-              : {
-                  status: "failure",
-                  archivedRecords: 0,
-                  errorMessage: "Archive delivery failed (destination unavailable).",
-                }
-          ),
+          body: JSON.stringify({ sectionId }),
         }
       );
+      const item = response.processed[0];
+      if (!item) {
+        setRiskArchiveRunResult((prev) => ({
+          ...prev,
+          [sectionId]: "No archive run item was returned.",
+        }));
+      } else if (item.status === "success") {
+        setRiskArchiveRunResult((prev) => ({
+          ...prev,
+          [sectionId]: `Archive run succeeded (${item.archivedRecords} records).`,
+        }));
+      } else if (item.status === "skipped") {
+        setRiskArchiveRunResult((prev) => ({
+          ...prev,
+          [sectionId]: "Archive run skipped (not due or policy disabled).",
+        }));
+      } else {
+        setRiskArchiveRunResult((prev) => ({
+          ...prev,
+          [sectionId]: `Archive run failed: ${item.errorMessage ?? "Unknown error."}`,
+        }));
+      }
       await loadSections(0, false);
     } catch (error) {
       setRiskArchiveError((prev) => ({
@@ -1557,21 +1572,18 @@ export default function ClassroomDashboardClient() {
                       <div className="mt-2 flex items-center gap-2">
                         <button
                           type="button"
-                          onClick={() => onRecordArchiveRun(panel.section.sectionId, "success")}
+                          onClick={() => onRunArchiveNow(panel.section.sectionId)}
                           disabled={riskArchiveRunBusy[panel.section.sectionId]}
-                          className="border border-emerald-300 text-emerald-700 rounded px-2 py-1 text-xs disabled:opacity-50"
+                          className="border border-indigo-300 text-indigo-700 rounded px-2 py-1 text-xs disabled:opacity-50"
                         >
-                          Record success run
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => onRecordArchiveRun(panel.section.sectionId, "failure")}
-                          disabled={riskArchiveRunBusy[panel.section.sectionId]}
-                          className="border border-rose-300 text-rose-700 rounded px-2 py-1 text-xs disabled:opacity-50"
-                        >
-                          Record failed run
+                          Run archive now
                         </button>
                       </div>
+                      {riskArchiveRunResult[panel.section.sectionId] && (
+                        <p className="text-xs text-indigo-700 mt-2">
+                          {riskArchiveRunResult[panel.section.sectionId]}
+                        </p>
+                      )}
                       {panel.riskArchiveRecentRuns.length > 0 && (
                         <div className="mt-2 text-xs text-gray-500">
                           <p className="font-medium text-gray-600 mb-1">Recent archive runs</p>
