@@ -5,6 +5,7 @@ import { courses } from "@/lib/courses";
 import type {
   AssignmentRecord,
   AssignmentsResponse,
+  AuthConfigResponse,
   AuthSessionResponse,
   ClassSectionRecord,
   ClassSectionsResponse,
@@ -70,6 +71,7 @@ async function readJson<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
 export default function ClassroomDashboardClient() {
   const [email, setEmail] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [authMode, setAuthMode] = useState<"bootstrap" | "oidc">("bootstrap");
   const [authBusy, setAuthBusy] = useState(false);
   const [authError, setAuthError] = useState("");
   const [profile, setProfile] = useState<UserProfileRecord>();
@@ -158,15 +160,26 @@ export default function ClassroomDashboardClient() {
   }, [isStaff]);
 
   useEffect(() => {
-    const bootstrap = async () => {
+    const loadAuth = async () => {
       try {
+        const config = await readJson<AuthConfigResponse>("/api/auth/config");
+        setAuthMode(config.mode);
         const payload = await readJson<UserProfileResponse>("/api/auth/session");
         setProfile(payload.profile);
       } catch {
         setProfile(undefined);
       }
     };
-    void bootstrap();
+    void loadAuth();
+  }, []);
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const errorParam = url.searchParams.get("authError");
+    if (!errorParam) return;
+    setAuthError(errorParam);
+    url.searchParams.delete("authError");
+    window.history.replaceState(null, "", url.toString());
   }, []);
 
   useEffect(() => {
@@ -203,6 +216,11 @@ export default function ClassroomDashboardClient() {
     } finally {
       setAuthBusy(false);
     }
+  }
+
+  function onOidcSignIn() {
+    setAuthError("");
+    window.location.assign("/api/auth/login");
   }
 
   function setDraftValue(sectionId: string, field: keyof AssignmentDraft, value: string) {
@@ -325,7 +343,7 @@ export default function ClassroomDashboardClient() {
           Instructor-facing overview for sections, learner activity, and exports.
         </p>
 
-        {!profile && (
+        {!profile && authMode === "bootstrap" && (
           <form className="grid gap-3 sm:grid-cols-3" onSubmit={onSignIn}>
             <input
               type="email"
@@ -351,6 +369,15 @@ export default function ClassroomDashboardClient() {
           </form>
         )}
 
+        {!profile && authMode === "oidc" && (
+          <button
+            onClick={onOidcSignIn}
+            className="bg-indigo-600 text-white rounded-lg px-3 py-2 text-sm font-medium hover:bg-indigo-700"
+          >
+            Sign in with campus SSO
+          </button>
+        )}
+
         {profile && (
           <div className="flex flex-wrap items-center gap-3 text-sm">
             <span className="px-2 py-1 rounded-full bg-indigo-100 text-indigo-800 font-medium">
@@ -368,7 +395,7 @@ export default function ClassroomDashboardClient() {
         )}
 
         {authError && <p className="text-sm text-rose-700 mt-3">{authError}</p>}
-        {!profile && (
+        {!profile && authMode === "bootstrap" && (
           <p className="text-xs text-gray-500 mt-3">
             For instructor access during bootstrap, include your email in
             AUTH_BOOTSTRAP_INSTRUCTOR_EMAILS.

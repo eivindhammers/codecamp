@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { parseCookie, SESSION_COOKIE } from "@/app/api/auth/_session";
 import {
   getAuthSession,
   getSectionEnrollment,
@@ -9,17 +10,8 @@ interface AuthResult {
   actorUserId: string;
 }
 
-const SESSION_COOKIE = "codecamp_session";
-
 function unauthorized(message: string) {
   return NextResponse.json({ error: message }, { status: 403 });
-}
-
-function parseCookie(req: Request, key: string): string {
-  const cookieHeader = req.headers.get("cookie") ?? "";
-  const cookies = cookieHeader.split(";").map((entry) => entry.trim());
-  const match = cookies.find((entry) => entry.startsWith(`${key}=`));
-  return match ? decodeURIComponent(match.slice(key.length + 1)) : "";
 }
 
 export function requireGlobalStaff(

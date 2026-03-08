@@ -127,6 +127,11 @@ export interface AuthSessionResponse {
   profile: UserProfileRecord;
 }
 
+export interface AuthConfigResponse {
+  mode: "bootstrap" | "oidc";
+  loginPath: string;
+}
+
 export interface AcademicTermsResponse {
   terms: AcademicTermRecord[];
 }
