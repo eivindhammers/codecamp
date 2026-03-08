@@ -32,6 +32,9 @@ function validateImageRef(label, imageRef, errors) {
 
 const mode = (process.env.GRADER_SANDBOX_MODE ?? "").trim().toLowerCase();
 const nodeEnv = (process.env.NODE_ENV ?? "development").trim().toLowerCase();
+const requireDigest = ["1", "true", "yes"].includes(
+  (process.env.GRADER_REQUIRE_IMAGE_DIGESTS ?? "").trim().toLowerCase()
+);
 const effectiveMode =
   mode === "docker" || mode === "host" ? mode : nodeEnv === "production" ? "docker" : "host";
 
@@ -43,6 +46,21 @@ if (effectiveMode !== "docker") {
 const errors = [];
 validateImageRef("R", process.env.GRADER_DOCKER_R_IMAGE, errors);
 validateImageRef("Python", process.env.GRADER_DOCKER_PYTHON_IMAGE, errors);
+
+if (requireDigest) {
+  const imageVars = [
+    ["R", process.env.GRADER_DOCKER_R_IMAGE],
+    ["Python", process.env.GRADER_DOCKER_PYTHON_IMAGE],
+  ];
+  for (const [label, value] of imageVars) {
+    const trimmed = (value ?? "").trim();
+    if (trimmed && !trimmed.includes("@sha256:")) {
+      errors.push(
+        `${label} image '${trimmed}' must use a sha256 digest because GRADER_REQUIRE_IMAGE_DIGESTS is enabled.`
+      );
+    }
+  }
+}
 
 if (errors.length > 0) {
   for (const error of errors) {

@@ -2,6 +2,9 @@
 
 const nodeEnv = (process.env.NODE_ENV ?? "development").toLowerCase();
 const configuredMode = (process.env.GRADER_SANDBOX_MODE ?? "").trim().toLowerCase();
+const allowProdHostFallback = ["1", "true", "yes"].includes(
+  (process.env.GRADER_ALLOW_HOST_MODE_IN_PRODUCTION ?? "").trim().toLowerCase()
+);
 const effectiveMode =
   configuredMode === "docker" || configuredMode === "host"
     ? configuredMode
@@ -12,7 +15,11 @@ const effectiveMode =
 const errors = [];
 
 if (nodeEnv === "production" && effectiveMode !== "docker") {
-  errors.push("Production must run with Docker sandbox mode (GRADER_SANDBOX_MODE=docker).");
+  if (!allowProdHostFallback) {
+    errors.push(
+      "Production must run with Docker sandbox mode (set GRADER_SANDBOX_MODE=docker, or set GRADER_ALLOW_HOST_MODE_IN_PRODUCTION=true only for emergency breakglass)."
+    );
+  }
 }
 
 if (effectiveMode === "docker") {

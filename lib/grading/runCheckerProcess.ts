@@ -33,11 +33,33 @@ function getCheckerTimeoutMs(timeoutMs?: number): number {
   return Math.min(Math.max(candidate, 1000), 30000);
 }
 
+function readBooleanEnv(name: string, fallback: boolean): boolean {
+  const value = process.env[name]?.trim().toLowerCase();
+  if (!value) return fallback;
+  if (value === "1" || value === "true" || value === "yes") return true;
+  if (value === "0" || value === "false" || value === "no") return false;
+  return fallback;
+}
+
 function getSandboxMode(): SandboxMode {
   const configured = process.env.GRADER_SANDBOX_MODE?.trim().toLowerCase();
+  const nodeEnv = (process.env.NODE_ENV ?? "development").trim().toLowerCase();
+  const allowProdHostFallback = readBooleanEnv(
+    "GRADER_ALLOW_HOST_MODE_IN_PRODUCTION",
+    false
+  );
+
+  if (
+    nodeEnv === "production" &&
+    configured === "host" &&
+    !allowProdHostFallback
+  ) {
+    return "docker";
+  }
+
   if (configured === "docker") return "docker";
   if (configured === "host") return "host";
-  return process.env.NODE_ENV === "production" ? "docker" : "host";
+  return nodeEnv === "production" ? "docker" : "host";
 }
 
 function getRestrictedEnv(workDir: string): NodeJS.ProcessEnv {
