@@ -12,8 +12,34 @@ import { requireSectionStaff } from "@/app/api/classroom/_auth";
 
 export const runtime = "nodejs";
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+const DEFAULT_ASSIGNMENT_MAX_DUE_DAYS_AHEAD = 180;
+const DEFAULT_ASSIGNMENT_PACING_EARLY_TOLERANCE_DAYS = 14;
+
 function badRequest(message: string) {
   return NextResponse.json({ error: message }, { status: 400 });
+}
+
+function readPositiveIntEnv(name: string, fallback: number): number {
+  const value = process.env[name];
+  if (!value) return fallback;
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return fallback;
+  }
+  return parsed;
+}
+
+function getChapterPacingStart(
+  termStartsAt: number,
+  termEndsAt: number,
+  chapterIndex: number,
+  chapterCount: number
+): number {
+  if (chapterCount <= 1) return termStartsAt;
+  const duration = Math.max(termEndsAt - termStartsAt, 0);
+  const chapterOffset = duration * (chapterIndex / chapterCount);
+  return termStartsAt + Math.floor(chapterOffset);
 }
 
 interface CreateAssignmentPayload {
@@ -91,6 +117,38 @@ export async function POST(req: Request) {
     }
     if (dueAt < term.startsAt || dueAt > term.endsAt) {
       return badRequest("dueAt must be within the section term window.");
+    }
+
+    const maxDueDaysAhead = readPositiveIntEnv(
+      "CLASSROOM_ASSIGNMENT_MAX_DUE_DAYS_AHEAD",
+      DEFAULT_ASSIGNMENT_MAX_DUE_DAYS_AHEAD
+    );
+    const maxAllowedDueAt = Date.now() + maxDueDaysAhead * DAY_MS;
+    if (dueAt > maxAllowedDueAt) {
+      return badRequest(
+        `dueAt exceeds max publish horizon (${maxDueDaysAhead} days ahead).`
+      );
+    }
+
+    const chapterIndex = course.chapters.findIndex((item) => item.id === chapterId);
+    if (chapterIndex < 0) {
+      return badRequest("Assignment must target a valid chapter in the course.");
+    }
+    const pacingToleranceDays = readPositiveIntEnv(
+      "CLASSROOM_ASSIGNMENT_PACING_EARLY_TOLERANCE_DAYS",
+      DEFAULT_ASSIGNMENT_PACING_EARLY_TOLERANCE_DAYS
+    );
+    const recommendedStart = getChapterPacingStart(
+      term.startsAt,
+      term.endsAt,
+      chapterIndex,
+      course.chapters.length
+    );
+    const earliestAllowedDueAt = recommendedStart - pacingToleranceDays * DAY_MS;
+    if (dueAt < earliestAllowedDueAt) {
+      return badRequest(
+        `dueAt is too early for chapter pacing (allowed ${pacingToleranceDays} days before chapter window).`
+      );
     }
   }
 
