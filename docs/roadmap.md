@@ -172,6 +172,14 @@ Primary target users are economics students, with platform usage planned across 
 - Expanded `check:sandbox-faults` to include memory-pressure and PID-pressure failure coverage in Docker sandbox mode.
 - CI fault checks now verify timeout, memory pressure, and process-limit pressure behavior for graders.
 
+34. Risk policy audit filtering and search view (phase 2 progress)
+- Added audit API filtering options (`limit`, `action`, `actor`) for section risk policy history.
+- Added dedicated classroom risk-audit table with actor/action filtering and cross-section visibility.
+
+35. Sandbox network isolation regression check (phase 2 progress)
+- Expanded `check:sandbox-faults` with outbound socket connectivity checks to assert Docker `--network none` isolation.
+- Fault suite now validates timeout, memory pressure, PID pressure, and network isolation behavior.
+
 ## Runtime Setup
 
 From repo root:
@@ -231,7 +239,7 @@ npm run redis:down
 3. Instructor workflow (teaching operations, phase 2)
 - Add server-backed sorting/pagination support and term/course filters for very large section datasets.
 - Add assignment authoring validation against course pacing milestones and enforce max publish horizon per section policy.
-- Add dedicated audit/filters view for section risk policy governance and change search.
+- Add policy export/download and long-range retention controls for section risk audit history.
 
 4. Multi-course content pipeline expansion
 - Migrate more exercises from inline definitions to `content/exercises/...`.
