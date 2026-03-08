@@ -1,30 +1,47 @@
 import { NextResponse } from "next/server";
-import { getSectionEnrollment, getUserProfile } from "@/lib/grading/submissionDb";
+import {
+  getAuthSession,
+  getSectionEnrollment,
+  getUserProfile,
+} from "@/lib/grading/submissionDb";
 
 interface AuthResult {
   actorUserId: string;
 }
 
+const SESSION_COOKIE = "codecamp_session";
+
 function unauthorized(message: string) {
   return NextResponse.json({ error: message }, { status: 403 });
 }
 
-function getActorUserId(req: Request): string {
-  return req.headers.get("x-actor-user-id")?.trim() ?? "";
+function parseCookie(req: Request, key: string): string {
+  const cookieHeader = req.headers.get("cookie") ?? "";
+  const cookies = cookieHeader.split(";").map((entry) => entry.trim());
+  const match = cookies.find((entry) => entry.startsWith(`${key}=`));
+  return match ? decodeURIComponent(match.slice(key.length + 1)) : "";
 }
 
 export function requireGlobalStaff(
   req: Request
 ): { ok: true; value: AuthResult } | { ok: false; response: NextResponse } {
-  const actorUserId = getActorUserId(req);
-  if (!actorUserId) {
+  const sessionId = parseCookie(req, SESSION_COOKIE);
+  if (!sessionId) {
     return {
       ok: false,
-      response: unauthorized("Missing required header: x-actor-user-id."),
+      response: unauthorized("Missing active session cookie."),
     };
   }
 
-  const profile = getUserProfile(actorUserId);
+  const session = getAuthSession(sessionId);
+  if (!session) {
+    return {
+      ok: false,
+      response: unauthorized("Session is invalid or expired."),
+    };
+  }
+
+  const profile = getUserProfile(session.userId);
   if (!profile) {
     return {
       ok: false,
@@ -39,7 +56,7 @@ export function requireGlobalStaff(
     };
   }
 
-  return { ok: true, value: { actorUserId } };
+  return { ok: true, value: { actorUserId: profile.userId } };
 }
 
 export function requireSectionStaff(

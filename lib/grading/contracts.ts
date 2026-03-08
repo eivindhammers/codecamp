@@ -116,6 +116,17 @@ export interface UserProfileResponse {
   profile: UserProfileRecord;
 }
 
+export interface AuthSessionRecord {
+  sessionId: string;
+  userId: string;
+  expiresAt: number;
+}
+
+export interface AuthSessionResponse {
+  session: AuthSessionRecord;
+  profile: UserProfileRecord;
+}
+
 export interface AcademicTermsResponse {
   terms: AcademicTermRecord[];
 }

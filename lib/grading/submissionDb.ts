@@ -3,6 +3,7 @@ import path from "node:path";
 import Database from "better-sqlite3";
 import {
   AcademicTermRecord,
+  AuthSessionRecord,
   AttemptHistoryItem,
   AssignmentRecord,
   ClassSectionRecord,
@@ -116,6 +117,14 @@ db.exec(`
     due_at INTEGER,
     created_at INTEGER NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS auth_sessions (
+    session_id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    expires_at INTEGER NOT NULL,
+    last_seen_at INTEGER NOT NULL
+  );
 `);
 
 interface CreateSubmissionInput {
@@ -216,6 +225,14 @@ interface SectionLearnerMetricRow {
   completed_exercises: number;
   last_attempt_at: number | null;
   last_completion_at: number | null;
+}
+
+interface AuthSessionRow {
+  session_id: string;
+  user_id: string;
+  created_at: number;
+  expires_at: number;
+  last_seen_at: number;
 }
 
 function hasColumn(tableName: string, columnName: string) {
@@ -649,6 +666,84 @@ export function getUserProfile(userId: string): UserProfileRecord | undefined {
     .get(userId) as UserProfileRow | undefined;
 
   return row ? mapUserProfileRow(row) : undefined;
+}
+
+export function getUserProfileByEmail(email: string): UserProfileRecord | undefined {
+  const row = db
+    .prepare(
+      `
+        SELECT user_id, display_name, email, role, created_at, updated_at
+        FROM user_profiles
+        WHERE email = ?
+      `
+    )
+    .get(email) as UserProfileRow | undefined;
+
+  return row ? mapUserProfileRow(row) : undefined;
+}
+
+function mapAuthSessionRow(row: AuthSessionRow): AuthSessionRecord {
+  return {
+    sessionId: row.session_id,
+    userId: row.user_id,
+    expiresAt: row.expires_at,
+  };
+}
+
+function purgeExpiredAuthSessions(now: number) {
+  db.prepare(`DELETE FROM auth_sessions WHERE expires_at <= ?`).run(now);
+}
+
+export function createAuthSession(
+  sessionId: string,
+  userId: string,
+  ttlMs: number
+): AuthSessionRecord {
+  const now = Date.now();
+  const expiresAt = now + ttlMs;
+  purgeExpiredAuthSessions(now);
+  db.prepare(
+    `
+      INSERT INTO auth_sessions (session_id, user_id, created_at, expires_at, last_seen_at)
+      VALUES (?, ?, ?, ?, ?)
+    `
+  ).run(sessionId, userId, now, expiresAt, now);
+
+  return {
+    sessionId,
+    userId,
+    expiresAt,
+  };
+}
+
+export function getAuthSession(sessionId: string): AuthSessionRecord | undefined {
+  const now = Date.now();
+  purgeExpiredAuthSessions(now);
+  const row = db
+    .prepare(
+      `
+        SELECT session_id, user_id, created_at, expires_at, last_seen_at
+        FROM auth_sessions
+        WHERE session_id = ? AND expires_at > ?
+      `
+    )
+    .get(sessionId, now) as AuthSessionRow | undefined;
+
+  if (!row) return undefined;
+
+  db.prepare(
+    `
+      UPDATE auth_sessions
+      SET last_seen_at = ?
+      WHERE session_id = ?
+    `
+  ).run(now, sessionId);
+
+  return mapAuthSessionRow(row);
+}
+
+export function deleteAuthSession(sessionId: string) {
+  db.prepare(`DELETE FROM auth_sessions WHERE session_id = ?`).run(sessionId);
 }
 
 interface CreateAcademicTermInput {
