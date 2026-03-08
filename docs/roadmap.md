@@ -351,6 +351,10 @@ Primary target users are economics students, with platform usage planned across 
 - Archive Delivery Governance now includes a concrete incident runbook for destination validation, ref health triage, and recovery/export workflow.
 - This gives instructors explicit rotation/revocation failure-handling steps from the same panel used to review archive config and reference health.
 
+77. Backend-first progress reconciliation policy (phase 2 progress)
+- `ProgressContext` hydration now treats backend progress as authoritative whenever backend records exist, preventing stale local cache from silently overriding backend truth.
+- Local cache remains a fallback only when backend has no rows yet, preserving first-session usability while converging to backend-first continuity.
+
 ## Runtime Setup
 
 From repo root:
@@ -437,19 +441,19 @@ Use this queue for day-to-day execution; keep it small and rotate items after ea
 - Outcome: remaining write-boundary gaps closed for instructor/TA/student transitions.
 - Acceptance: protected routes reject invalid role mutations with explicit errors; lint/build pass.
 
-2. Progress reconciliation policy
-- Outcome: backend-first conflict resolution is explicit when local cache and backend progress/XP differ.
-- Acceptance: reconciliation rules are implemented and documented; local cache no longer silently overrides backend truth.
+2. Content migration throughput
+- Outcome: additional course exercises are moved into `content/exercises/...` using scaffold/parity workflow.
+- Acceptance: migrated packs pass `check:content-packs` and remain aligned with `lib/courses.ts`.
 
 ### Next
-1. Content migration throughput
-- Use scaffolding to migrate additional exercises into `content/exercises/...` with parity checks green.
-
-2. Sandbox digest-only rollout
+1. Sandbox digest-only rollout
 - Move CI/production grader image references to digests and enable `GRADER_REQUIRE_IMAGE_DIGESTS` in enforcement environments.
 
-3. Archive credential lifecycle automation depth
+2. Archive credential lifecycle automation depth
 - Extend runbook guidance with operational automation hooks (alerting/escalation/checklists) as governance surfaces mature.
+
+3. Progress sync UX hardening
+- Add user-visible sync/error affordances so backend-progress failures are explicit instead of silent.
 
 ### Later
 1. Broader server-side grading coverage across additional exercises/courses.
@@ -458,7 +462,7 @@ Use this queue for day-to-day execution; keep it small and rotate items after ea
 ## Known Constraints / Technical Debt
 
 1. Server-side grading currently covers two exercises (`intro-r/basics/arithmetic`, `intro-python/basics/hello-python`).
-2. `ProgressContext` still persists local cache and merges with backend; backend-first reconciliation policy is not fully finalized.
+2. `ProgressContext` still persists local cache in storage, but backend hydration is now authoritative whenever backend records exist.
 3. Queue enqueue path uses a typed cast around BullMQ `add` due TS friction in current setup.
 4. Worker and API run in-process/local; no production orchestration yet.
 5. Docker daemon must be available for `redis:up`.

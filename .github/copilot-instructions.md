@@ -51,7 +51,7 @@ ExerciseEditor (client)
 - **SQLite** — backend authoritative record; queried via `/api/progress` and `/api/attempts`
 
 Backend progress now supports full-catalog hydration via `/api/progress?userId=...`, and client-validated completions are persisted via `POST /api/progress` for backend-first XP/progress continuity.
-`ProgressContext` still merges backend completion rows with local cache on startup.
+`ProgressContext` now treats backend rows as authoritative on hydration when backend records exist, using local cache only as fallback when backend is empty.
 
 ### All courses are defined in TypeScript
 `lib/courses.ts` (~645 lines) contains all `Course → Chapter → Exercise` data as typed objects. There is no CMS or database for course content.
