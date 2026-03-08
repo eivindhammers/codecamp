@@ -25,7 +25,7 @@ jobs:
           cache: npm
 
       - name: Install deps
-        run: npm ci
+        run: npm ci --include=dev
 
       - name: Validate sandbox config
         run: npm run check:sandbox
