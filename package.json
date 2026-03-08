@@ -13,6 +13,7 @@
     "check:sandbox-startup": "tsx scripts/checkSandboxStartup.ts",
     "check:sandbox-faults": "tsx scripts/checkSandboxFaults.ts",
     "check:content-packs": "tsx scripts/checkContentPacks.ts",
+    "check:archive-refs": "tsx scripts/checkArchiveDestinationRefs.ts",
     "scaffold:content-pack": "tsx scripts/scaffoldContentPack.ts",
     "archive:risk-audit": "tsx scripts/runRiskArchiveAutomation.ts",
     "worker": "tsx worker/submissionWorker.ts",

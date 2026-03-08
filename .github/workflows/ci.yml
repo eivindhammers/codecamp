@@ -45,6 +45,9 @@ jobs:
       - name: Validate content exercise packs
         run: npm run check:content-packs
 
+      - name: Validate archive destination refs
+        run: npm run check:archive-refs
+
       - name: Lint
         run: npm run lint
 
