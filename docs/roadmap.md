@@ -122,6 +122,10 @@ Primary target users are economics students, with platform usage planned across 
 - Section activity tables now show per-learner completion rate and risk status.
 - Risk status currently combines overdue assignment pressure and repeated low-completion attempt behavior.
 
+22. CI sandbox policy enforcement (phase 2)
+- Added GitHub Actions CI workflow (`.github/workflows/ci.yml`) to run sandbox checks, lint, and build.
+- Added `npm run check:sandbox-policy` to verify required Docker sandbox flags remain present in checker runner implementation.
+
 ## Runtime Setup
 
 From repo root:
@@ -171,7 +175,7 @@ npm run redis:down
 
 1. Harden execution sandbox (phase 2 completion)
 - Validate and tune image strategy (`GRADER_DOCKER_R_IMAGE`, `GRADER_DOCKER_PYTHON_IMAGE`) and startup performance.
-- Add integration checks that enforce no-network and resource-limit policies in CI.
+- Add runtime/integration tests that execute graders in CI to verify policy behavior under real Docker execution.
 
 2. Classroom identity and enrollment model (phase 2 completion)
 - Add production login integration replacing email-only session bootstrap.

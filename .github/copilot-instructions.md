@@ -7,6 +7,7 @@ npm run dev         # Dev server (Turbopack, http://localhost:3000)
 npm run build       # Production build
 npm run lint        # ESLint
 npm run check:sandbox # Validate grader sandbox production config
+npm run check:sandbox-policy # Verify sandbox policy flags are enforced in runner
 npm run worker      # Background grading worker (requires Redis)
 npm run redis:up    # Start Redis via Docker Compose
 npm run redis:down  # Stop Redis
@@ -98,6 +99,7 @@ Use these for API response shapes. Add new types here rather than inline.
 - Docker mode uses `GRADER_DOCKER_R_IMAGE` / `GRADER_DOCKER_PYTHON_IMAGE` when set.
 - `AUTH_BOOTSTRAP_INSTRUCTOR_EMAILS` (comma-separated) grants bootstrap instructor role for listed emails during session sign-in.
 - In production, sandbox mode defaults to Docker when `GRADER_SANDBOX_MODE` is unset.
+- CI workflow (`.github/workflows/ci.yml`) enforces `check:sandbox`, `check:sandbox-policy`, lint, and build.
 
 ### Working style (from project Copilot.md)
 - Read relevant files before editing.
