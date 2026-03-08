@@ -197,6 +197,10 @@ Primary target users are economics students, with platform usage planned across 
 - Section-scoped classroom APIs now support role-based staff access in OIDC mode without requiring explicit per-section staff enrollment.
 - `AUTH_SECTION_STAFF_ROLE_BYPASS` controls this behavior (defaults to enabled for `AUTH_MODE=oidc`, disabled for bootstrap mode).
 
+40. Risk audit archival policy options (phase 2 progress)
+- Added `GET|PUT /api/classroom/sections/risk-policy/archive?sectionId=...` for section staff to configure archive cadence, retention window, and destination label.
+- Classroom dashboard section policy panels now expose archive-policy controls and show computed next-archive schedule visibility.
+
 ## Runtime Setup
 
 From repo root:
@@ -254,7 +258,7 @@ npm run redis:down
 
 3. Instructor workflow (teaching operations, phase 2)
 - Add section list virtualization/performance tuning and richer term-based filtering for very large datasets.
-- Add audit export scheduling/archival options and governance reporting.
+- Add governance reporting around archive execution outcomes and delivery failures.
 
 4. Multi-course content pipeline expansion
 - Migrate more exercises from inline definitions to `content/exercises/...`.

@@ -71,6 +71,7 @@ Protected classroom routes now use session-backed identity (`codecamp_session` c
 `/api/classroom/risk-config` returns environment-backed thresholds used by dashboard risk indicators.
 `/api/classroom/sections/risk-policy` supports per-section staff overrides and returns policy audit history (filterable via `limit`, `action`, `actor` query params).
 `/api/classroom/sections/risk-policy/export` provides CSV/JSON exports for section policy audit history.
+`/api/classroom/sections/risk-policy/archive` manages section-level audit archival cadence/retention policy metadata.
 `/api/classroom/sections` supports server-backed filtering/sorting/pagination via query params (`search`, `courseSlug`, `sort`, `limit`, `offset`).
 Auth supports two modes via `AUTH_MODE`: `bootstrap` (email POST to `/api/auth/session`) and `oidc` (redirect via `/api/auth/login` and callback at `/api/auth/callback`).
 `/classroom` provides an instructor dashboard client for section metrics and exports.
@@ -120,6 +121,7 @@ Use these for API response shapes. Add new types here rather than inline.
 - Classroom dashboard section activity list uses server-backed paging with search/sort and load-more controls.
 - Assignment due-date governance supports `CLASSROOM_ASSIGNMENT_MAX_DUE_DAYS_AHEAD` (default 180) and `CLASSROOM_ASSIGNMENT_PACING_EARLY_TOLERANCE_DAYS` (default 14).
 - Risk policy audit retention controls are env-driven: `CLASSROOM_RISK_AUDIT_RETENTION_DAYS`, `CLASSROOM_RISK_AUDIT_MAX_ROWS_PER_SECTION`.
+- Risk audit archival defaults are env-configurable with `CLASSROOM_RISK_ARCHIVE_DEFAULT_CADENCE` and `CLASSROOM_RISK_ARCHIVE_DEFAULT_RETENTION_DAYS`.
 - In production, sandbox mode defaults to Docker when `GRADER_SANDBOX_MODE` is unset.
 - CI workflow (`.github/workflows/ci.yml`) enforces `check:sandbox`, `check:sandbox-policy`, `check:sandbox-runtime`, `check:sandbox-faults`, lint, and build.
 - `check:sandbox-faults` covers timeout, memory pressure, process-limit pressure, and outbound-network isolation scenarios for Docker grader execution.
