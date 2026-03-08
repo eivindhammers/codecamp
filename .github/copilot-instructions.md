@@ -91,6 +91,7 @@ Learner rows in section activity include completion-rate and risk-state badges d
 Section activity supports course filtering plus per-section learner search/risk filters with pagination for larger rosters.
 Section activity controls also include term-based filtering wired to server-backed section paging.
 Section activity supports configurable page size (10/25/50) for server-backed section list loading.
+Section cards support expand/collapse controls (plus global expand/collapse) to defer heavy detail rendering for large section sets.
 Enrollment API enforces role assignment guardrails: only instructor actors can assign `instructor`/`ta` roles in section enrollments.
 Term/section creation endpoints are instructor-only (`POST /api/classroom/terms`, `POST /api/classroom/sections`).
 Assignment creation API validates section/course alignment, exercise existence in `lib/courses.ts`, and due dates within the section term window.

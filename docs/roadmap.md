@@ -276,6 +276,11 @@ Primary target users are economics students, with platform usage planned across 
 - Added governance visibility for configured destination reference names via `CLASSROOM_RISK_ARCHIVE_DESTINATION_REF_NAMES` in archive config responses/dashboard cards.
 - This enables destination URL rotation/revocation without rewriting section archive policies.
 
+59. Deferred section detail rendering controls (phase 2 progress)
+- Classroom dashboard section cards now default to collapsed details, with per-section expand/collapse actions.
+- Added global "Expand all" / "Collapse all" controls in section activity filters for faster bulk navigation.
+- This defers heavy learner/policy/assignment table rendering until needed, improving large-section-list responsiveness.
+
 ## Runtime Setup
 
 From repo root:
