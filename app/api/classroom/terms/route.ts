@@ -1,0 +1,49 @@
+import { randomUUID } from "node:crypto";
+import { NextResponse } from "next/server";
+import { AcademicTermsResponse } from "@/lib/grading/contracts";
+import { createAcademicTerm, listAcademicTerms } from "@/lib/grading/submissionDb";
+
+export const runtime = "nodejs";
+
+function badRequest(message: string) {
+  return NextResponse.json({ error: message }, { status: 400 });
+}
+
+interface CreateTermPayload {
+  title?: string;
+  startsAt?: number;
+  endsAt?: number;
+}
+
+export async function GET() {
+  const terms = listAcademicTerms();
+  const response: AcademicTermsResponse = { terms };
+  return NextResponse.json(response);
+}
+
+export async function POST(req: Request) {
+  let body: CreateTermPayload;
+  try {
+    body = (await req.json()) as CreateTermPayload;
+  } catch {
+    return badRequest("Invalid JSON payload.");
+  }
+
+  const title = body.title?.trim() ?? "";
+  const startsAt = body.startsAt;
+  const endsAt = body.endsAt;
+  if (!title || typeof startsAt !== "number" || typeof endsAt !== "number") {
+    return badRequest("Missing required fields: title, startsAt, endsAt.");
+  }
+  if (endsAt <= startsAt) {
+    return badRequest("endsAt must be greater than startsAt.");
+  }
+
+  const term = createAcademicTerm({
+    termId: randomUUID(),
+    title,
+    startsAt,
+    endsAt,
+  });
+  return NextResponse.json(term, { status: 201 });
+}

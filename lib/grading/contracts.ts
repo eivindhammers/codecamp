@@ -62,3 +62,72 @@ export interface ExerciseProgressResponse {
 export interface CourseProgressResponse {
   progress: ExerciseProgressRecord[];
 }
+
+export type ClassroomRole = "student" | "instructor" | "ta";
+export type EnrollmentStatus = "active" | "dropped";
+
+export interface UserProfileRecord {
+  userId: string;
+  displayName: string;
+  email: string;
+  role: ClassroomRole;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface AcademicTermRecord {
+  termId: string;
+  title: string;
+  startsAt: number;
+  endsAt: number;
+  createdAt: number;
+}
+
+export interface ClassSectionRecord {
+  sectionId: string;
+  termId: string;
+  courseSlug: string;
+  title: string;
+  instructorUserId: string;
+  createdAt: number;
+}
+
+export interface SectionEnrollmentRecord {
+  enrollmentId: string;
+  sectionId: string;
+  userId: string;
+  role: ClassroomRole;
+  status: EnrollmentStatus;
+  enrolledAt: number;
+}
+
+export interface AssignmentRecord {
+  assignmentId: string;
+  sectionId: string;
+  courseSlug: string;
+  chapterId: string;
+  exerciseId: string;
+  title: string;
+  dueAt: number | null;
+  createdAt: number;
+}
+
+export interface UserProfileResponse {
+  profile: UserProfileRecord;
+}
+
+export interface AcademicTermsResponse {
+  terms: AcademicTermRecord[];
+}
+
+export interface ClassSectionsResponse {
+  sections: ClassSectionRecord[];
+}
+
+export interface SectionEnrollmentsResponse {
+  enrollments: SectionEnrollmentRecord[];
+}
+
+export interface AssignmentsResponse {
+  assignments: AssignmentRecord[];
+}

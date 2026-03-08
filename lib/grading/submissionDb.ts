@@ -2,11 +2,18 @@ import { mkdirSync } from "node:fs";
 import path from "node:path";
 import Database from "better-sqlite3";
 import {
+  AcademicTermRecord,
   AttemptHistoryItem,
+  AssignmentRecord,
+  ClassSectionRecord,
+  ClassroomRole,
+  EnrollmentStatus,
   ExerciseProgressRecord,
   GradingResult,
+  SectionEnrollmentRecord,
   SubmissionStatus,
   SubmissionStatusResponse,
+  UserProfileRecord,
 } from "@/lib/grading/contracts";
 import { Language } from "@/lib/types";
 
@@ -61,6 +68,53 @@ db.exec(`
     completed_at INTEGER NOT NULL,
     PRIMARY KEY (user_id, course_slug, chapter_id, exercise_id)
   );
+
+  CREATE TABLE IF NOT EXISTS user_profiles (
+    user_id TEXT PRIMARY KEY,
+    display_name TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE,
+    role TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS academic_terms (
+    term_id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    starts_at INTEGER NOT NULL,
+    ends_at INTEGER NOT NULL,
+    created_at INTEGER NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS class_sections (
+    section_id TEXT PRIMARY KEY,
+    term_id TEXT NOT NULL,
+    course_slug TEXT NOT NULL,
+    title TEXT NOT NULL,
+    instructor_user_id TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS section_enrollments (
+    enrollment_id TEXT PRIMARY KEY,
+    section_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    role TEXT NOT NULL,
+    status TEXT NOT NULL,
+    enrolled_at INTEGER NOT NULL,
+    UNIQUE(section_id, user_id)
+  );
+
+  CREATE TABLE IF NOT EXISTS assignments (
+    assignment_id TEXT PRIMARY KEY,
+    section_id TEXT NOT NULL,
+    course_slug TEXT NOT NULL,
+    chapter_id TEXT NOT NULL,
+    exercise_id TEXT NOT NULL,
+    title TEXT NOT NULL,
+    due_at INTEGER,
+    created_at INTEGER NOT NULL
+  );
 `);
 
 interface CreateSubmissionInput {
@@ -106,6 +160,52 @@ interface ProgressRow {
   first_pass_submission_id: string;
   xp_awarded: number;
   completed_at: number;
+}
+
+interface UserProfileRow {
+  user_id: string;
+  display_name: string;
+  email: string;
+  role: ClassroomRole;
+  created_at: number;
+  updated_at: number;
+}
+
+interface AcademicTermRow {
+  term_id: string;
+  title: string;
+  starts_at: number;
+  ends_at: number;
+  created_at: number;
+}
+
+interface ClassSectionRow {
+  section_id: string;
+  term_id: string;
+  course_slug: string;
+  title: string;
+  instructor_user_id: string;
+  created_at: number;
+}
+
+interface SectionEnrollmentRow {
+  enrollment_id: string;
+  section_id: string;
+  user_id: string;
+  role: ClassroomRole;
+  status: EnrollmentStatus;
+  enrolled_at: number;
+}
+
+interface AssignmentRow {
+  assignment_id: string;
+  section_id: string;
+  course_slug: string;
+  chapter_id: string;
+  exercise_id: string;
+  title: string;
+  due_at: number | null;
+  created_at: number;
 }
 
 function hasColumn(tableName: string, columnName: string) {
@@ -476,4 +576,329 @@ export function listCourseProgress(
     .all(userId, courseSlug) as ProgressRow[];
 
   return rows.map(mapProgressRowToRecord);
+}
+
+function mapUserProfileRow(row: UserProfileRow): UserProfileRecord {
+  return {
+    userId: row.user_id,
+    displayName: row.display_name,
+    email: row.email,
+    role: row.role,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+interface UpsertUserProfileInput {
+  userId: string;
+  displayName: string;
+  email: string;
+  role: ClassroomRole;
+}
+
+export function upsertUserProfile(input: UpsertUserProfileInput): UserProfileRecord {
+  const now = Date.now();
+  db.prepare(
+    `
+      INSERT INTO user_profiles (user_id, display_name, email, role, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+      ON CONFLICT(user_id) DO UPDATE SET
+        display_name = excluded.display_name,
+        email = excluded.email,
+        role = excluded.role,
+        updated_at = excluded.updated_at
+    `
+  ).run(input.userId, input.displayName, input.email, input.role, now, now);
+
+  const row = db
+    .prepare(
+      `
+        SELECT user_id, display_name, email, role, created_at, updated_at
+        FROM user_profiles
+        WHERE user_id = ?
+      `
+    )
+    .get(input.userId) as UserProfileRow | undefined;
+
+  if (!row) {
+    throw new Error("Failed to upsert user profile.");
+  }
+
+  return mapUserProfileRow(row);
+}
+
+interface CreateAcademicTermInput {
+  termId: string;
+  title: string;
+  startsAt: number;
+  endsAt: number;
+}
+
+function mapAcademicTermRow(row: AcademicTermRow): AcademicTermRecord {
+  return {
+    termId: row.term_id,
+    title: row.title,
+    startsAt: row.starts_at,
+    endsAt: row.ends_at,
+    createdAt: row.created_at,
+  };
+}
+
+export function createAcademicTerm(input: CreateAcademicTermInput): AcademicTermRecord {
+  const now = Date.now();
+  db.prepare(
+    `
+      INSERT INTO academic_terms (term_id, title, starts_at, ends_at, created_at)
+      VALUES (?, ?, ?, ?, ?)
+    `
+  ).run(input.termId, input.title, input.startsAt, input.endsAt, now);
+
+  const row = db
+    .prepare(
+      `
+        SELECT term_id, title, starts_at, ends_at, created_at
+        FROM academic_terms
+        WHERE term_id = ?
+      `
+    )
+    .get(input.termId) as AcademicTermRow | undefined;
+
+  if (!row) {
+    throw new Error("Failed to create academic term.");
+  }
+
+  return mapAcademicTermRow(row);
+}
+
+export function listAcademicTerms(): AcademicTermRecord[] {
+  const rows = db
+    .prepare(
+      `
+        SELECT term_id, title, starts_at, ends_at, created_at
+        FROM academic_terms
+        ORDER BY starts_at DESC, created_at DESC
+      `
+    )
+    .all() as AcademicTermRow[];
+
+  return rows.map(mapAcademicTermRow);
+}
+
+interface CreateClassSectionInput {
+  sectionId: string;
+  termId: string;
+  courseSlug: string;
+  title: string;
+  instructorUserId: string;
+}
+
+function mapClassSectionRow(row: ClassSectionRow): ClassSectionRecord {
+  return {
+    sectionId: row.section_id,
+    termId: row.term_id,
+    courseSlug: row.course_slug,
+    title: row.title,
+    instructorUserId: row.instructor_user_id,
+    createdAt: row.created_at,
+  };
+}
+
+export function createClassSection(input: CreateClassSectionInput): ClassSectionRecord {
+  const now = Date.now();
+  db.prepare(
+    `
+      INSERT INTO class_sections (section_id, term_id, course_slug, title, instructor_user_id, created_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `
+  ).run(
+    input.sectionId,
+    input.termId,
+    input.courseSlug,
+    input.title,
+    input.instructorUserId,
+    now
+  );
+
+  const row = db
+    .prepare(
+      `
+        SELECT section_id, term_id, course_slug, title, instructor_user_id, created_at
+        FROM class_sections
+        WHERE section_id = ?
+      `
+    )
+    .get(input.sectionId) as ClassSectionRow | undefined;
+
+  if (!row) {
+    throw new Error("Failed to create class section.");
+  }
+
+  return mapClassSectionRow(row);
+}
+
+export function listClassSections(termId?: string): ClassSectionRecord[] {
+  if (termId) {
+    const rows = db
+      .prepare(
+        `
+          SELECT section_id, term_id, course_slug, title, instructor_user_id, created_at
+          FROM class_sections
+          WHERE term_id = ?
+          ORDER BY created_at DESC
+        `
+      )
+      .all(termId) as ClassSectionRow[];
+
+    return rows.map(mapClassSectionRow);
+  }
+
+  const rows = db
+    .prepare(
+      `
+        SELECT section_id, term_id, course_slug, title, instructor_user_id, created_at
+        FROM class_sections
+        ORDER BY created_at DESC
+      `
+    )
+    .all() as ClassSectionRow[];
+
+  return rows.map(mapClassSectionRow);
+}
+
+interface EnrollUserInput {
+  enrollmentId: string;
+  sectionId: string;
+  userId: string;
+  role: ClassroomRole;
+}
+
+function mapEnrollmentRow(row: SectionEnrollmentRow): SectionEnrollmentRecord {
+  return {
+    enrollmentId: row.enrollment_id,
+    sectionId: row.section_id,
+    userId: row.user_id,
+    role: row.role,
+    status: row.status,
+    enrolledAt: row.enrolled_at,
+  };
+}
+
+export function enrollUserInSection(input: EnrollUserInput): SectionEnrollmentRecord {
+  const now = Date.now();
+  db.prepare(
+    `
+      INSERT INTO section_enrollments (enrollment_id, section_id, user_id, role, status, enrolled_at)
+      VALUES (?, ?, ?, ?, 'active', ?)
+      ON CONFLICT(section_id, user_id) DO UPDATE SET
+        role = excluded.role,
+        status = 'active',
+        enrolled_at = excluded.enrolled_at
+    `
+  ).run(input.enrollmentId, input.sectionId, input.userId, input.role, now);
+
+  const row = db
+    .prepare(
+      `
+        SELECT enrollment_id, section_id, user_id, role, status, enrolled_at
+        FROM section_enrollments
+        WHERE section_id = ? AND user_id = ?
+      `
+    )
+    .get(input.sectionId, input.userId) as SectionEnrollmentRow | undefined;
+
+  if (!row) {
+    throw new Error("Failed to create enrollment.");
+  }
+
+  return mapEnrollmentRow(row);
+}
+
+export function listSectionEnrollments(sectionId: string): SectionEnrollmentRecord[] {
+  const rows = db
+    .prepare(
+      `
+        SELECT enrollment_id, section_id, user_id, role, status, enrolled_at
+        FROM section_enrollments
+        WHERE section_id = ?
+        ORDER BY enrolled_at DESC
+      `
+    )
+    .all(sectionId) as SectionEnrollmentRow[];
+
+  return rows.map(mapEnrollmentRow);
+}
+
+interface CreateAssignmentInput {
+  assignmentId: string;
+  sectionId: string;
+  courseSlug: string;
+  chapterId: string;
+  exerciseId: string;
+  title: string;
+  dueAt?: number;
+}
+
+function mapAssignmentRow(row: AssignmentRow): AssignmentRecord {
+  return {
+    assignmentId: row.assignment_id,
+    sectionId: row.section_id,
+    courseSlug: row.course_slug,
+    chapterId: row.chapter_id,
+    exerciseId: row.exercise_id,
+    title: row.title,
+    dueAt: row.due_at,
+    createdAt: row.created_at,
+  };
+}
+
+export function createAssignment(input: CreateAssignmentInput): AssignmentRecord {
+  const now = Date.now();
+  db.prepare(
+    `
+      INSERT INTO assignments (
+        assignment_id, section_id, course_slug, chapter_id, exercise_id, title, due_at, created_at
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `
+  ).run(
+    input.assignmentId,
+    input.sectionId,
+    input.courseSlug,
+    input.chapterId,
+    input.exerciseId,
+    input.title,
+    input.dueAt ?? null,
+    now
+  );
+
+  const row = db
+    .prepare(
+      `
+        SELECT assignment_id, section_id, course_slug, chapter_id, exercise_id, title, due_at, created_at
+        FROM assignments
+        WHERE assignment_id = ?
+      `
+    )
+    .get(input.assignmentId) as AssignmentRow | undefined;
+
+  if (!row) {
+    throw new Error("Failed to create assignment.");
+  }
+
+  return mapAssignmentRow(row);
+}
+
+export function listSectionAssignments(sectionId: string): AssignmentRecord[] {
+  const rows = db
+    .prepare(
+      `
+        SELECT assignment_id, section_id, course_slug, chapter_id, exercise_id, title, due_at, created_at
+        FROM assignments
+        WHERE section_id = ?
+        ORDER BY created_at DESC
+      `
+    )
+    .all(sectionId) as AssignmentRow[];
+
+  return rows.map(mapAssignmentRow);
 }
