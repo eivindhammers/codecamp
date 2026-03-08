@@ -149,6 +149,7 @@ export default function ClassroomDashboardClient() {
     Record<string, RiskArchiveDestinationValidation | undefined>
   >({});
   const [riskArchiveRunBusy, setRiskArchiveRunBusy] = useState<Record<string, boolean>>({});
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
   const [auditActorFilter, setAuditActorFilter] = useState("");
   const [auditActionFilter, setAuditActionFilter] = useState<"all" | "upsert" | "reset">("all");
 
@@ -441,6 +442,19 @@ export default function ClassroomDashboardClient() {
         } as RiskArchiveDraft,
       };
     });
+  }
+
+  function setSectionExpanded(sectionId: string, expanded: boolean) {
+    setExpandedSections((prev) => ({ ...prev, [sectionId]: expanded }));
+  }
+
+  function setAllSectionsExpanded(expanded: boolean) {
+    setExpandedSections(
+      sections.reduce<Record<string, boolean>>((acc, panel) => {
+        acc[panel.section.sectionId] = expanded;
+        return acc;
+      }, {})
+    );
   }
 
   async function onSaveRiskPolicy(sectionId: string) {
@@ -1006,6 +1020,20 @@ export default function ClassroomDashboardClient() {
                 <span className="text-xs text-gray-500">
                   {sections.length}/{totalSectionsCount} loaded
                 </span>
+                <button
+                  type="button"
+                  onClick={() => setAllSectionsExpanded(true)}
+                  className="border border-gray-300 rounded px-2 py-1 text-xs hover:bg-gray-50"
+                >
+                  Expand all
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAllSectionsExpanded(false)}
+                  className="border border-gray-300 rounded px-2 py-1 text-xs hover:bg-gray-50"
+                >
+                  Collapse all
+                </button>
                 {loadingSections && <span className="text-xs text-gray-500">Refreshing...</span>}
               </div>
             </div>
@@ -1018,6 +1046,7 @@ export default function ClassroomDashboardClient() {
             <div className="space-y-4">
               {filteredSections.map((panel) => {
                 const panelRiskConfig = panel.effectiveRiskConfig;
+                const sectionExpanded = expandedSections[panel.section.sectionId] ?? false;
                 const searchQuery = (learnerSearch[panel.section.sectionId] ?? "").trim().toLowerCase();
                 const riskMode = learnerRiskFilter[panel.section.sectionId] ?? "all";
                 const overdueAssignments = panel.assignments.filter(
@@ -1096,15 +1125,32 @@ export default function ClassroomDashboardClient() {
                         </p>
                       )}
                     </div>
-                    <a
-                      href={`/api/classroom/sections/export?sectionId=${encodeURIComponent(
-                        panel.section.sectionId
-                      )}&format=csv`}
-                      className="text-xs border border-gray-300 rounded px-2 py-1 hover:bg-gray-50"
-                    >
-                      Download CSV
-                    </a>
+                    <div className="flex items-center gap-2">
+                      <a
+                        href={`/api/classroom/sections/export?sectionId=${encodeURIComponent(
+                          panel.section.sectionId
+                        )}&format=csv`}
+                        className="text-xs border border-gray-300 rounded px-2 py-1 hover:bg-gray-50"
+                      >
+                        Download CSV
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSectionExpanded(panel.section.sectionId, !sectionExpanded)
+                        }
+                        className="text-xs border border-gray-300 rounded px-2 py-1 hover:bg-gray-50"
+                      >
+                        {sectionExpanded ? "Collapse details" : "Expand details"}
+                      </button>
+                    </div>
                   </div>
+                  {!sectionExpanded ? (
+                    <p className="text-xs text-gray-500">
+                      Details collapsed to improve dashboard rendering performance for large section lists.
+                    </p>
+                  ) : (
+                    <>
                   <div className="mb-3 rounded border border-gray-200 bg-gray-50 p-3">
                     <p className="text-xs font-medium text-gray-700 mb-2">Section risk policy</p>
                     <div className="grid grid-cols-1 gap-2 sm:grid-cols-4">
@@ -1703,6 +1749,8 @@ export default function ClassroomDashboardClient() {
                         </div>
                       )}
                     </div>
+                  )}
+                    </>
                   )}
                 </div>
                 );
