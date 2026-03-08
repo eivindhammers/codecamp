@@ -862,6 +862,12 @@ export default function ClassroomDashboardClient() {
                   <p className="font-medium text-gray-900">Automation defaults</p>
                   <p className="mt-1">batch limit {archiveGovernanceConfig.archiveBatchLimit}</p>
                   <p className="mt-1">actor {archiveGovernanceConfig.defaultActorUserId}</p>
+                  <p className="mt-1">
+                    refs{" "}
+                    {archiveGovernanceConfig.destinationReferenceNames.length > 0
+                      ? archiveGovernanceConfig.destinationReferenceNames.join(", ")
+                      : "none configured"}
+                  </p>
                 </div>
               </div>
             )}
@@ -1295,6 +1301,10 @@ export default function ClassroomDashboardClient() {
                             placeholder="e.g. s3://bucket/section-a"
                             className="mt-1 w-full border border-gray-300 rounded px-2 py-1 text-xs"
                           />
+                          <span className="mt-1 block text-[11px] text-gray-500">
+                            Supports webhook:&lt;url&gt;, puturl:&lt;url&gt;, webhookref:&lt;name&gt;,
+                            puturlref:&lt;name&gt;, or local label.
+                          </span>
                         </label>
                       </div>
                       <div className="mt-2 flex items-center gap-2">

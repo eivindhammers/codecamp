@@ -16,6 +16,8 @@ import {
 const DAY_MS = 24 * 60 * 60 * 1000;
 const WEBHOOK_PREFIX = "webhook:";
 const PUT_URL_PREFIX = "puturl:";
+const WEBHOOK_REF_PREFIX = "webhookref:";
+const PUT_URL_REF_PREFIX = "puturlref:";
 
 function cadenceMs(policy: SectionRiskArchivePolicyRecord): number {
   if (policy.cadence === "daily") return DAY_MS;
@@ -97,6 +99,47 @@ function parsePutUrlDestination(destinationLabel: string | null): string | null 
   return url.length > 0 ? url : null;
 }
 
+function parseWebhookDestinationRef(destinationLabel: string | null): string | null {
+  if (!destinationLabel) return null;
+  const trimmed = destinationLabel.trim();
+  if (!trimmed.toLowerCase().startsWith(WEBHOOK_REF_PREFIX)) {
+    return null;
+  }
+  const refName = trimmed.slice(WEBHOOK_REF_PREFIX.length).trim();
+  return refName.length > 0 ? refName : null;
+}
+
+function parsePutUrlDestinationRef(destinationLabel: string | null): string | null {
+  if (!destinationLabel) return null;
+  const trimmed = destinationLabel.trim();
+  if (!trimmed.toLowerCase().startsWith(PUT_URL_REF_PREFIX)) {
+    return null;
+  }
+  const refName = trimmed.slice(PUT_URL_REF_PREFIX.length).trim();
+  return refName.length > 0 ? refName : null;
+}
+
+function destinationRefKey(refName: string): string {
+  const normalized = refName
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9_]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+  if (!normalized) {
+    throw new Error("Destination reference name is invalid.");
+  }
+  return `CLASSROOM_RISK_ARCHIVE_DESTINATION_${normalized}`;
+}
+
+function resolveDestinationRefUrl(refName: string): string {
+  const envKey = destinationRefKey(refName);
+  const value = process.env[envKey]?.trim();
+  if (!value) {
+    throw new Error(`Destination reference '${refName}' is not configured (${envKey}).`);
+  }
+  return value;
+}
+
 export function validateArchiveDestinationLabel(destinationLabel: string | null): {
   valid: boolean;
   mode: "none" | "webhook" | "puturl" | "local";
@@ -128,6 +171,26 @@ export function validateArchiveDestinationLabel(destinationLabel: string | null)
     }
   }
 
+  const webhookRef = parseWebhookDestinationRef(trimmed);
+  if (webhookRef) {
+    try {
+      const url = validateWebhookDestination(resolveDestinationRefUrl(webhookRef));
+      return {
+        valid: true,
+        mode: "webhook",
+        host: url.host,
+        message: `Webhook reference '${webhookRef}' validated for ${url.host}.`,
+      };
+    } catch (error) {
+      return {
+        valid: false,
+        mode: "webhook",
+        message:
+          error instanceof Error ? error.message : "Webhook destination reference is invalid.",
+      };
+    }
+  }
+
   const putUrlRaw = parsePutUrlDestination(trimmed);
   if (putUrlRaw) {
     try {
@@ -143,6 +206,25 @@ export function validateArchiveDestinationLabel(destinationLabel: string | null)
         valid: false,
         mode: "puturl",
         message: error instanceof Error ? error.message : "PUT destination is invalid.",
+      };
+    }
+  }
+
+  const putUrlRef = parsePutUrlDestinationRef(trimmed);
+  if (putUrlRef) {
+    try {
+      const url = validatePutDestination(resolveDestinationRefUrl(putUrlRef));
+      return {
+        valid: true,
+        mode: "puturl",
+        host: url.host,
+        message: `PUT reference '${putUrlRef}' validated for ${url.host}.`,
+      };
+    } catch (error) {
+      return {
+        valid: false,
+        mode: "puturl",
+        message: error instanceof Error ? error.message : "PUT destination reference is invalid.",
       };
     }
   }
@@ -354,10 +436,27 @@ export async function executeSectionRiskAuditArchive(
         events.length
       );
     }
+    const webhookRef = parseWebhookDestinationRef(policy.destinationLabel);
+    if (webhookRef) {
+      finalDeliveryRef = await deliverToWebhook(
+        validateWebhookDestination(resolveDestinationRefUrl(webhookRef)),
+        deliveryRef,
+        sectionId,
+        now,
+        events.length
+      );
+    }
     const putUrlRaw = parsePutUrlDestination(policy.destinationLabel);
     if (putUrlRaw) {
       finalDeliveryRef = await deliverToPutUrl(
         validatePutDestination(putUrlRaw),
+        deliveryRef
+      );
+    }
+    const putUrlRef = parsePutUrlDestinationRef(policy.destinationLabel);
+    if (putUrlRef) {
+      finalDeliveryRef = await deliverToPutUrl(
+        validatePutDestination(resolveDestinationRefUrl(putUrlRef)),
         deliveryRef
       );
     }

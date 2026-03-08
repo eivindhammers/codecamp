@@ -17,6 +17,13 @@ function parseHosts(name: string): string[] {
     .filter((value) => value.length > 0);
 }
 
+function parseReferenceNames(): string[] {
+  return (process.env.CLASSROOM_RISK_ARCHIVE_DESTINATION_REF_NAMES ?? "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter((value) => value.length > 0);
+}
+
 function defaultActorUserId(): string {
   return process.env.CLASSROOM_RISK_ARCHIVE_ACTOR_USER_ID?.trim() || "system:risk-archive";
 }
@@ -29,6 +36,7 @@ export async function GET(req: Request) {
     config: {
       webhookAllowHosts: parseHosts("CLASSROOM_RISK_ARCHIVE_WEBHOOK_ALLOW_HOSTS"),
       uploadAllowHosts: parseHosts("CLASSROOM_RISK_ARCHIVE_UPLOAD_ALLOW_HOSTS"),
+      destinationReferenceNames: parseReferenceNames(),
       webhookTimeoutMs: readNumberEnv(
         "CLASSROOM_RISK_ARCHIVE_WEBHOOK_TIMEOUT_MS",
         5000,
