@@ -7,6 +7,7 @@ import {
 import {
   enrollUserInSection,
   getUserProfile,
+  listClassSections,
   getSectionEnrollment,
   listSectionEnrollments,
   updateSectionEnrollmentStatus,
@@ -35,6 +36,19 @@ interface UpdateEnrollmentStatusPayload {
   status?: "active" | "dropped";
 }
 
+function ensureSectionExists(sectionId: string) {
+  const section = listClassSections().find((item) => item.sectionId === sectionId);
+  if (!section) {
+    throw new Error("Unknown sectionId.");
+  }
+}
+
+function countActiveInstructors(sectionId: string): number {
+  return listSectionEnrollments(sectionId).filter(
+    (enrollment) => enrollment.role === "instructor" && enrollment.status === "active"
+  ).length;
+}
+
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const sectionId = url.searchParams.get("sectionId")?.trim() ?? "";
@@ -43,6 +57,11 @@ export async function GET(req: Request) {
   }
   const auth = requireSectionStaff(req, sectionId);
   if (!auth.ok) return auth.response;
+  try {
+    ensureSectionExists(sectionId);
+  } catch (error) {
+    return badRequest(error instanceof Error ? error.message : "Unknown sectionId.");
+  }
 
   const enrollments = listSectionEnrollments(sectionId);
   const response: SectionEnrollmentsResponse = { enrollments };
@@ -69,12 +88,27 @@ export async function POST(req: Request) {
   }
   const auth = requireSectionStaff(req, sectionId);
   if (!auth.ok) return auth.response;
+  try {
+    ensureSectionExists(sectionId);
+  } catch (error) {
+    return badRequest(error instanceof Error ? error.message : "Unknown sectionId.");
+  }
   const actorProfile = getUserProfile(auth.value.actorUserId);
   if (!actorProfile) {
     return forbidden("Actor profile not found.");
   }
   if (role !== "student" && actorProfile.role !== "instructor") {
     return forbidden("Only instructors can assign section staff roles.");
+  }
+  const existingEnrollment = getSectionEnrollment(sectionId, userId);
+  if (
+    existingEnrollment &&
+    existingEnrollment.role === "instructor" &&
+    existingEnrollment.status === "active" &&
+    role !== "instructor" &&
+    countActiveInstructors(sectionId) <= 1
+  ) {
+    return forbidden("Section must retain at least one active instructor.");
   }
 
   const enrollment = enrollUserInSection({
@@ -106,6 +140,11 @@ export async function PATCH(req: Request) {
 
   const auth = requireSectionStaff(req, sectionId);
   if (!auth.ok) return auth.response;
+  try {
+    ensureSectionExists(sectionId);
+  } catch (error) {
+    return badRequest(error instanceof Error ? error.message : "Unknown sectionId.");
+  }
   const actorProfile = getUserProfile(auth.value.actorUserId);
   if (!actorProfile) {
     return forbidden("Actor profile not found.");
@@ -117,6 +156,14 @@ export async function PATCH(req: Request) {
   }
   if (existingEnrollment.role !== "student" && actorProfile.role !== "instructor") {
     return forbidden("Only instructors can change staff enrollment status.");
+  }
+  if (
+    existingEnrollment.role === "instructor" &&
+    existingEnrollment.status === "active" &&
+    status === "dropped" &&
+    countActiveInstructors(sectionId) <= 1
+  ) {
+    return forbidden("Section must retain at least one active instructor.");
   }
 
   const enrollment = updateSectionEnrollmentStatus({ sectionId, userId, status });
