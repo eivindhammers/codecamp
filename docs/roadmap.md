@@ -218,6 +218,10 @@ Primary target users are economics students, with platform usage planned across 
 - Added `POST /api/classroom/risk-archive/run` for staff-triggered execution (single section or all due sections) and `npm run archive:risk-audit` for scheduler/cron integration.
 - Archive deliveries are now persisted as JSON artifacts under `.data/risk-audit-archives/...`, and run records capture delivery references for governance traceability.
 
+45. Archive webhook destination delivery (phase 2 progress)
+- Archive automation now supports webhook destinations via `destinationLabel=webhook:<url>` with configurable host allowlist and request timeout controls.
+- Archive runs continue writing local artifacts and now attempt webhook delivery with section/export metadata, recording webhook delivery refs or failures in run history.
+
 ## Runtime Setup
 
 From repo root:
@@ -275,7 +279,7 @@ npm run redis:down
 
 3. Instructor workflow (teaching operations, phase 2)
 - Add section list virtualization/performance tuning and richer term-based filtering for very large datasets.
-- Add destination integrations beyond local filesystem artifacts (e.g., object storage/webhooks) for archive delivery.
+- Add object-storage destination integrations and retry policies for archive delivery.
 
 4. Multi-course content pipeline expansion
 - Migrate more exercises from inline definitions to `content/exercises/...`.
