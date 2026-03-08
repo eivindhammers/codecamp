@@ -436,22 +436,49 @@ export default function ClassroomDashboardClient() {
                             <th className="py-1 pr-2">Learner</th>
                             <th className="py-1 pr-2">Completed</th>
                             <th className="py-1 pr-2">Attempts</th>
+                            <th className="py-1 pr-2">Completion rate</th>
+                            <th className="py-1 pr-2">Risk</th>
                             <th className="py-1">Last attempt</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {panel.metrics.map((metric) => (
-                            <tr key={metric.userId} className="border-t border-gray-100">
-                              <td className="py-1.5 pr-2 font-mono">{metric.userId}</td>
-                              <td className="py-1.5 pr-2">{metric.completedExercises}</td>
-                              <td className="py-1.5 pr-2">{metric.attemptsCount}</td>
-                              <td className="py-1.5">
-                                {metric.lastAttemptAt
-                                  ? new Date(metric.lastAttemptAt).toLocaleString()
-                                  : "—"}
-                              </td>
-                            </tr>
-                          ))}
+                          {panel.metrics.map((metric) => {
+                            const learnerSummary = panel.gradeSummary.find(
+                              (row) => row.userId === metric.userId
+                            );
+                            const completionRate = learnerSummary?.completionRate ?? 0;
+                            const overdueAssignments = panel.assignments.filter(
+                              (assignment) =>
+                                assignment.dueAt !== null && assignment.dueAt < Date.now()
+                            ).length;
+                            const atRisk =
+                              (overdueAssignments > 0 && completionRate < 100) ||
+                              (metric.attemptsCount >= 5 && completionRate < 25);
+                            return (
+                              <tr key={metric.userId} className="border-t border-gray-100">
+                                <td className="py-1.5 pr-2 font-mono">{metric.userId}</td>
+                                <td className="py-1.5 pr-2">{metric.completedExercises}</td>
+                                <td className="py-1.5 pr-2">{metric.attemptsCount}</td>
+                                <td className="py-1.5 pr-2">{completionRate.toFixed(1)}%</td>
+                                <td className="py-1.5 pr-2">
+                                  {atRisk ? (
+                                    <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700">
+                                      At risk
+                                    </span>
+                                  ) : (
+                                    <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+                                      On track
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="py-1.5">
+                                  {metric.lastAttemptAt
+                                    ? new Date(metric.lastAttemptAt).toLocaleString()
+                                    : "—"}
+                                </td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>
