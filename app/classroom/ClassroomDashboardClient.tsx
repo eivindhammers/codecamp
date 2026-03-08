@@ -77,6 +77,10 @@ export default function ClassroomDashboardClient() {
   >({});
   const [assignmentBusy, setAssignmentBusy] = useState<Record<string, boolean>>({});
   const [assignmentError, setAssignmentError] = useState<Record<string, string>>({});
+  const [courseFilter, setCourseFilter] = useState<string>("all");
+  const [learnerSearch, setLearnerSearch] = useState<Record<string, string>>({});
+  const [learnerRiskFilter, setLearnerRiskFilter] = useState<Record<string, "all" | "at-risk" | "on-track">>({});
+  const [learnerPage, setLearnerPage] = useState<Record<string, number>>({});
 
   const isStaff = profile?.role === "instructor" || profile?.role === "ta";
 
@@ -206,6 +210,16 @@ export default function ClassroomDashboardClient() {
     });
   }
 
+  function setLearnerSearchValue(sectionId: string, value: string) {
+    setLearnerSearch((prev) => ({ ...prev, [sectionId]: value }));
+    setLearnerPage((prev) => ({ ...prev, [sectionId]: 1 }));
+  }
+
+  function setLearnerRiskFilterValue(sectionId: string, value: "all" | "at-risk" | "on-track") {
+    setLearnerRiskFilter((prev) => ({ ...prev, [sectionId]: value }));
+    setLearnerPage((prev) => ({ ...prev, [sectionId]: 1 }));
+  }
+
   async function onCreateAssignment(event: FormEvent<HTMLFormElement>, section: ClassSectionRecord) {
     event.preventDefault();
     const draft = assignmentDrafts[section.sectionId];
@@ -286,6 +300,11 @@ export default function ClassroomDashboardClient() {
       stuckLearners,
     };
   }, [sections]);
+
+  const filteredSections = useMemo(() => {
+    if (courseFilter === "all") return sections;
+    return sections.filter((panel) => panel.section.courseSlug === courseFilter);
+  }, [courseFilter, sections]);
 
   return (
     <div className="space-y-6">
@@ -383,15 +402,76 @@ export default function ClassroomDashboardClient() {
           <section className="bg-white border border-gray-200 rounded-xl p-5">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold text-gray-900">Section Activity</h2>
-              {loadingSections && <span className="text-xs text-gray-500">Refreshing...</span>}
+              <div className="flex items-center gap-2">
+                <select
+                  value={courseFilter}
+                  onChange={(event) => setCourseFilter(event.target.value)}
+                  className="border border-gray-300 rounded px-2 py-1 text-xs"
+                >
+                  <option value="all">All courses</option>
+                  {Array.from(new Set(sections.map((panel) => panel.section.courseSlug))).map(
+                    (slug) => (
+                      <option key={slug} value={slug}>
+                        {slug}
+                      </option>
+                    )
+                  )}
+                </select>
+                {loadingSections && <span className="text-xs text-gray-500">Refreshing...</span>}
+              </div>
             </div>
             {sections.length === 0 && !loadingSections && (
               <p className="text-sm text-gray-600">No sections available yet.</p>
             )}
+            {sections.length > 0 && filteredSections.length === 0 && (
+              <p className="text-sm text-gray-600">No sections match this course filter.</p>
+            )}
             <div className="space-y-4">
-              {sections.map((panel) => (
-                <div key={panel.section.sectionId} className="border border-gray-200 rounded-lg p-4">
-                  <div className="flex flex-wrap items-center gap-2 justify-between mb-2">
+              {filteredSections.map((panel) => {
+                const searchQuery = (learnerSearch[panel.section.sectionId] ?? "").trim().toLowerCase();
+                const riskMode = learnerRiskFilter[panel.section.sectionId] ?? "all";
+                const overdueAssignments = panel.assignments.filter(
+                  (assignment) => assignment.dueAt !== null && assignment.dueAt < Date.now()
+                ).length;
+                const learnerRows = panel.metrics
+                  .map((metric) => {
+                    const learnerSummary = panel.gradeSummary.find(
+                      (row) => row.userId === metric.userId
+                    );
+                    const completionRate = learnerSummary?.completionRate ?? 0;
+                    const atRisk =
+                      (overdueAssignments > 0 && completionRate < 100) ||
+                      (metric.attemptsCount >= 5 && completionRate < 25);
+                    return {
+                      metric,
+                      completionRate,
+                      atRisk,
+                    };
+                  })
+                  .filter((row) => {
+                    if (searchQuery.length > 0 && !row.metric.userId.toLowerCase().includes(searchQuery)) {
+                      return false;
+                    }
+                    if (riskMode === "at-risk") return row.atRisk;
+                    if (riskMode === "on-track") return !row.atRisk;
+                    return true;
+                  });
+
+                const pageSize = 10;
+                const totalPages = Math.max(1, Math.ceil(learnerRows.length / pageSize));
+                const currentPage = Math.min(
+                  learnerPage[panel.section.sectionId] ?? 1,
+                  totalPages
+                );
+                const pageStart = (currentPage - 1) * pageSize;
+                const visibleRows = learnerRows.slice(pageStart, pageStart + pageSize);
+
+                return (
+                  <div
+                    key={panel.section.sectionId}
+                    className="border border-gray-200 rounded-lg p-4"
+                  >
+                    <div className="flex flex-wrap items-center gap-2 justify-between mb-2">
                     <div>
                       <p className="font-medium text-gray-900">{panel.section.title}</p>
                       <p className="text-xs text-gray-500">
@@ -429,36 +509,56 @@ export default function ClassroomDashboardClient() {
                     <p className="text-sm text-gray-600">No learner metrics yet.</p>
                   )}
                   {!panel.error && panel.metrics.length > 0 && (
-                    <div className="overflow-x-auto">
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <input
+                          value={learnerSearch[panel.section.sectionId] ?? ""}
+                          onChange={(event) =>
+                            setLearnerSearchValue(panel.section.sectionId, event.target.value)
+                          }
+                          placeholder="Filter by learner id"
+                          className="border border-gray-300 rounded px-2 py-1 text-xs"
+                        />
+                        <select
+                          value={riskMode}
+                          onChange={(event) =>
+                            setLearnerRiskFilterValue(
+                              panel.section.sectionId,
+                              event.target.value as "all" | "at-risk" | "on-track"
+                            )
+                          }
+                          className="border border-gray-300 rounded px-2 py-1 text-xs"
+                        >
+                          <option value="all">All learners</option>
+                          <option value="at-risk">At risk only</option>
+                          <option value="on-track">On track only</option>
+                        </select>
+                        <span className="text-xs text-gray-500">
+                          Showing {visibleRows.length} of {learnerRows.length}
+                        </span>
+                      </div>
+                      <div className="overflow-x-auto">
                       <table className="min-w-full text-xs">
                         <thead>
                           <tr className="text-left text-gray-500">
                             <th className="py-1 pr-2">Learner</th>
                             <th className="py-1 pr-2">Completed</th>
                             <th className="py-1 pr-2">Attempts</th>
+                            <th className="py-1 pr-2">Overdue</th>
                             <th className="py-1 pr-2">Completion rate</th>
                             <th className="py-1 pr-2">Risk</th>
                             <th className="py-1">Last attempt</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {panel.metrics.map((metric) => {
-                            const learnerSummary = panel.gradeSummary.find(
-                              (row) => row.userId === metric.userId
-                            );
-                            const completionRate = learnerSummary?.completionRate ?? 0;
-                            const overdueAssignments = panel.assignments.filter(
-                              (assignment) =>
-                                assignment.dueAt !== null && assignment.dueAt < Date.now()
-                            ).length;
-                            const atRisk =
-                              (overdueAssignments > 0 && completionRate < 100) ||
-                              (metric.attemptsCount >= 5 && completionRate < 25);
+                          {visibleRows.map((row) => {
+                            const { metric, completionRate, atRisk } = row;
                             return (
                               <tr key={metric.userId} className="border-t border-gray-100">
                                 <td className="py-1.5 pr-2 font-mono">{metric.userId}</td>
                                 <td className="py-1.5 pr-2">{metric.completedExercises}</td>
                                 <td className="py-1.5 pr-2">{metric.attemptsCount}</td>
+                                <td className="py-1.5 pr-2">{overdueAssignments}</td>
                                 <td className="py-1.5 pr-2">{completionRate.toFixed(1)}%</td>
                                 <td className="py-1.5 pr-2">
                                   {atRisk ? (
@@ -479,8 +579,47 @@ export default function ClassroomDashboardClient() {
                               </tr>
                             );
                           })}
+                          {visibleRows.length === 0 && (
+                            <tr className="border-t border-gray-100">
+                              <td className="py-2 text-gray-500" colSpan={7}>
+                                No learners match the selected filters.
+                              </td>
+                            </tr>
+                          )}
                         </tbody>
                       </table>
+                    </div>
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setLearnerPage((prev) => ({
+                              ...prev,
+                              [panel.section.sectionId]: Math.max(1, currentPage - 1),
+                            }))
+                          }
+                          disabled={currentPage <= 1}
+                          className="border border-gray-300 rounded px-2 py-1 text-xs disabled:opacity-50"
+                        >
+                          Prev
+                        </button>
+                        <span className="text-xs text-gray-600">
+                          Page {currentPage} / {totalPages}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setLearnerPage((prev) => ({
+                              ...prev,
+                              [panel.section.sectionId]: Math.min(totalPages, currentPage + 1),
+                            }))
+                          }
+                          disabled={currentPage >= totalPages}
+                          className="border border-gray-300 rounded px-2 py-1 text-xs disabled:opacity-50"
+                        >
+                          Next
+                        </button>
+                      </div>
                     </div>
                   )}
                   {!panel.error && (
@@ -627,7 +766,8 @@ export default function ClassroomDashboardClient() {
                     </div>
                   )}
                 </div>
-              ))}
+                );
+              })}
             </div>
           </section>
         </>
