@@ -36,6 +36,9 @@ jobs:
       - name: Validate sandbox runtime
         run: npm run check:sandbox-runtime
 
+      - name: Validate sandbox startup performance
+        run: npm run check:sandbox-startup
+
       - name: Validate sandbox fault handling
         run: npm run check:sandbox-faults
 
