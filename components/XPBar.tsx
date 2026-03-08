@@ -3,7 +3,7 @@
 import { useProgress } from "@/lib/ProgressContext";
 
 export default function XPBar() {
-  const { progress } = useProgress();
+  const { progress, syncStatus, syncError } = useProgress();
 
   const level = Math.floor(progress.xp / 100) + 1;
   const xpInLevel = progress.xp % 100;
@@ -21,6 +21,14 @@ export default function XPBar() {
           style={{ width: `${xpInLevel}%` }}
         />
       </div>
+      {syncStatus === "syncing" && (
+        <span className="text-[11px] text-gray-500">Syncing progress…</span>
+      )}
+      {syncStatus === "error" && (
+        <span className="text-[11px] text-rose-600" title={syncError}>
+          Progress sync issue
+        </span>
+      )}
     </div>
   );
 }

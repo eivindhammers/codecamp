@@ -5,6 +5,7 @@ import React, {
   useContext,
   useEffect,
   useReducer,
+  useState,
 } from "react";
 import { courses } from "@/lib/courses";
 import { ExerciseProgressRecord, UserCatalogProgressResponse } from "@/lib/grading/contracts";
@@ -53,6 +54,8 @@ function reducer(state: UserProgress, action: Action): UserProgress {
 
 interface ProgressContextValue {
   progress: UserProgress;
+  syncStatus: "idle" | "syncing" | "synced" | "error";
+  syncError: string;
   completeExercise: (courseSlug: string, chapterId: string, exerciseId: string, xp: number) => void;
   completeCourse: (slug: string) => void;
   isExerciseDone: (courseSlug: string, chapterId: string, exerciseId: string) => boolean;
@@ -139,6 +142,8 @@ function mergeBackendProgress(
 
 export function ProgressProvider({ children }: { children: React.ReactNode }) {
   const [progress, dispatch] = useReducer(reducer, initialState);
+  const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "synced" | "error">("idle");
+  const [syncError, setSyncError] = useState("");
 
   useEffect(() => {
     try {
@@ -157,11 +162,19 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
 
     let cancelled = false;
     async function hydrateFromBackend() {
+      setSyncStatus("syncing");
+      setSyncError("");
       try {
         const response = await fetch(`/api/progress?userId=${encodeURIComponent(userId)}`, {
           cache: "no-store",
         });
-        if (!response.ok) return;
+        if (!response.ok) {
+          if (!cancelled) {
+            setSyncStatus("error");
+            setSyncError(`Progress sync failed (${response.status}).`);
+          }
+          return;
+        }
         const payload = (await response.json()) as UserCatalogProgressResponse;
         if (cancelled) return;
 
@@ -179,8 +192,13 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
           type: "LOAD",
           state: mergeBackendProgress(localState, payload.progress),
         });
+        setSyncStatus("synced");
+        setSyncError("");
       } catch {
-        // ignore
+        if (!cancelled) {
+          setSyncStatus("error");
+          setSyncError("Progress sync failed. Showing local cache state.");
+        }
       }
     }
 
@@ -244,7 +262,15 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <ProgressContext.Provider
-      value={{ progress, completeExercise, completeCourse, isExerciseDone, courseProgress }}
+      value={{
+        progress,
+        syncStatus,
+        syncError,
+        completeExercise,
+        completeCourse,
+        isExerciseDone,
+        courseProgress,
+      }}
     >
       {children}
     </ProgressContext.Provider>
