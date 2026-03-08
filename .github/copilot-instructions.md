@@ -70,6 +70,7 @@ The classroom dashboard also supports assignment creation and due-state indicato
 Dashboard cards and section headers include pass-rate and stuck-learner indicators derived from section export summaries.
 Assignment authoring in the dashboard uses chapter/exercise options derived from `lib/courses.ts` for the selected section course.
 Learner rows in section activity include completion-rate and risk-state badges derived from assignment due dates and summary metrics.
+Section activity supports course filtering plus per-section learner search/risk filters with pagination for larger rosters.
 
 ## Conventions
 

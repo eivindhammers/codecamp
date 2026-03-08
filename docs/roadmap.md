@@ -126,6 +126,11 @@ Primary target users are economics students, with platform usage planned across 
 - Added GitHub Actions CI workflow (`.github/workflows/ci.yml`) to run sandbox checks, lint, and build.
 - Added `npm run check:sandbox-policy` to verify required Docker sandbox flags remain present in checker runner implementation.
 
+23. Instructor dashboard filtering and pagination (phase 2 progress)
+- Added course-level section filtering in `/classroom` activity panels.
+- Added per-section learner filtering (search + risk state) and paginated learner tables for larger cohorts.
+- Added overdue-assignment visibility directly in learner activity rows.
+
 ## Runtime Setup
 
 From repo root:
@@ -183,7 +188,7 @@ npm run redis:down
 - Keep migration path from local IDs where possible.
 
 3. Instructor workflow (teaching operations, phase 2)
-- Add richer filtering/sorting and pagination for large sections.
+- Add server-backed sorting/pagination support and term/course filters for very large section datasets.
 - Add assignment authoring validation against course pacing, due date windows, and section term dates.
 - Add configurable risk rules and per-assignment learner status breakdowns.
 
@@ -204,7 +209,7 @@ npm run redis:down
 3. Queue enqueue path uses a typed cast around BullMQ `add` due TS friction in current setup.
 4. Worker and API run in-process/local; no production orchestration yet.
 5. Docker daemon must be available for `redis:up`.
-6. Docker sandbox mode is optional and not yet default; host runtime fallback still exists.
+6. Docker sandbox defaults are production-safe, but host runtime fallback still exists for development and explicit host mode.
 7. Session auth currently uses email-based bootstrap and still needs production identity provider integration.
 8. Instructor dashboard currently uses API-level session auth only; no dedicated auth UI flows beyond email bootstrap.
 
