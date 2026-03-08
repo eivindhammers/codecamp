@@ -82,7 +82,7 @@ Primary target users are economics students, with platform usage planned across 
 - Protected term creation and section management endpoints with actor role checks.
 - Protected section-scoped enrollment, assignment, and metrics endpoints with section staff checks.
 
-14. Classroom session authentication (phase 1)
+13. Classroom session authentication (phase 1)
 - Added session persistence table and DB helpers for create/read/delete auth sessions.
 - Added `POST|GET|DELETE /api/auth/session` with HttpOnly session cookie (`codecamp_session`).
 - Switched classroom authorization helpers from header-based identity to session-backed identity.
@@ -91,7 +91,7 @@ Primary target users are economics students, with platform usage planned across 
 - Added `GET /api/classroom/sections/export?sectionId=...&format=json|csv`.
 - Endpoint returns per-student assignment completion summaries and supports CSV downloads for gradebook workflows.
 
-13. Backend-to-frontend progress sync (phase 1)
+14. Backend-to-frontend progress sync (phase 1)
 - Exercise editor now hydrates local `ProgressContext` from backend `/api/progress` for server-graded exercises.
 - Existing local completion state is preserved while backend truth fills missing completion state for returning learners on the same device.
 
@@ -315,11 +315,11 @@ Primary target users are economics students, with platform usage planned across 
 - Added `npm run check:archive-refs` to validate destination reference env consistency (configured refs, revoked-ref list coherence, URL protocol, and host allowlist compatibility).
 - CI now runs archive-ref checks alongside existing content/sandbox gates before lint/build.
 
-69. Sandbox read-only filesystem regression check (phase 2 progress)
+68. Sandbox read-only filesystem regression check (phase 2 progress)
 - Expanded `check:sandbox-faults` to assert Docker read-only root filesystem enforcement by verifying checker attempts to write under `/` fail.
 - Fault suite now validates timeout, memory pressure, PID pressure, network isolation, and read-only root filesystem behavior.
 
-68. Full-catalog backend progress hydration (phase 2 progress)
+69. Full-catalog backend progress hydration (phase 2 progress)
 - `GET /api/progress?userId=...` now returns catalog-wide progress rows (course filter optional), while exercise-level queries continue to support `courseSlug/chapterId/exerciseId`.
 - `ProgressContext` now hydrates from backend catalog progress at startup and merges it with local storage completion state for cross-device continuity on broader exercise sets.
 
@@ -372,35 +372,39 @@ npm run redis:down
 
 ## Verification Checklist (Current)
 
-1. First pass awards XP
-- Intro to R -> Basic Arithmetic -> submit correct answer.
+1. Progress/XP idempotency for local-validation path
+- Submit a correct non-server exercise and confirm `POST /api/progress` records completion and awards XP once.
+- Re-submit the same exercise; expect no additional XP award.
 
-2. Repeat pass does not award XP
-- Submit correct answer again, expect no additional XP.
+2. Server-graded pass/fail behavior
+- Intro to R -> Basic Arithmetic: submit a pass then fail case and verify status/feedback.
+- Intro to Python -> Python Basics -> Hello, Python!: submit pass then fail case and verify status/feedback.
 
-3. Wrong answer fails
-- Submit `result <- 7*7`, expect failed test feedback.
+3. Worker and attempts visibility
+- Worker logs should show queued/running/completed jobs.
+- Submission history in `ExerciseEditor` should reflect recent attempts.
 
-4. Worker activity visible
-- Worker logs should show completed jobs.
+4. Classroom enrollment guardrails
+- Verify TA cannot mutate an existing enrollment role.
+- Verify staff-role assignment to an explicitly student-profile user is rejected.
 
-5. Python server-side grading pass/fail
-- Intro to Python -> Python Basics -> Hello, Python!
-- Submit `print("Hello, Python!")` and then an incorrect output to verify pass/fail feedback.
+5. Governance/sandbox gates
+- Run `npm run check:sandbox-images`, `npm run check:sandbox-policy`, `npm run check:sandbox-faults` (docker mode).
+- Run `npm run check:archive-refs` and `npm run check:content-packs`.
 
 ## Next Milestones (Priority Order)
 
 1. Harden execution sandbox (phase 2 completion)
-- Continue tuning image strategy (`GRADER_DOCKER_R_IMAGE`, `GRADER_DOCKER_PYTHON_IMAGE`) for faster first-pull + warm-cache behavior.
-- Add optional network/isolation regression checks to complement current timeout/memory/process pressure coverage.
+- Finalize image strategy for CI/production (digest-pinned defaults + pull/warm-cache guidance).
+- Decide and document production stance for host fallback behavior.
 
 2. Classroom identity and enrollment model (phase 2 completion)
 - Continue hardening instructor/TA/student authorization edge cases on classroom routes (especially write-level privilege boundaries).
-- Keep migration path from local IDs where possible.
+- Add explicit lifecycle guidance for migrating legacy/local IDs to institution-backed identities.
 
 3. Instructor workflow (teaching operations, phase 2)
-- Add section list virtualization for very large datasets.
 - Add destination credential lifecycle management (rotation/revocation playbooks) for archive delivery integrations.
+- Add runbook-oriented archive incident workflows (delivery failures, revoked refs, and recovery steps).
 
 4. Multi-course content pipeline expansion
 - Migrate more exercises from inline definitions to `content/exercises/...`.
@@ -408,18 +412,18 @@ npm run redis:down
 - Expand content validation coverage (beyond file presence) as additional exercise-pack authoring flows are introduced.
 
 5. Learner progress sync and cross-device continuity (phase 2)
-- Expand backend sync beyond server-graded exercises to full course catalogs.
-- Replace frontend-local progress as source-of-truth with backend-synced state.
+- Reduce frontend-local progress cache authority so backend becomes the source of truth.
+- Add explicit reconciliation rules for XP/progress conflicts between local cache and backend records.
 - Ensure progress and XP remain consistent across sessions/devices.
 
 ## Known Constraints / Technical Debt
 
 1. Server-side grading currently covers two exercises (`intro-r/basics/arithmetic`, `intro-python/basics/hello-python`).
-2. Frontend progress context still exists locally and should eventually sync with backend truth.
+2. `ProgressContext` still persists local cache and merges with backend; backend-first reconciliation policy is not fully finalized.
 3. Queue enqueue path uses a typed cast around BullMQ `add` due TS friction in current setup.
 4. Worker and API run in-process/local; no production orchestration yet.
 5. Docker daemon must be available for `redis:up`.
-6. Docker sandbox defaults are production-safe, but host runtime fallback still exists for development and explicit host mode.
+6. Docker sandbox defaults are production-safe, but host runtime fallback policy still needs explicit production governance guidance.
 7. OIDC integration exists, but deployment still requires configuring provider env vars and role-claim mappings per institution.
 8. Session lifecycle is API-managed; dedicated account/settings UX beyond sign-in/out is still minimal.
 
