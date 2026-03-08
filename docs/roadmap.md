@@ -114,6 +114,10 @@ Primary target users are economics students, with platform usage planned across 
 - Added aggregate dashboard cards for average completion rate and stuck learner count.
 - Added per-section pass-rate and stuck-learner indicators in section headers.
 
+20. Assignment authoring exercise picker (phase 1)
+- Classroom assignment form now derives chapter/exercise options from `lib/courses.ts` based on section course.
+- Assignment creation no longer depends on free-text chapter/exercise IDs in instructor UI.
+
 ## Runtime Setup
 
 From repo root:
@@ -173,7 +177,7 @@ npm run redis:down
 3. Instructor workflow (teaching operations, phase 2)
 - Add richer filtering/sorting and pagination for large sections.
 - Add learner-level assignment completion + late submission indicators in dashboard tables.
-- Add assignment authoring UX improvements (exercise picker and validation against course catalog).
+- Add assignment authoring validation against course pacing, due date windows, and section term dates.
 
 4. Multi-course content pipeline expansion
 - Migrate more exercises from inline definitions to `content/exercises/...`.

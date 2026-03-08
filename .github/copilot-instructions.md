@@ -67,6 +67,7 @@ Protected classroom routes now use session-backed identity (`codecamp_session` c
 `/classroom` provides an instructor dashboard client for section metrics and exports.
 The classroom dashboard also supports assignment creation and due-state indicators per section.
 Dashboard cards and section headers include pass-rate and stuck-learner indicators derived from section export summaries.
+Assignment authoring in the dashboard uses chapter/exercise options derived from `lib/courses.ts` for the selected section course.
 
 ## Conventions
 
