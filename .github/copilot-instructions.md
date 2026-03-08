@@ -63,6 +63,7 @@ export const runtime = 'nodejs';
 `/api/classroom/sections/metrics` provides instructor-oriented learner progress rollups per section.
 Protected classroom routes now use session-backed identity (`codecamp_session` cookie) with role/section checks; production identity provider integration is still pending.
 `/api/classroom/sections/export` provides JSON/CSV grade-summary exports for section instructors.
+`/classroom` provides an instructor dashboard client for section metrics and exports.
 
 ## Conventions
 
@@ -90,6 +91,7 @@ Use these for API response shapes. Add new types here rather than inline.
 - `GRADER_SANDBOX_MODE=docker` enables Docker-isolated checker execution.
 - `GRADER_TIMEOUT_MS` controls checker timeout (1000-30000ms, default 8000).
 - Docker mode uses `GRADER_DOCKER_R_IMAGE` / `GRADER_DOCKER_PYTHON_IMAGE` when set.
+- `AUTH_BOOTSTRAP_INSTRUCTOR_EMAILS` (comma-separated) grants bootstrap instructor role for listed emails during session sign-in.
 
 ### Working style (from project Copilot.md)
 - Read relevant files before editing.

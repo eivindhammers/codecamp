@@ -95,6 +95,11 @@ Primary target users are economics students, with platform usage planned across 
 - Exercise editor now hydrates local `ProgressContext` from backend `/api/progress` for server-graded exercises.
 - Existing local completion state is preserved while backend truth fills missing completion state for returning learners on the same device.
 
+16. Instructor dashboard UI (phase 1)
+- Added `/classroom` dashboard with session sign-in/out, section activity views, and CSV export links.
+- Added header navigation entry to classroom dashboard.
+- Added bootstrap instructor role mapping via `AUTH_BOOTSTRAP_INSTRUCTOR_EMAILS` for local staging.
+
 ## Runtime Setup
 
 From repo root:
@@ -153,8 +158,8 @@ npm run redis:down
 - Keep migration path from local IDs where possible.
 
 3. Instructor workflow (teaching operations, phase 2)
-- Add UI views for instructor monitoring: completion, attempts, pass rate, and stuck learners.
-- Add UI integration for exportable progress/grade summaries.
+- Extend instructor UI with pass-rate and stuck-learner indicators.
+- Add richer filtering/sorting and pagination for large sections.
 - Add assignment due-date status and late submission indicators.
 
 4. Multi-course content pipeline expansion
@@ -176,6 +181,7 @@ npm run redis:down
 5. Docker daemon must be available for `redis:up`.
 6. Docker sandbox mode is optional and not yet default; host runtime fallback still exists.
 7. Session auth currently uses email-based bootstrap and still needs production identity provider integration.
+8. Instructor dashboard currently uses API-level session auth only; no dedicated auth UI flows beyond email bootstrap.
 
 ## Suggested Next Session Start
 
