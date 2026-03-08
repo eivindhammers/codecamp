@@ -1,6 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
-import { AuthSessionResponse, UserProfileResponse } from "@/lib/grading/contracts";
+import {
+  AuthSessionResponse,
+  ClassroomRole,
+  UserProfileResponse,
+} from "@/lib/grading/contracts";
 import {
   createAuthSession,
   deleteAuthSession,
@@ -59,6 +63,16 @@ interface CreateSessionPayload {
   displayName?: string;
 }
 
+function getBootstrapRole(email: string): ClassroomRole {
+  const configured = process.env.AUTH_BOOTSTRAP_INSTRUCTOR_EMAILS ?? "";
+  const allowed = configured
+    .split(",")
+    .map((entry) => entry.trim().toLowerCase())
+    .filter((entry) => entry.length > 0);
+  if (allowed.includes(email)) return "instructor";
+  return "student";
+}
+
 export async function POST(req: Request) {
   let body: CreateSessionPayload;
   try {
@@ -73,13 +87,14 @@ export async function POST(req: Request) {
   }
 
   const existing = getUserProfileByEmail(email);
+  const bootstrapRole = getBootstrapRole(email);
   const profile =
     existing ??
     upsertUserProfile({
       userId: randomUUID(),
       displayName: body.displayName?.trim() || email.split("@")[0] || "student",
       email,
-      role: "student",
+      role: bootstrapRole,
     });
 
   const sessionId = randomUUID();

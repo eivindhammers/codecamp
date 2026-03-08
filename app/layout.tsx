@@ -29,6 +29,12 @@ export default function RootLayout({
                 🎓 CodeCamp
               </Link>
               <div className="flex items-center gap-2 sm:gap-3">
+                <Link
+                  href="/classroom"
+                  className="text-xs sm:text-sm border border-gray-300 rounded-md px-2 py-1 text-gray-600 hover:bg-gray-50"
+                >
+                  Classroom
+                </Link>
                 <ThemeToggle />
                 <XPBar />
               </div>
