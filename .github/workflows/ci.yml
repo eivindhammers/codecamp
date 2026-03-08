@@ -33,6 +33,9 @@ jobs:
       - name: Validate sandbox policy
         run: npm run check:sandbox-policy
 
+      - name: Validate sandbox runtime
+        run: npm run check:sandbox-runtime
+
       - name: Lint
         run: npm run lint
 
