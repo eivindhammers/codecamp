@@ -65,6 +65,7 @@ export const runtime = 'nodejs';
 Protected classroom routes now use session-backed identity (`codecamp_session` cookie) with role/section checks; production identity provider integration is still pending.
 `/api/classroom/sections/export` provides JSON/CSV grade-summary exports for section instructors.
 `/classroom` provides an instructor dashboard client for section metrics and exports.
+The classroom dashboard also supports assignment creation and due-state indicators per section.
 
 ## Conventions
 

@@ -104,6 +104,11 @@ Primary target users are economics students, with platform usage planned across 
 - Checker sandbox now defaults to Docker when `NODE_ENV=production` (host mode remains default in development).
 - Added `npm run check:sandbox` to enforce production sandbox config (Docker mode + explicit grader images).
 
+18. Instructor assignment workflow UI (phase 1)
+- Extended `/classroom` with per-section assignment creation forms (title, chapter, exercise, optional due date).
+- Added assignment due-state indicators in dashboard (`Open`, `Upcoming`, `Late`).
+- Dashboard now loads section assignments alongside learner metrics for instructor operations.
+
 ## Runtime Setup
 
 From repo root:
@@ -163,7 +168,7 @@ npm run redis:down
 3. Instructor workflow (teaching operations, phase 2)
 - Extend instructor UI with pass-rate and stuck-learner indicators.
 - Add richer filtering/sorting and pagination for large sections.
-- Add assignment due-date status and late submission indicators.
+- Add learner-level assignment completion + late submission indicators in dashboard tables.
 
 4. Multi-course content pipeline expansion
 - Migrate more exercises from inline definitions to `content/exercises/...`.
