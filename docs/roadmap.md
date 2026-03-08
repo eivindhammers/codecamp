@@ -286,6 +286,11 @@ Primary target users are economics students, with platform usage planned across 
 - Validation and automation share the same ref-governance enforcement, so revoked/unlisted refs fail preflight and run-time delivery resolution consistently.
 - Archive governance config/dashboard visibility now includes revoked ref names for operational rotation/revocation workflows.
 
+61. Section list virtualization controls (phase 2 progress)
+- Classroom dashboard section activity now supports a virtualized list mode with scroll-window rendering and overscan for large section sets.
+- Virtualized mode keeps only a subset of section cards mounted in the DOM at once and shows live in-DOM/total counts for visibility.
+- Instructors can toggle virtualized rendering on/off from section controls to balance performance vs full-list rendering behavior.
+
 ## Runtime Setup
 
 From repo root:
