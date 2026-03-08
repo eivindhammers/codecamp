@@ -392,7 +392,7 @@ npm run redis:down
 - Run `npm run check:sandbox-images`, `npm run check:sandbox-policy`, `npm run check:sandbox-faults` (docker mode).
 - Run `npm run check:archive-refs` and `npm run check:content-packs`.
 
-## Next Milestones (Priority Order)
+## Strategic Tracks (Priority Order)
 
 1. Harden execution sandbox (phase 2 completion)
 - Finalize image strategy for CI/production (digest-pinned defaults + pull/warm-cache guidance).
@@ -415,6 +415,37 @@ npm run redis:down
 - Reduce frontend-local progress cache authority so backend becomes the source of truth.
 - Add explicit reconciliation rules for XP/progress conflicts between local cache and backend records.
 - Ensure progress and XP remain consistent across sessions/devices.
+
+## Execution Steering Model (Now / Next / Later)
+
+Use this queue for day-to-day execution; keep it small and rotate items after each completed slice.
+
+- WIP limit: max 2 items in **Now** at once.
+- Every **Now** item must include explicit acceptance checks.
+- On completion: ship code + update roadmap + move the next highest-priority **Next** item into **Now**.
+
+### Now
+1. Sandbox image strategy completion
+- Outcome: digest-pinned grader image guidance and production fallback policy documented/enforced.
+- Acceptance: CI/check scripts validate image refs and docs include production fallback stance.
+
+2. Enrollment/identity edge-case hardening
+- Outcome: remaining write-boundary gaps closed for instructor/TA/student transitions.
+- Acceptance: protected routes reject invalid role mutations with explicit errors; lint/build pass.
+
+### Next
+1. Archive credential lifecycle runbooks
+- Rotation/revocation and failure-recovery workflows documented and linked from classroom governance surfaces.
+
+2. Progress reconciliation policy
+- Define and implement backend-first conflict resolution rules for local cache vs backend XP/progress.
+
+3. Content migration throughput
+- Use scaffolding to migrate additional exercises into `content/exercises/...` with parity checks green.
+
+### Later
+1. Broader server-side grading coverage across additional exercises/courses.
+2. Production orchestration hardening for worker/API deployment topology.
 
 ## Known Constraints / Technical Debt
 
