@@ -1,0 +1,9 @@
+{
+  "id": "groupby",
+  "language": "python",
+  "title": "GroupBy and Aggregation",
+  "instructions": "Create a DataFrame with columns `region`, `country`, and `exports_bn`. Use `groupby('region')` to compute the total and mean exports per region. Print the result.",
+  "starterCode": "import pandas as pd\n\ndf = pd.DataFrame({\n    \"region\": [\"EU\", \"EU\", \"Asia\", \"Asia\", \"Americas\"],\n    \"country\": [\"Germany\", \"France\", \"Japan\", \"China\", \"USA\"],\n    \"exports_bn\": [1563, 584, 756, 3380, 1754]\n})\n\nagg = df.groupby(___)[\"exports_bn\"].agg([\"sum\", \"mean\"])\nprint(agg)",
+  "xp": 25,
+  "checker": "checker.py"
+}

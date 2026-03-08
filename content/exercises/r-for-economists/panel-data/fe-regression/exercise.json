@@ -1,0 +1,9 @@
+{
+  "id": "fe-regression",
+  "language": "r",
+  "title": "Fixed Effects Regression",
+  "instructions": "Using the `fixest` package, estimate a two-way fixed effects model of `log(wage)` on `education` with individual and year fixed effects. Use `feols()` and cluster standard errors by `id`.",
+  "starterCode": "library(fixest)\n\n# Simulated panel data\nset.seed(1)\npanel <- data.frame(\n  id = rep(1:50, each = 5),\n  year = rep(2019:2023, 50),\n  education = rep(sample(8:20, 50, replace = TRUE), each = 5),\n  wage = exp(0.5 + rep(rnorm(50), each = 5) + rnorm(250, 0, 0.3))\n)\npanel$wage <- panel$wage + 2 * panel$education\n\n# Two-way FE with clustered SEs\nmodel <- feols(___ | id + year, cluster = ~id, data = panel)\nprint(summary(model))",
+  "xp": 50,
+  "checker": "checker.R"
+}
