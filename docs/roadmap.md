@@ -242,6 +242,10 @@ Primary target users are economics students, with platform usage planned across 
 - Added `GET /api/classroom/sections/overview?sectionId=...` to aggregate section dashboard data in one response (metrics, assignments, breakdowns, risk config/history, archive health).
 - Classroom dashboard section loading now uses the overview endpoint, reducing multi-endpoint fanout during paged section refreshes.
 
+51. Content exercise pack validation gate (phase 2 progress)
+- Added `npm run check:content-packs` to validate `content/exercises/*/*/*` packs against `lib/courses.ts` metadata and required checker/solution files by language.
+- CI now enforces content-pack validation before lint/build to catch malformed or orphaned exercise packs earlier.
+
 ## Runtime Setup
 
 From repo root:
@@ -304,7 +308,7 @@ npm run redis:down
 4. Multi-course content pipeline expansion
 - Migrate more exercises from inline definitions to `content/exercises/...`.
 - Add templates/checker scaffolds for statistics, microeconomics, macroeconomics, and data science tracks.
-- Add author validation scripts and CI checks for new exercise packs.
+- Expand content validation coverage (beyond file presence) as additional exercise-pack authoring flows are introduced.
 
 5. Learner progress sync and cross-device continuity (phase 2)
 - Expand backend sync beyond server-graded exercises to full course catalogs.
