@@ -271,6 +271,11 @@ Primary target users are economics students, with platform usage planned across 
 - Validation now checks webhook/PUT destination protocol + host allowlist compatibility using the same governance rules as archive automation delivery.
 - Classroom dashboard archive policy controls now include a "Validate destination" action with inline pass/fail guidance.
 
+58. Archive destination reference indirection (phase 2 progress)
+- Archive automation now supports `webhookref:<name>` and `puturlref:<name>` destination labels that resolve to env-managed URLs (`CLASSROOM_RISK_ARCHIVE_DESTINATION_<NAME>`).
+- Added governance visibility for configured destination reference names via `CLASSROOM_RISK_ARCHIVE_DESTINATION_REF_NAMES` in archive config responses/dashboard cards.
+- This enables destination URL rotation/revocation without rewriting section archive policies.
+
 ## Runtime Setup
 
 From repo root:
