@@ -82,6 +82,10 @@ Primary target users are economics students, with platform usage planned across 
 - Protected term creation and section management endpoints with actor role checks.
 - Protected section-scoped enrollment, assignment, and metrics endpoints with section staff checks via `x-actor-user-id`.
 
+13. Backend-to-frontend progress sync (phase 1)
+- Exercise editor now hydrates local `ProgressContext` from backend `/api/progress` for server-graded exercises.
+- Existing local completion state is preserved while backend truth fills missing completion state for returning learners on the same device.
+
 ## Runtime Setup
 
 From repo root:
@@ -149,7 +153,8 @@ npm run redis:down
 - Add templates/checker scaffolds for statistics, microeconomics, macroeconomics, and data science tracks.
 - Add author validation scripts and CI checks for new exercise packs.
 
-5. Learner progress sync and cross-device continuity
+5. Learner progress sync and cross-device continuity (phase 2)
+- Expand backend sync beyond server-graded exercises to full course catalogs.
 - Replace frontend-local progress as source-of-truth with backend-synced state.
 - Ensure progress and XP remain consistent across sessions/devices.
 
