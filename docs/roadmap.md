@@ -250,6 +250,10 @@ Primary target users are economics students, with platform usage planned across 
 - `POST /api/classroom/risk-archive/run` now requires instructor role, preventing TA/global-staff archive execution writes.
 - `POST /api/classroom/sections/risk-policy/archive/report` now also requires instructor role for manual archive run recording.
 
+53. Sandbox image pull optimization (phase 2 progress)
+- Sandbox runtime/startup/fault scripts now inspect local Docker images first and only pull when missing.
+- This reduces redundant image pulls during CI sandbox validation sequences and lowers startup variability from repeated network fetches.
+
 ## Runtime Setup
 
 From repo root:
@@ -298,7 +302,7 @@ npm run redis:down
 ## Next Milestones (Priority Order)
 
 1. Harden execution sandbox (phase 2 completion)
-- Validate and tune image strategy (`GRADER_DOCKER_R_IMAGE`, `GRADER_DOCKER_PYTHON_IMAGE`) to reduce startup variability and pull overhead.
+- Continue tuning image strategy (`GRADER_DOCKER_R_IMAGE`, `GRADER_DOCKER_PYTHON_IMAGE`) for faster first-pull + warm-cache behavior.
 - Add optional network/isolation regression checks to complement current timeout/memory/process pressure coverage.
 
 2. Classroom identity and enrollment model (phase 2 completion)
