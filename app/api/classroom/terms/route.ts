@@ -24,7 +24,9 @@ interface CreateTermPayload {
   endsAt?: number;
 }
 
-export async function GET() {
+export async function GET(req: Request) {
+  const auth = requireGlobalStaff(req);
+  if (!auth.ok) return auth.response;
   const terms = listAcademicTerms();
   const response: AcademicTermsResponse = { terms };
   return NextResponse.json(response);

@@ -27,6 +27,8 @@ interface CreateSectionPayload {
 }
 
 export async function GET(req: Request) {
+  const auth = requireGlobalStaff(req);
+  if (!auth.ok) return auth.response;
   const url = new URL(req.url);
   const termId = url.searchParams.get("termId")?.trim() ?? "";
   const courseSlug = url.searchParams.get("courseSlug")?.trim() ?? "";
