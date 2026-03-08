@@ -97,6 +97,7 @@ Section cards support expand/collapse controls (plus global expand/collapse) to 
 Section activity also supports virtualized list rendering (toggleable) so only a window of section cards is mounted during large-list scrolling.
 Enrollment API enforces role assignment guardrails: only instructor actors can assign `instructor`/`ta` roles in section enrollments.
 Enrollment status updates (`PATCH /api/classroom/enrollments`) require section-staff auth and are instructor-only when changing staff (non-student) enrollment statuses.
+Enrollment routes validate section existence and prevent dropping/demoting the last active instructor in a section.
 Term/section creation endpoints are instructor-only (`POST /api/classroom/terms`, `POST /api/classroom/sections`).
 Assignment creation API validates section/course alignment, exercise existence in `lib/courses.ts`, and due dates within the section term window.
 Assignment creation also enforces max due-date publish horizon and chapter pacing windows via env-configurable policies.

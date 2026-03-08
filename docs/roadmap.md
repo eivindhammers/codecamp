@@ -323,6 +323,10 @@ Primary target users are economics students, with platform usage planned across 
 - `GET /api/progress?userId=...` now returns catalog-wide progress rows (course filter optional), while exercise-level queries continue to support `courseSlug/chapterId/exerciseId`.
 - `ProgressContext` now hydrates from backend catalog progress at startup and merges it with local storage completion state for cross-device continuity on broader exercise sets.
 
+70. Enrollment invariants hardening (phase 2 progress)
+- Enrollment routes now validate section existence for `GET|POST|PATCH /api/classroom/enrollments` to prevent orphan enrollment operations.
+- Enrollment writes now prevent removing/demoting the final active instructor in a section, preserving minimum instructional governance.
+
 ## Runtime Setup
 
 From repo root:
