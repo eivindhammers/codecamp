@@ -925,33 +925,106 @@ export function createClassSection(input: CreateClassSectionInput): ClassSection
   return mapClassSectionRow(row);
 }
 
-export function listClassSections(termId?: string): ClassSectionRecord[] {
-  if (termId) {
-    const rows = db
-      .prepare(
-        `
-          SELECT section_id, term_id, course_slug, title, instructor_user_id, created_at
-          FROM class_sections
-          WHERE term_id = ?
-          ORDER BY created_at DESC
-        `
-      )
-      .all(termId) as ClassSectionRow[];
+type SectionSort = "created_desc" | "created_asc" | "title_asc" | "title_desc";
 
-    return rows.map(mapClassSectionRow);
+interface ListClassSectionsOptions {
+  termId?: string;
+  courseSlug?: string;
+  search?: string;
+  sort?: SectionSort;
+  limit?: number;
+  offset?: number;
+}
+
+function normalizeListClassSectionsOptions(
+  termIdOrOptions?: string | ListClassSectionsOptions
+): ListClassSectionsOptions {
+  if (!termIdOrOptions) return {};
+  if (typeof termIdOrOptions === "string") return { termId: termIdOrOptions };
+  return termIdOrOptions;
+}
+
+function getSectionsOrderBy(sort?: SectionSort): string {
+  switch (sort) {
+    case "created_asc":
+      return "created_at ASC";
+    case "title_asc":
+      return "title ASC, created_at DESC";
+    case "title_desc":
+      return "title DESC, created_at DESC";
+    case "created_desc":
+    default:
+      return "created_at DESC";
   }
+}
+
+function buildSectionsWhere(options: ListClassSectionsOptions): {
+  clause: string;
+  params: Array<string | number>;
+} {
+  const whereParts: string[] = [];
+  const params: Array<string | number> = [];
+  if (options.termId && options.termId.trim().length > 0) {
+    whereParts.push("term_id = ?");
+    params.push(options.termId.trim());
+  }
+  if (options.courseSlug && options.courseSlug.trim().length > 0) {
+    whereParts.push("course_slug = ?");
+    params.push(options.courseSlug.trim());
+  }
+  if (options.search && options.search.trim().length > 0) {
+    const needle = `%${options.search.trim().toLowerCase()}%`;
+    whereParts.push(
+      "(LOWER(title) LIKE ? OR LOWER(section_id) LIKE ? OR LOWER(course_slug) LIKE ?)"
+    );
+    params.push(needle, needle, needle);
+  }
+  return {
+    clause: whereParts.length > 0 ? `WHERE ${whereParts.join(" AND ")}` : "",
+    params,
+  };
+}
+
+export function listClassSections(
+  termIdOrOptions?: string | ListClassSectionsOptions
+): ClassSectionRecord[] {
+  const options = normalizeListClassSectionsOptions(termIdOrOptions);
+  const { clause, params } = buildSectionsWhere(options);
+  const limit = Math.min(Math.max(options.limit ?? 1000, 1), 1000);
+  const offset = Math.max(options.offset ?? 0, 0);
+  const orderBy = getSectionsOrderBy(options.sort);
 
   const rows = db
     .prepare(
       `
         SELECT section_id, term_id, course_slug, title, instructor_user_id, created_at
         FROM class_sections
-        ORDER BY created_at DESC
+        ${clause}
+        ORDER BY ${orderBy}
+        LIMIT ?
+        OFFSET ?
       `
     )
-    .all() as ClassSectionRow[];
+    .all(...params, limit, offset) as ClassSectionRow[];
 
   return rows.map(mapClassSectionRow);
+}
+
+export function countClassSections(
+  termIdOrOptions?: string | ListClassSectionsOptions
+): number {
+  const options = normalizeListClassSectionsOptions(termIdOrOptions);
+  const { clause, params } = buildSectionsWhere(options);
+  const row = db
+    .prepare(
+      `
+        SELECT COUNT(*) AS total_count
+        FROM class_sections
+        ${clause}
+      `
+    )
+    .get(...params) as { total_count: number };
+  return row.total_count;
 }
 
 interface EnrollUserInput {

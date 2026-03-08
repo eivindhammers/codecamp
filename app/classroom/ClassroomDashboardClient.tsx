@@ -97,6 +97,12 @@ export default function ClassroomDashboardClient() {
   const [assignmentBusy, setAssignmentBusy] = useState<Record<string, boolean>>({});
   const [assignmentError, setAssignmentError] = useState<Record<string, string>>({});
   const [courseFilter, setCourseFilter] = useState<string>("all");
+  const [sectionSearch, setSectionSearch] = useState("");
+  const [sectionSort, setSectionSort] = useState<
+    "created_desc" | "created_asc" | "title_asc" | "title_desc"
+  >("created_desc");
+  const [hasMoreSections, setHasMoreSections] = useState(false);
+  const [totalSectionsCount, setTotalSectionsCount] = useState(0);
   const [learnerSearch, setLearnerSearch] = useState<Record<string, string>>({});
   const [learnerRiskFilter, setLearnerRiskFilter] = useState<Record<string, "all" | "at-risk" | "on-track">>({});
   const [learnerPage, setLearnerPage] = useState<Record<string, number>>({});
@@ -110,15 +116,26 @@ export default function ClassroomDashboardClient() {
 
   const isStaff = profile?.role === "instructor" || profile?.role === "ta";
 
-  const loadSections = useCallback(async () => {
+  const loadSections = useCallback(async (offset = 0, append = false) => {
     if (!isStaff) {
       setSections([]);
+      setHasMoreSections(false);
+      setTotalSectionsCount(0);
       return;
     }
 
     setLoadingSections(true);
     try {
-      const sectionsPayload = await readJson<ClassSectionsResponse>("/api/classroom/sections");
+      const params = new URLSearchParams({
+        limit: "10",
+        offset: String(offset),
+        sort: sectionSort,
+      });
+      if (courseFilter !== "all") params.set("courseSlug", courseFilter);
+      if (sectionSearch.trim().length > 0) params.set("search", sectionSearch.trim());
+      const sectionsPayload = await readJson<ClassSectionsResponse>(
+        `/api/classroom/sections?${params.toString()}`
+      );
       const panels = await Promise.all(
         sectionsPayload.sections.map(async (section) => {
           try {
@@ -173,7 +190,15 @@ export default function ClassroomDashboardClient() {
           }
         })
       );
-      setSections(panels);
+      let mergedLength = panels.length;
+      setSections((prev) => {
+        const merged = append ? [...prev, ...panels] : panels;
+        mergedLength = merged.length;
+        return merged;
+      });
+      const totalCount = sectionsPayload.totalCount ?? panels.length;
+      setTotalSectionsCount(totalCount);
+      setHasMoreSections(mergedLength < totalCount);
       setAssignmentDrafts((prev) => {
         const next = { ...prev };
         for (const panel of panels) {
@@ -195,7 +220,7 @@ export default function ClassroomDashboardClient() {
     } finally {
       setLoadingSections(false);
     }
-  }, [isStaff]);
+  }, [courseFilter, isStaff, sectionSearch, sectionSort]);
 
   useEffect(() => {
     const loadAuth = async () => {
@@ -221,7 +246,7 @@ export default function ClassroomDashboardClient() {
   }, []);
 
   useEffect(() => {
-    void loadSections();
+    void loadSections(0, false);
   }, [loadSections]);
 
   async function onSignIn(event: FormEvent<HTMLFormElement>) {
@@ -318,7 +343,7 @@ export default function ClassroomDashboardClient() {
           body: JSON.stringify(draft),
         }
       );
-      await loadSections();
+      await loadSections(0, false);
     } catch (error) {
       setRiskPolicyError((prev) => ({
         ...prev,
@@ -338,7 +363,7 @@ export default function ClassroomDashboardClient() {
         `/api/classroom/sections/risk-policy?sectionId=${encodeURIComponent(sectionId)}`,
         { method: "DELETE" }
       );
-      await loadSections();
+      await loadSections(0, false);
     } catch (error) {
       setRiskPolicyError((prev) => ({
         ...prev,
@@ -396,7 +421,7 @@ export default function ClassroomDashboardClient() {
         ...prev,
         [section.sectionId]: getDefaultDraftForCourse(section.courseSlug),
       }));
-      await loadSections();
+      await loadSections(0, false);
     } catch (error) {
       setAssignmentError((prev) => ({
         ...prev,
@@ -645,6 +670,30 @@ export default function ClassroomDashboardClient() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold text-gray-900">Section Activity</h2>
               <div className="flex items-center gap-2">
+                <input
+                  value={sectionSearch}
+                  onChange={(event) => setSectionSearch(event.target.value)}
+                  placeholder="Search section"
+                  className="border border-gray-300 rounded px-2 py-1 text-xs"
+                />
+                <select
+                  value={sectionSort}
+                  onChange={(event) =>
+                    setSectionSort(
+                      event.target.value as
+                        | "created_desc"
+                        | "created_asc"
+                        | "title_asc"
+                        | "title_desc"
+                    )
+                  }
+                  className="border border-gray-300 rounded px-2 py-1 text-xs"
+                >
+                  <option value="created_desc">Newest</option>
+                  <option value="created_asc">Oldest</option>
+                  <option value="title_asc">Title A-Z</option>
+                  <option value="title_desc">Title Z-A</option>
+                </select>
                 <select
                   value={courseFilter}
                   onChange={(event) => setCourseFilter(event.target.value)}
@@ -659,6 +708,9 @@ export default function ClassroomDashboardClient() {
                     )
                   )}
                 </select>
+                <span className="text-xs text-gray-500">
+                  {sections.length}/{totalSectionsCount} loaded
+                </span>
                 {loadingSections && <span className="text-xs text-gray-500">Refreshing...</span>}
               </div>
             </div>
@@ -1192,6 +1244,18 @@ export default function ClassroomDashboardClient() {
                 );
               })}
             </div>
+            {hasMoreSections && (
+              <div className="mt-3 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => void loadSections(sections.length, true)}
+                  disabled={loadingSections}
+                  className="border border-gray-300 rounded px-3 py-1.5 text-xs hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Load more sections
+                </button>
+              </div>
+            )}
           </section>
         </>
       )}

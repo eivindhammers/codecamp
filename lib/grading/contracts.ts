@@ -138,6 +138,9 @@ export interface AcademicTermsResponse {
 
 export interface ClassSectionsResponse {
   sections: ClassSectionRecord[];
+  totalCount?: number;
+  limit?: number;
+  offset?: number;
 }
 
 export interface SectionEnrollmentsResponse {

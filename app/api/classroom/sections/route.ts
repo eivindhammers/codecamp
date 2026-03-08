@@ -1,7 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { ClassSectionsResponse } from "@/lib/grading/contracts";
-import { createClassSection, listClassSections } from "@/lib/grading/submissionDb";
+import {
+  countClassSections,
+  createClassSection,
+  listClassSections,
+} from "@/lib/grading/submissionDb";
 import { requireGlobalStaff } from "@/app/api/classroom/_auth";
 
 export const runtime = "nodejs";
@@ -20,8 +24,31 @@ interface CreateSectionPayload {
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const termId = url.searchParams.get("termId")?.trim() ?? "";
-  const sections = listClassSections(termId || undefined);
-  const response: ClassSectionsResponse = { sections };
+  const courseSlug = url.searchParams.get("courseSlug")?.trim() ?? "";
+  const search = url.searchParams.get("search")?.trim() ?? "";
+  const sortRaw = url.searchParams.get("sort")?.trim().toLowerCase() ?? "";
+  const sort =
+    sortRaw === "created_asc" ||
+    sortRaw === "created_desc" ||
+    sortRaw === "title_asc" ||
+    sortRaw === "title_desc"
+      ? sortRaw
+      : "created_desc";
+  const limitRaw = Number.parseInt(url.searchParams.get("limit") ?? "", 10);
+  const offsetRaw = Number.parseInt(url.searchParams.get("offset") ?? "", 10);
+  const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(limitRaw, 1), 100) : 20;
+  const offset = Number.isFinite(offsetRaw) ? Math.max(offsetRaw, 0) : 0;
+  const options = {
+    termId: termId || undefined,
+    courseSlug: courseSlug || undefined,
+    search: search || undefined,
+    sort,
+    limit,
+    offset,
+  } as const;
+  const sections = listClassSections(options);
+  const totalCount = countClassSections(options);
+  const response: ClassSectionsResponse = { sections, totalCount, limit, offset };
   return NextResponse.json(response);
 }
 
