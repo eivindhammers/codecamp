@@ -16,6 +16,7 @@ import type {
   SectionGradeSummaryResponse,
   SectionLearnerMetric,
   SectionLearnerMetricsResponse,
+  SectionRiskPolicyAuditRecord,
   SectionRiskPolicyRecord,
   SectionRiskPolicyResponse,
   UserProfileRecord,
@@ -29,6 +30,7 @@ interface SectionPanel {
   assignmentBreakdown: SectionAssignmentBreakdownRecord[];
   gradeSummary: SectionGradeSummaryRecord[];
   riskPolicy?: SectionRiskPolicyRecord;
+  riskPolicyHistory: SectionRiskPolicyAuditRecord[];
   effectiveRiskConfig: ClassroomRiskConfig;
   error?: string;
 }
@@ -149,6 +151,7 @@ export default function ClassroomDashboardClient() {
               assignmentBreakdown: breakdownPayload.assignments,
               gradeSummary: summaryPayload.summary,
               riskPolicy: riskPayload.policy,
+              riskPolicyHistory: riskPayload.history,
               effectiveRiskConfig: riskPayload.effectiveConfig,
             } as SectionPanel;
           } catch (error) {
@@ -158,6 +161,7 @@ export default function ClassroomDashboardClient() {
               assignments: [],
               assignmentBreakdown: [],
               gradeSummary: [],
+              riskPolicyHistory: [],
               effectiveRiskConfig: DEFAULT_RISK_CONFIG,
               error:
                 error instanceof Error
@@ -770,6 +774,19 @@ export default function ClassroomDashboardClient() {
                       <p className="text-xs text-rose-700 mt-2">
                         {riskPolicyError[panel.section.sectionId]}
                       </p>
+                    )}
+                    {panel.riskPolicyHistory.length > 0 && (
+                      <div className="mt-2 text-xs text-gray-500">
+                        <p className="font-medium text-gray-600 mb-1">Recent policy changes</p>
+                        <ul className="space-y-1">
+                          {panel.riskPolicyHistory.slice(0, 3).map((event, index) => (
+                            <li key={`${event.sectionId}-${event.createdAt}-${index}`}>
+                              {new Date(event.createdAt).toLocaleString()} · {event.actorUserId} ·{" "}
+                              {event.action === "reset" ? "reset defaults" : "updated policy"}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     )}
                   </div>
                   {panel.error && <p className="text-xs text-rose-700">{panel.error}</p>}

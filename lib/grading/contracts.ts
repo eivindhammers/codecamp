@@ -212,7 +212,16 @@ export interface SectionRiskPolicyRecord {
   updatedAt: number;
 }
 
+export interface SectionRiskPolicyAuditRecord {
+  sectionId: string;
+  actorUserId: string;
+  action: "upsert" | "reset";
+  policy?: SectionRiskPolicyRecord;
+  createdAt: number;
+}
+
 export interface SectionRiskPolicyResponse {
   policy?: SectionRiskPolicyRecord;
   effectiveConfig: ClassroomRiskConfig;
+  history: SectionRiskPolicyAuditRecord[];
 }

@@ -6,7 +6,9 @@ import {
 import {
   deleteSectionRiskPolicy,
   getSectionRiskPolicy,
+  listSectionRiskPolicyAudit,
   listClassSections,
+  recordSectionRiskPolicyAudit,
   upsertSectionRiskPolicy,
 } from "@/lib/grading/submissionDb";
 import { requireSectionStaff } from "@/app/api/classroom/_auth";
@@ -61,7 +63,8 @@ function getEffective(sectionId: string) {
   const defaults = getClassroomRiskDefaults();
   const policy = getSectionRiskPolicy(sectionId);
   const effectiveConfig = applySectionRiskPolicy(defaults, policy);
-  return { policy, effectiveConfig };
+  const history = listSectionRiskPolicyAudit(sectionId, 10);
+  return { policy, effectiveConfig, history };
 }
 
 function ensureSectionExists(sectionId: string) {
@@ -120,8 +123,18 @@ export async function PUT(req: Request) {
           100
         ) ?? defaults.maxCompletionRateStalledAssignment,
     });
+    recordSectionRiskPolicyAudit({
+      sectionId,
+      actorUserId: auth.value.actorUserId,
+      action: "upsert",
+      policy,
+    });
     const effectiveConfig: ClassroomRiskConfig = applySectionRiskPolicy(defaults, policy);
-    const response: SectionRiskPolicyResponse = { policy, effectiveConfig };
+    const response: SectionRiskPolicyResponse = {
+      policy,
+      effectiveConfig,
+      history: listSectionRiskPolicyAudit(sectionId, 10),
+    };
     return NextResponse.json(response);
   } catch (error) {
     return badRequest(error instanceof Error ? error.message : "Failed to save risk policy.");
@@ -136,6 +149,11 @@ export async function DELETE(req: Request) {
   ensureSectionExists(sectionId);
 
   deleteSectionRiskPolicy(sectionId);
+  recordSectionRiskPolicyAudit({
+    sectionId,
+    actorUserId: auth.value.actorUserId,
+    action: "reset",
+  });
   const response: SectionRiskPolicyResponse = getEffective(sectionId);
   return NextResponse.json(response);
 }

@@ -1,4 +1,5 @@
 import { mkdirSync } from "node:fs";
+import { randomUUID } from "node:crypto";
 import path from "node:path";
 import Database from "better-sqlite3";
 import {
@@ -16,6 +17,7 @@ import {
   SectionGradeSummaryRecord,
   SectionLearnerMetric,
   SectionRiskPolicyRecord,
+  SectionRiskPolicyAuditRecord,
   SubmissionStatus,
   SubmissionStatusResponse,
   UserProfileRecord,
@@ -136,6 +138,18 @@ db.exec(`
     overdue_incomplete_flags_at_risk INTEGER,
     max_completion_rate_stalled_assignment REAL,
     updated_at INTEGER NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS section_risk_policy_audit (
+    event_id TEXT PRIMARY KEY,
+    section_id TEXT NOT NULL,
+    actor_user_id TEXT NOT NULL,
+    action TEXT NOT NULL,
+    min_attempts_at_risk INTEGER,
+    max_completion_rate_at_risk REAL,
+    overdue_incomplete_flags_at_risk INTEGER,
+    max_completion_rate_stalled_assignment REAL,
+    created_at INTEGER NOT NULL
   );
 `);
 
@@ -277,6 +291,18 @@ interface SectionRiskPolicyRow {
   overdue_incomplete_flags_at_risk: number | null;
   max_completion_rate_stalled_assignment: number | null;
   updated_at: number;
+}
+
+interface SectionRiskPolicyAuditRow {
+  event_id: string;
+  section_id: string;
+  actor_user_id: string;
+  action: "upsert" | "reset";
+  min_attempts_at_risk: number | null;
+  max_completion_rate_at_risk: number | null;
+  overdue_incomplete_flags_at_risk: number | null;
+  max_completion_rate_stalled_assignment: number | null;
+  created_at: number;
 }
 
 function hasColumn(tableName: string, columnName: string) {
@@ -1332,4 +1358,106 @@ export function upsertSectionRiskPolicy(
 
 export function deleteSectionRiskPolicy(sectionId: string) {
   db.prepare(`DELETE FROM section_risk_policies WHERE section_id = ?`).run(sectionId);
+}
+
+interface RecordSectionRiskPolicyAuditInput {
+  sectionId: string;
+  actorUserId: string;
+  action: "upsert" | "reset";
+  policy?: SectionRiskPolicyRecord;
+}
+
+export function recordSectionRiskPolicyAudit(input: RecordSectionRiskPolicyAuditInput) {
+  const now = Date.now();
+  db.prepare(
+    `
+      INSERT INTO section_risk_policy_audit (
+        event_id,
+        section_id,
+        actor_user_id,
+        action,
+        min_attempts_at_risk,
+        max_completion_rate_at_risk,
+        overdue_incomplete_flags_at_risk,
+        max_completion_rate_stalled_assignment,
+        created_at
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `
+  ).run(
+    randomUUID(),
+    input.sectionId,
+    input.actorUserId,
+    input.action,
+    input.policy?.minAttemptsAtRisk ?? null,
+    input.policy?.maxCompletionRateAtRisk ?? null,
+    input.policy?.overdueIncompleteFlagsAtRisk === null ||
+      input.policy?.overdueIncompleteFlagsAtRisk === undefined
+      ? null
+      : input.policy.overdueIncompleteFlagsAtRisk
+        ? 1
+        : 0,
+    input.policy?.maxCompletionRateStalledAssignment ?? null,
+    now
+  );
+}
+
+function mapSectionRiskPolicyAuditRow(
+  row: SectionRiskPolicyAuditRow
+): SectionRiskPolicyAuditRecord {
+  const hasPolicy =
+    row.min_attempts_at_risk !== null ||
+    row.max_completion_rate_at_risk !== null ||
+    row.overdue_incomplete_flags_at_risk !== null ||
+    row.max_completion_rate_stalled_assignment !== null;
+
+  return {
+    sectionId: row.section_id,
+    actorUserId: row.actor_user_id,
+    action: row.action,
+    policy: hasPolicy
+      ? {
+          sectionId: row.section_id,
+          minAttemptsAtRisk: row.min_attempts_at_risk,
+          maxCompletionRateAtRisk: row.max_completion_rate_at_risk,
+          overdueIncompleteFlagsAtRisk:
+            row.overdue_incomplete_flags_at_risk === null
+              ? null
+              : row.overdue_incomplete_flags_at_risk === 1,
+          maxCompletionRateStalledAssignment:
+            row.max_completion_rate_stalled_assignment,
+          updatedAt: row.created_at,
+        }
+      : undefined,
+    createdAt: row.created_at,
+  };
+}
+
+export function listSectionRiskPolicyAudit(
+  sectionId: string,
+  limit = 10
+): SectionRiskPolicyAuditRecord[] {
+  const safeLimit = Math.min(Math.max(limit, 1), 100);
+  const rows = db
+    .prepare(
+      `
+        SELECT
+          event_id,
+          section_id,
+          actor_user_id,
+          action,
+          min_attempts_at_risk,
+          max_completion_rate_at_risk,
+          overdue_incomplete_flags_at_risk,
+          max_completion_rate_stalled_assignment,
+          created_at
+        FROM section_risk_policy_audit
+        WHERE section_id = ?
+        ORDER BY created_at DESC
+        LIMIT ?
+      `
+    )
+    .all(sectionId, safeLimit) as SectionRiskPolicyAuditRow[];
+
+  return rows.map(mapSectionRiskPolicyAuditRow);
 }
