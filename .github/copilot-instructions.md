@@ -80,6 +80,7 @@ Assignment authoring in the dashboard uses chapter/exercise options derived from
 Learner rows in section activity include completion-rate and risk-state badges derived from assignment due dates and summary metrics.
 Section activity supports course filtering plus per-section learner search/risk filters with pagination for larger rosters.
 Assignment creation API validates section/course alignment, exercise existence in `lib/courses.ts`, and due dates within the section term window.
+Assignment creation also enforces max due-date publish horizon and chapter pacing windows via env-configurable policies.
 Assignment tables include per-assignment completion/last-completion data and stalled overdue indicators.
 
 ## Conventions
@@ -116,6 +117,7 @@ Use these for API response shapes. Add new types here rather than inline.
 - Risk policy changes are audit-recorded with actor user ID and timestamp for section governance visibility.
 - Classroom dashboard includes a dedicated cross-section risk-policy audit table with actor/action filters.
 - Classroom dashboard section activity list uses server-backed paging with search/sort and load-more controls.
+- Assignment due-date governance supports `CLASSROOM_ASSIGNMENT_MAX_DUE_DAYS_AHEAD` (default 180) and `CLASSROOM_ASSIGNMENT_PACING_EARLY_TOLERANCE_DAYS` (default 14).
 - Risk policy audit retention controls are env-driven: `CLASSROOM_RISK_AUDIT_RETENTION_DAYS`, `CLASSROOM_RISK_AUDIT_MAX_ROWS_PER_SECTION`.
 - In production, sandbox mode defaults to Docker when `GRADER_SANDBOX_MODE` is unset.
 - CI workflow (`.github/workflows/ci.yml`) enforces `check:sandbox`, `check:sandbox-policy`, `check:sandbox-runtime`, `check:sandbox-faults`, lint, and build.

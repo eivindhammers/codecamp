@@ -189,6 +189,10 @@ Primary target users are economics students, with platform usage planned across 
 - `GET /api/classroom/sections` now supports `search`, `courseSlug`, `sort`, `limit`, and `offset`, and returns paging metadata.
 - Classroom dashboard section activity now uses paged API loading with server-backed search/sort and load-more controls.
 
+38. Assignment pacing-window and publish-horizon validation (phase 2 progress)
+- `POST /api/classroom/assignments` now enforces `CLASSROOM_ASSIGNMENT_MAX_DUE_DAYS_AHEAD` (default 180) to prevent long-range publish drift.
+- Assignment due dates now also enforce chapter pacing windows derived from section term duration, with an early tolerance via `CLASSROOM_ASSIGNMENT_PACING_EARLY_TOLERANCE_DAYS` (default 14).
+
 ## Runtime Setup
 
 From repo root:
@@ -247,7 +251,6 @@ npm run redis:down
 
 3. Instructor workflow (teaching operations, phase 2)
 - Add section list virtualization/performance tuning and richer term-based filtering for very large datasets.
-- Add assignment authoring validation against course pacing milestones and enforce max publish horizon per section policy.
 - Add audit export scheduling/archival options and governance reporting.
 
 4. Multi-course content pipeline expansion
