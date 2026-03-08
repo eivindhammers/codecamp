@@ -2,18 +2,23 @@
 
 ## Current Status
 
-CodeCamp now has an async, server-side grading path for one exercise:
+CodeCamp now has an async, server-side grading path for two exercises:
 
-- Course: `intro-r`
-- Chapter: `basics`
-- Exercise: `arithmetic`
+- `intro-r/basics/arithmetic`
+- `intro-python/basics/hello-python`
 
 The grading pipeline is:
 
 1. Frontend submits code to `POST /api/submissions`.
 2. API stores submission metadata in SQLite and enqueues a BullMQ job.
-3. Worker claims queued jobs, runs R checker, and finalizes results.
+3. Worker claims queued jobs, runs language-specific checker, and finalizes results.
 4. Frontend polls `GET /api/submissions/:id` until completed.
+
+Primary target users are economics students, with platform usage planned across multiple courses:
+- Statistics
+- Microeconomics
+- Macroeconomics
+- Data Science
 
 ## Completed Milestones
 
@@ -47,6 +52,16 @@ The grading pipeline is:
 - Added Python checker runner (`lib/grading/runPythonChecker.ts`).
 - Migrated `intro-python/basics/hello-python` to server-side grading with filesystem checker content.
 - Worker now routes both `r` and `python` submissions through language-specific checkers.
+
+8. Sandbox hardening (phase 1)
+- Added shared checker process runner with bounded output, isolated working directory, and restricted env.
+- Enforced checker execution timeout (`GRADER_TIMEOUT_MS`, clamped 1000-30000ms, default 8000ms).
+- Unified R/Python checker output parsing to reduce divergence in grading behavior.
+
+9. Sandbox hardening (phase 2, partial)
+- Added optional Docker sandbox mode for checker execution (`GRADER_SANDBOX_MODE=docker`).
+- Docker mode runs checkers with `--network none`, memory/CPU/PID limits, read-only root FS, and tmpfs `/tmp`.
+- Checker files are copied into ephemeral work directories before execution for tighter isolation from repo paths.
 
 ## Runtime Setup
 
@@ -95,17 +110,29 @@ npm run redis:down
 
 ## Next Milestones (Priority Order)
 
-1. Harden execution sandbox
-- Move checker execution to isolated containers with resource limits.
-- Enforce timeout/memory constraints and no-network policy.
+1. Harden execution sandbox (phase 2 completion)
+- Add deployment/runtime configuration so Docker sandbox mode is enabled by default in production.
+- Validate and tune image strategy (`GRADER_DOCKER_R_IMAGE`, `GRADER_DOCKER_PYTHON_IMAGE`) and startup performance.
+- Add integration checks that enforce no-network and resource-limit policies in CI.
 
-2. Auth layer (replace local user ID)
-- Add real login/session and map `userId` to authenticated user.
-- Keep compatibility migration from local IDs where possible.
+2. Classroom identity and enrollment model
+- Add real login/session and map `userId` to authenticated users.
+- Introduce course term + section + enrollment entities for multi-course delivery.
+- Keep migration path from local IDs where possible.
 
-3. Content pipeline expansion
+3. Instructor workflow (teaching operations)
+- Add assignment publishing per course/section/chapter.
+- Add views for instructor monitoring: completion, attempts, pass rate, and stuck learners.
+- Add exportable progress/grade summaries for classroom use.
+
+4. Multi-course content pipeline expansion
 - Migrate more exercises from inline definitions to `content/exercises/...`.
-- Add checker templates and author validation scripts.
+- Add templates/checker scaffolds for statistics, microeconomics, macroeconomics, and data science tracks.
+- Add author validation scripts and CI checks for new exercise packs.
+
+5. Learner progress sync and cross-device continuity
+- Replace frontend-local progress as source-of-truth with backend-synced state.
+- Ensure progress and XP remain consistent across sessions/devices.
 
 ## Known Constraints / Technical Debt
 
@@ -114,10 +141,11 @@ npm run redis:down
 3. Queue enqueue path uses a typed cast around BullMQ `add` due TS friction in current setup.
 4. Worker and API run in-process/local; no production orchestration yet.
 5. Docker daemon must be available for `redis:up`.
+6. Docker sandbox mode is optional and not yet default; host runtime fallback still exists.
 
 ## Suggested Next Session Start
 
 1. Pull latest branch.
 2. Open this file and confirm priority milestone.
 3. Start Redis/dev/worker.
-4. Implement milestone 1 (execution sandbox hardening).
+4. Implement milestone 1 (execution sandbox hardening phase 2).

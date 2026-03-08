@@ -30,7 +30,7 @@ ExerciseEditor (client)
   → client-side validation (lib/exerciseValidation.ts)
   → POST /api/submissions  → insert DB row + enqueue BullMQ job
   → worker/submissionWorker.ts picks up job
-      → gradeRSubmission() runs content/exercises/{course}/{chapter}/{exercise}/checker.R
+      → language-specific grader runs content/exercises/{course}/{chapter}/{exercise}/checker
       → updates DB with result + awards XP
   → client polls GET /api/submissions/[id] until complete
 ```
@@ -44,13 +44,13 @@ Connecting these two (syncing backend progress → frontend `ProgressContext`) i
 ### All courses are defined in TypeScript
 `lib/courses.ts` (~645 lines) contains all `Course → Chapter → Exercise` data as typed objects. There is no CMS or database for course content.
 
-### Exercise content (R graders) lives in the filesystem
+### Exercise checker content lives in the filesystem
 ```
 content/exercises/{courseSlug}/{chapterId}/{exerciseId}/
-  checker.R      # Runs submitted code + assertions; output parsed by runRChecker.ts
-  solution.R     # Reference solution
+  checker.R|checker.py  # Runs submitted code + assertions; output parsed by language-specific grader
+  solution.R|solution.py # Reference solution
 ```
-Python grading is not yet implemented — submissions return an error.
+Both R and Python have server-side grading support (currently enabled for selected exercises).
 
 ### API routes all use `runtime = 'nodejs'`
 Required for `better-sqlite3` and Redis. Every `app/api/*/route.ts` must include:
@@ -79,6 +79,11 @@ All SQLite reads/writes go through the typed helpers there. Don't use raw `bette
 
 ### Response/contract types are in `lib/grading/contracts.ts`
 Use these for API response shapes. Add new types here rather than inline.
+
+### Sandbox mode controls
+- `GRADER_SANDBOX_MODE=docker` enables Docker-isolated checker execution.
+- `GRADER_TIMEOUT_MS` controls checker timeout (1000-30000ms, default 8000).
+- Docker mode uses `GRADER_DOCKER_R_IMAGE` / `GRADER_DOCKER_PYTHON_IMAGE` when set.
 
 ### Working style (from project Copilot.md)
 - Read relevant files before editing.
