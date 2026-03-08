@@ -160,7 +160,7 @@ Use these for API response shapes. Add new types here rather than inline.
 - CI workflow (`.github/workflows/ci.yml`) also enforces `check:content-packs` and `check:archive-refs` before lint/build.
 - `check:content-packs` validates pack manifests (`exercise.json`) against `lib/courses.ts` metadata plus required checker/solution files.
 - `scaffold:content-pack` bootstraps `content/exercises/...` packs from `lib/courses.ts` (manifest + checker + solution), with optional `--force` overwrite.
-- `check:sandbox-faults` covers timeout, memory pressure, process-limit pressure, and outbound-network isolation scenarios for Docker grader execution.
+- `check:sandbox-faults` covers timeout, memory pressure, process-limit pressure, outbound-network isolation, and read-only root filesystem scenarios for Docker grader execution.
 - Sandbox runtime/startup/fault scripts avoid redundant pulls by inspecting local Docker images before pulling missing images.
 
 ### Working style (from project Copilot.md)
