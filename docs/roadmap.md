@@ -205,6 +205,10 @@ Primary target users are economics students, with platform usage planned across 
 - Added `GET|POST /api/classroom/sections/risk-policy/archive/report?sectionId=...` for section-level archive run reporting (success/failure outcomes, recent runs, and 30-day failure metrics).
 - Dashboard archive policy panels now show archive run health summaries (success/failure counts, failure rate, last success/failure) and recent run history.
 
+42. CI sandbox startup performance gate (phase 2 progress)
+- Added `npm run check:sandbox-startup` to measure docker grader startup runtime for R/Python checkers with configurable thresholds (`GRADER_STARTUP_MAX_MS_R`, `GRADER_STARTUP_MAX_MS_PYTHON`).
+- CI now enforces startup performance checks alongside sandbox config/policy/runtime/fault validations before lint/build.
+
 ## Runtime Setup
 
 From repo root:
@@ -253,7 +257,7 @@ npm run redis:down
 ## Next Milestones (Priority Order)
 
 1. Harden execution sandbox (phase 2 completion)
-- Validate and tune image strategy (`GRADER_DOCKER_R_IMAGE`, `GRADER_DOCKER_PYTHON_IMAGE`) and startup performance.
+- Validate and tune image strategy (`GRADER_DOCKER_R_IMAGE`, `GRADER_DOCKER_PYTHON_IMAGE`) to reduce startup variability and pull overhead.
 - Add optional network/isolation regression checks to complement current timeout/memory/process pressure coverage.
 
 2. Classroom identity and enrollment model (phase 2 completion)
