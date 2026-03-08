@@ -180,6 +180,11 @@ Primary target users are economics students, with platform usage planned across 
 - Expanded `check:sandbox-faults` with outbound socket connectivity checks to assert Docker `--network none` isolation.
 - Fault suite now validates timeout, memory pressure, PID pressure, and network isolation behavior.
 
+36. Risk policy export and retention controls (phase 2 progress)
+- Added `GET /api/classroom/sections/risk-policy/export` with CSV/JSON export and filter support (`sectionId`, `limit`, `action`, `actor`).
+- Added configurable audit retention controls in persistence layer via `CLASSROOM_RISK_AUDIT_RETENTION_DAYS` and `CLASSROOM_RISK_AUDIT_MAX_ROWS_PER_SECTION`.
+- Dashboard section policy panels now include audit export links aligned with active audit filters.
+
 ## Runtime Setup
 
 From repo root:
@@ -239,7 +244,7 @@ npm run redis:down
 3. Instructor workflow (teaching operations, phase 2)
 - Add server-backed sorting/pagination support and term/course filters for very large section datasets.
 - Add assignment authoring validation against course pacing milestones and enforce max publish horizon per section policy.
-- Add policy export/download and long-range retention controls for section risk audit history.
+- Add audit export scheduling/archival options and governance reporting.
 
 4. Multi-course content pipeline expansion
 - Migrate more exercises from inline definitions to `content/exercises/...`.
