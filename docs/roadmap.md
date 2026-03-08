@@ -254,6 +254,10 @@ Primary target users are economics students, with platform usage planned across 
 - Sandbox runtime/startup/fault scripts now inspect local Docker images first and only pull when missing.
 - This reduces redundant image pulls during CI sandbox validation sequences and lowers startup variability from repeated network fetches.
 
+54. Archive run export endpoint (phase 2 progress)
+- Added `GET /api/classroom/sections/risk-policy/archive/report/export` to export archive run history as CSV/JSON with optional status filter.
+- Dashboard archive policy panel now includes an archive-run CSV export shortcut for section governance workflows.
+
 ## Runtime Setup
 
 From repo root:
