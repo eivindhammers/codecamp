@@ -299,6 +299,10 @@ Primary target users are economics students, with platform usage planned across 
 - `check:content-packs` now validates each pack `exercise.json` contract (`id`, `language`, `title`, `instructions`, `starterCode`, `xp`, `checker`) in addition to checker/solution file presence.
 - Manifest fields are now cross-checked against `lib/courses.ts` so migrated filesystem packs stay in sync with course definitions.
 
+64. Exercise-pack scaffolding workflow (phase 2 progress)
+- Added `npm run scaffold:content-pack -- --key <courseSlug/chapterId/exerciseId>` to scaffold `exercise.json`, checker, and solution files from `lib/courses.ts` metadata.
+- Supports `--force` for intentional regeneration, helping multi-course filesystem migration while keeping metadata parity with source course definitions.
+
 ## Runtime Setup
 
 From repo root:

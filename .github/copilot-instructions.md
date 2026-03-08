@@ -12,6 +12,7 @@ npm run check:sandbox-runtime # Execute R/Python graders in docker sandbox as sm
 npm run check:sandbox-startup # Measure R/Python docker grader startup time against thresholds
 npm run check:sandbox-faults # Assert timeout fault handling in docker sandbox
 npm run check:content-packs # Validate filesystem exercise packs against course metadata/contracts
+npm run scaffold:content-pack -- --key <course/chapter/exercise> [--force] # Scaffold exercise pack files from courses.ts
 npm run archive:risk-audit # Execute due risk-audit archive runs and record outcomes
 npm run worker      # Background grading worker (requires Redis)
 npm run redis:up    # Start Redis via Docker Compose
@@ -154,6 +155,7 @@ Use these for API response shapes. Add new types here rather than inline.
 - CI workflow (`.github/workflows/ci.yml`) enforces `check:sandbox`, `check:sandbox-policy`, `check:sandbox-runtime`, `check:sandbox-startup`, `check:sandbox-faults`, lint, and build.
 - CI workflow (`.github/workflows/ci.yml`) also enforces `check:content-packs` before lint/build.
 - `check:content-packs` validates pack manifests (`exercise.json`) against `lib/courses.ts` metadata plus required checker/solution files.
+- `scaffold:content-pack` bootstraps `content/exercises/...` packs from `lib/courses.ts` (manifest + checker + solution), with optional `--force` overwrite.
 - `check:sandbox-faults` covers timeout, memory pressure, process-limit pressure, and outbound-network isolation scenarios for Docker grader execution.
 - Sandbox runtime/startup/fault scripts avoid redundant pulls by inspecting local Docker images before pulling missing images.
 
