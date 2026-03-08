@@ -7,6 +7,7 @@ npm run dev         # Dev server (Turbopack, http://localhost:3000)
 npm run build       # Production build
 npm run lint        # ESLint
 npm run check:sandbox # Validate grader sandbox production config
+npm run check:sandbox-images # Validate grader Docker image refs (tag/digest, no latest)
 npm run check:sandbox-policy # Verify sandbox policy flags are enforced in runner
 npm run check:sandbox-runtime # Execute R/Python graders in docker sandbox as smoke check
 npm run check:sandbox-startup # Measure R/Python docker grader startup time against thresholds
@@ -157,7 +158,7 @@ Use these for API response shapes. Add new types here rather than inline.
 - Archive destination validation reuses delivery governance checks, including webhook/upload host allowlists and protocol enforcement.
 - `check:archive-refs` validates configured destination refs, revoked-ref consistency, and per-ref URL/host allowlist compatibility.
 - In production, sandbox mode defaults to Docker when `GRADER_SANDBOX_MODE` is unset.
-- CI workflow (`.github/workflows/ci.yml`) enforces `check:sandbox`, `check:sandbox-policy`, `check:sandbox-runtime`, `check:sandbox-startup`, `check:sandbox-faults`, lint, and build.
+- CI workflow (`.github/workflows/ci.yml`) enforces `check:sandbox`, `check:sandbox-images`, `check:sandbox-policy`, `check:sandbox-runtime`, `check:sandbox-startup`, `check:sandbox-faults`, lint, and build.
 - CI workflow (`.github/workflows/ci.yml`) also enforces `check:content-packs` and `check:archive-refs` before lint/build.
 - `check:content-packs` validates pack manifests (`exercise.json`) against `lib/courses.ts` metadata plus required checker/solution files.
 - `scaffold:content-pack` bootstraps `content/exercises/...` packs from `lib/courses.ts` (manifest + checker + solution), with optional `--force` overwrite.

@@ -327,6 +327,10 @@ Primary target users are economics students, with platform usage planned across 
 - Enrollment routes now validate section existence for `GET|POST|PATCH /api/classroom/enrollments` to prevent orphan enrollment operations.
 - Enrollment writes now prevent removing/demoting the final active instructor in a section, preserving minimum instructional governance.
 
+71. Sandbox image reference validation gate (phase 2 progress)
+- Added `npm run check:sandbox-images` to enforce explicit docker image references (tag or digest) and disallow `latest` tags for grader runtimes.
+- CI now enforces sandbox image reference checks before sandbox runtime/fault checks.
+
 ## Runtime Setup
 
 From repo root:
