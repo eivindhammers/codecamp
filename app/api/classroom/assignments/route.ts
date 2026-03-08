@@ -5,6 +5,7 @@ import {
   createAssignment,
   listSectionAssignments,
 } from "@/lib/grading/submissionDb";
+import { requireSectionStaff } from "@/app/api/classroom/_auth";
 
 export const runtime = "nodejs";
 
@@ -27,6 +28,8 @@ export async function GET(req: Request) {
   if (!sectionId) {
     return badRequest("Missing required query param: sectionId.");
   }
+  const auth = requireSectionStaff(req, sectionId);
+  if (!auth.ok) return auth.response;
 
   const assignments = listSectionAssignments(sectionId);
   const response: AssignmentsResponse = { assignments };
@@ -57,6 +60,8 @@ export async function POST(req: Request) {
   if (dueAt !== undefined && typeof dueAt !== "number") {
     return badRequest("dueAt must be a unix timestamp when provided.");
   }
+  const auth = requireSectionStaff(req, sectionId);
+  if (!auth.ok) return auth.response;
 
   const assignment = createAssignment({
     assignmentId: randomUUID(),

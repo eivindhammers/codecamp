@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { AcademicTermsResponse } from "@/lib/grading/contracts";
 import { createAcademicTerm, listAcademicTerms } from "@/lib/grading/submissionDb";
+import { requireGlobalStaff } from "@/app/api/classroom/_auth";
 
 export const runtime = "nodejs";
 
@@ -22,6 +23,9 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const auth = requireGlobalStaff(req);
+  if (!auth.ok) return auth.response;
+
   let body: CreateTermPayload;
   try {
     body = (await req.json()) as CreateTermPayload;

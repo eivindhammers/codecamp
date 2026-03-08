@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { SectionLearnerMetricsResponse } from "@/lib/grading/contracts";
 import { listSectionLearnerMetrics } from "@/lib/grading/submissionDb";
+import { requireSectionStaff } from "@/app/api/classroom/_auth";
 
 export const runtime = "nodejs";
 
@@ -14,6 +15,8 @@ export async function GET(req: Request) {
   if (!sectionId) {
     return badRequest("Missing required query param: sectionId.");
   }
+  const auth = requireSectionStaff(req, sectionId);
+  if (!auth.ok) return auth.response;
 
   const metrics = listSectionLearnerMetrics(sectionId);
   const response: SectionLearnerMetricsResponse = { metrics };

@@ -637,6 +637,20 @@ export function upsertUserProfile(input: UpsertUserProfileInput): UserProfileRec
   return mapUserProfileRow(row);
 }
 
+export function getUserProfile(userId: string): UserProfileRecord | undefined {
+  const row = db
+    .prepare(
+      `
+        SELECT user_id, display_name, email, role, created_at, updated_at
+        FROM user_profiles
+        WHERE user_id = ?
+      `
+    )
+    .get(userId) as UserProfileRow | undefined;
+
+  return row ? mapUserProfileRow(row) : undefined;
+}
+
 interface CreateAcademicTermInput {
   termId: string;
   title: string;
@@ -836,6 +850,23 @@ export function listSectionEnrollments(sectionId: string): SectionEnrollmentReco
     .all(sectionId) as SectionEnrollmentRow[];
 
   return rows.map(mapEnrollmentRow);
+}
+
+export function getSectionEnrollment(
+  sectionId: string,
+  userId: string
+): SectionEnrollmentRecord | undefined {
+  const row = db
+    .prepare(
+      `
+        SELECT enrollment_id, section_id, user_id, role, status, enrolled_at
+        FROM section_enrollments
+        WHERE section_id = ? AND user_id = ?
+      `
+    )
+    .get(sectionId, userId) as SectionEnrollmentRow | undefined;
+
+  return row ? mapEnrollmentRow(row) : undefined;
 }
 
 interface CreateAssignmentInput {

@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { ClassSectionsResponse } from "@/lib/grading/contracts";
 import { createClassSection, listClassSections } from "@/lib/grading/submissionDb";
+import { requireGlobalStaff } from "@/app/api/classroom/_auth";
 
 export const runtime = "nodejs";
 
@@ -25,6 +26,9 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  const auth = requireGlobalStaff(req);
+  if (!auth.ok) return auth.response;
+
   let body: CreateSectionPayload;
   try {
     body = (await req.json()) as CreateSectionPayload;
@@ -40,6 +44,10 @@ export async function POST(req: Request) {
     return badRequest(
       "Missing required fields: termId, courseSlug, title, instructorUserId."
     );
+  }
+
+  if (auth.value.actorUserId !== instructorUserId) {
+    return badRequest("instructorUserId must match x-actor-user-id.");
   }
 
   const section = createClassSection({

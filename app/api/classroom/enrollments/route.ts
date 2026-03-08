@@ -8,6 +8,7 @@ import {
   enrollUserInSection,
   listSectionEnrollments,
 } from "@/lib/grading/submissionDb";
+import { requireSectionStaff } from "@/app/api/classroom/_auth";
 
 export const runtime = "nodejs";
 
@@ -27,6 +28,8 @@ export async function GET(req: Request) {
   if (!sectionId) {
     return badRequest("Missing required query param: sectionId.");
   }
+  const auth = requireSectionStaff(req, sectionId);
+  if (!auth.ok) return auth.response;
 
   const enrollments = listSectionEnrollments(sectionId);
   const response: SectionEnrollmentsResponse = { enrollments };
@@ -51,6 +54,8 @@ export async function POST(req: Request) {
   if (!["student", "instructor", "ta"].includes(role)) {
     return badRequest("role must be one of: student, instructor, ta.");
   }
+  const auth = requireSectionStaff(req, sectionId);
+  if (!auth.ok) return auth.response;
 
   const enrollment = enrollUserInSection({
     enrollmentId: randomUUID(),
