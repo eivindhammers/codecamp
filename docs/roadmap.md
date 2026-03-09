@@ -383,6 +383,13 @@ Primary target users are economics students, with platform usage planned across 
 - Added first-class top-level routes: `/learn`, `/practice`, and `/progress`, with homepage shifted to a hub-style landing page.
 - Header navigation now links across Learn/Practice/Progress/Classroom, creating a scalable route structure for future features like leaderboard/high scores.
 
+85. Navigation refinement for multi-page UX (phase 2 progress)
+- Consolidated redundant learner navigation by redirecting `/practice` to `/learn`, while keeping `/progress` as the distinct progress surface.
+- Updated global navigation to Home/Learn/Classroom and introduced Datacamp-style left sidebar navigation on `/learn` and `/classroom` for section-level jump links.
+- Removed decorative emoji-heavy labels from core navigation and landing surfaces for a cleaner, more product-like visual tone.
+- Sidebar navigation is now rendered as a true fixed left rail (`xl` breakpoint) on Learn/Classroom pages rather than an in-content column.
+- Added mobile/tablet hamburger-triggered side-nav drawer on Learn/Classroom so navigation remains accessible when the fixed left rail is hidden.
+
 ## Runtime Setup
 
 From repo root:
@@ -468,20 +475,20 @@ Use this queue for day-to-day execution; keep it small and rotate items after ea
 - On completion: ship code + update roadmap + move the next highest-priority **Next** item into **Now**.
 
 ### Now
-1. Enrollment/identity edge-case hardening
-- Outcome: remaining write-boundary gaps closed for instructor/TA/student transitions.
-- Acceptance: protected routes reject invalid role mutations with explicit errors; lint/build pass.
-
-2. Sandbox digest-only rollout
-- Outcome: production/CI image references move to digest-pinned form with strict enforcement enabled.
-- Acceptance: `GRADER_REQUIRE_IMAGE_DIGESTS=true` passes in enforced environments and docs reflect pinned-image policy.
-
-### Next
 1. Content migration throughput (next tranche)
-- Continue migrating additional exercises into `content/exercises/...` with parity checks and scaffold workflow.
+- Outcome: more exercises moved to filesystem content packs with metadata parity checks passing.
+- Acceptance: migrated packs validate via `npm run check:content-packs`; lint/build pass.
 
 2. Archive credential lifecycle automation depth
-- Extend archive automation with richer operational hooks (alerting/escalation/checklists) beyond manual run-now + runbook guidance.
+- Outcome: archive automation gains additional operational hooks (alerts/checklists/escalation paths) beyond run-now and runbook guidance.
+- Acceptance: new operational hooks are documented and exercised through dashboard/API flow where applicable; lint/build pass.
+
+### Next
+1. Enrollment/identity edge-case hardening
+- Continue tightening remaining write-boundary gaps for instructor/TA/student transitions.
+
+2. Sandbox digest-only rollout
+- Move production/CI image references to digest-pinned form with strict enforcement enabled.
 
 3. Broader server-side grading coverage
 - Enable server-graded checkers for more migrated filesystem exercises across both R and Python tracks.

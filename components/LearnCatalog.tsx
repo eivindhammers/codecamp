@@ -24,9 +24,12 @@ export default function LearnCatalog() {
       </section>
 
       {grouped.map(({ level, courses: levelCourses }) => (
-        <section key={level} className="mb-12">
+        <section
+          key={level}
+          id={`learn-${level}`}
+          className="mb-12 scroll-mt-20"
+        >
           <h2 className="text-2xl font-bold text-gray-800 mb-1 capitalize">
-            {level === "beginner" ? "🌱" : level === "intermediate" ? "🌿" : "🌳"}{" "}
             {level} Courses
           </h2>
           <p className="text-gray-500 text-sm mb-5">

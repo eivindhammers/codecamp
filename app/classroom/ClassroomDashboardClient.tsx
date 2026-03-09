@@ -798,7 +798,10 @@ export default function ClassroomDashboardClient() {
 
   return (
     <div className="space-y-6">
-      <section className="bg-white border border-gray-200 rounded-xl p-5">
+      <section
+        id="classroom-overview"
+        className="scroll-mt-20 bg-white border border-gray-200 rounded-xl p-5"
+      >
         <h1 className="text-2xl font-bold text-gray-900 mb-2">Classroom Dashboard</h1>
         <p className="text-sm text-gray-600 mb-4">
           Instructor-facing overview for sections, learner activity, and exports.
@@ -898,7 +901,10 @@ export default function ClassroomDashboardClient() {
             </div>
           </section>
 
-          <section className="bg-white border border-gray-200 rounded-xl p-5">
+          <section
+            id="classroom-archive-governance"
+            className="scroll-mt-20 bg-white border border-gray-200 rounded-xl p-5"
+          >
             <h2 className="font-semibold text-gray-900 mb-2">Archive Delivery Governance</h2>
             {archiveGovernanceError && (
               <p className="text-sm text-rose-700 mb-2">{archiveGovernanceError}</p>
@@ -1017,7 +1023,10 @@ export default function ClassroomDashboardClient() {
             )}
           </section>
 
-          <section className="bg-white border border-gray-200 rounded-xl p-5">
+          <section
+            id="classroom-risk-audit"
+            className="scroll-mt-20 bg-white border border-gray-200 rounded-xl p-5"
+          >
             <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
               <h2 className="font-semibold text-gray-900">Risk Policy Audit</h2>
               <div className="flex items-center gap-2">
@@ -1082,7 +1091,10 @@ export default function ClassroomDashboardClient() {
             )}
           </section>
 
-          <section className="bg-white border border-gray-200 rounded-xl p-5">
+          <section
+            id="classroom-section-activity"
+            className="scroll-mt-20 bg-white border border-gray-200 rounded-xl p-5"
+          >
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold text-gray-900">Section Activity</h2>
               <div className="flex items-center gap-2">

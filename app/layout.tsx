@@ -26,26 +26,20 @@ export default function RootLayout({
                 href="/"
                 className="font-bold text-lg text-indigo-600 tracking-tight hover:text-indigo-700 transition-colors"
               >
-                🎓 CodeCamp
+                CodeCamp
               </Link>
               <div className="flex items-center gap-2 sm:gap-3">
+                <Link
+                  href="/"
+                  className="text-xs sm:text-sm border border-gray-300 rounded-md px-2 py-1 text-gray-600 hover:bg-gray-50"
+                >
+                  Home
+                </Link>
                 <Link
                   href="/learn"
                   className="text-xs sm:text-sm border border-gray-300 rounded-md px-2 py-1 text-gray-600 hover:bg-gray-50"
                 >
                   Learn
-                </Link>
-                <Link
-                  href="/practice"
-                  className="text-xs sm:text-sm border border-gray-300 rounded-md px-2 py-1 text-gray-600 hover:bg-gray-50"
-                >
-                  Practice
-                </Link>
-                <Link
-                  href="/progress"
-                  className="text-xs sm:text-sm border border-gray-300 rounded-md px-2 py-1 text-gray-600 hover:bg-gray-50"
-                >
-                  Progress
                 </Link>
                 <Link
                   href="/classroom"

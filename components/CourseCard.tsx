@@ -35,7 +35,6 @@ export default function CourseCard({ course }: { course: Course }) {
     <Link href={`/courses/${course.slug}`} className="block group">
       <div className="border border-gray-200 rounded-xl p-6 hover:shadow-lg hover:border-indigo-300 transition-all duration-200 bg-white h-full flex flex-col">
         <div className="flex items-start gap-3 mb-3">
-          <span className="text-3xl">{course.icon}</span>
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors line-clamp-2">
               {course.title}

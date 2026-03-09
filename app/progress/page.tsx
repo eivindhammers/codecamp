@@ -41,9 +41,7 @@ export default function ProgressPage() {
             <div key={course.slug} className="bg-white border border-gray-200 rounded-xl p-4">
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <p className="font-semibold text-gray-900">
-                    {course.icon} {course.title}
-                  </p>
+                  <p className="font-semibold text-gray-900">{course.title}</p>
                   <p className="text-sm text-gray-600">
                     {stats.completed}/{stats.total} exercises · {stats.xp}/{stats.totalXp} XP
                   </p>

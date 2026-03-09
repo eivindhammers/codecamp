@@ -12,33 +12,26 @@ export default function HomePage() {
           Browse courses, jump into practice, track your progress, and run your classroom
           in one place.
         </p>
-        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-left">
+        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-left">
           <Link
             href="/learn"
             className="bg-white border border-gray-200 rounded-xl p-4 hover:border-indigo-300 transition-colors"
           >
-            <p className="font-semibold text-gray-900">📚 Learn</p>
+            <p className="font-semibold text-gray-900">Learn</p>
             <p className="text-sm text-gray-600 mt-1">Browse all courses by level.</p>
-          </Link>
-          <Link
-            href="/practice"
-            className="bg-white border border-gray-200 rounded-xl p-4 hover:border-indigo-300 transition-colors"
-          >
-            <p className="font-semibold text-gray-900">💻 Practice</p>
-            <p className="text-sm text-gray-600 mt-1">Start coding from curated tracks.</p>
           </Link>
           <Link
             href="/progress"
             className="bg-white border border-gray-200 rounded-xl p-4 hover:border-indigo-300 transition-colors"
           >
-            <p className="font-semibold text-gray-900">🏆 Progress</p>
+            <p className="font-semibold text-gray-900">Progress</p>
             <p className="text-sm text-gray-600 mt-1">Track XP and course completion.</p>
           </Link>
           <Link
             href="/classroom"
             className="bg-white border border-gray-200 rounded-xl p-4 hover:border-indigo-300 transition-colors"
           >
-            <p className="font-semibold text-gray-900">🧑‍🏫 Classroom</p>
+            <p className="font-semibold text-gray-900">Classroom</p>
             <p className="text-sm text-gray-600 mt-1">Instructor dashboard and governance.</p>
           </Link>
         </div>
