@@ -63,7 +63,7 @@ content/exercises/{courseSlug}/{chapterId}/{exerciseId}/
   checker.R|checker.py  # Runs submitted code + assertions; output parsed by language-specific grader
   solution.R|solution.py # Reference solution
 ```
-Current migrated packs include intro exercises plus examples in intermediate-python, economics-data-science, and r-for-economists tracks (including `intro-python/basics/variables`, `intro-python/basics/conditionals`, `intro-r/basics/data-types`, `intro-r/basics/hello-r`, `intro-python/lists-dicts/lists`, `intro-r/vectors/create-vector`, `intro-python/lists-dicts/dicts`, `intro-r/vectors/vector-ops`, `intro-python/functions/define-function`, and `intro-python/functions/list-comprehension`).
+Current migrated packs include intro exercises plus examples in intermediate-python, economics-data-science, and r-for-economists tracks (including `intro-python/basics/variables`, `intro-python/basics/conditionals`, `intro-r/basics/data-types`, `intro-r/basics/hello-r`, `intro-python/lists-dicts/lists`, `intro-r/vectors/create-vector`, `intro-python/lists-dicts/dicts`, `intro-r/vectors/vector-ops`, `intro-python/functions/define-function`, `intro-python/functions/list-comprehension`, `intro-r/data-frames/create-df`, and `intro-r/data-frames/df-subset`).
 Both R and Python have server-side grading support (currently enabled for selected exercises).
 
 ### API routes all use `runtime = 'nodejs'`

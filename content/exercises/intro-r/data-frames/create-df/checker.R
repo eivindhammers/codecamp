@@ -38,20 +38,25 @@ if (!execution_ok) {
   feedback <- c(feedback, paste("Execution error:", execution_error))
 } else {
   record_test("code runs", TRUE, "Code executed without errors.")
-  if (!exists("scores", envir = env, inherits = FALSE)) {
-    record_test("scores exists", FALSE, "Define a vector named `scores`.")
+  if (!exists("employees", envir = env, inherits = FALSE)) {
+    record_test("employees exists", FALSE, "Define a data frame named `employees`.")
   } else {
-    scores <- get("scores", envir = env, inherits = FALSE)
-    expected <- c(85, 92, 78, 95, 88)
-    if (is.numeric(scores) && identical(as.numeric(scores), expected)) {
-      record_test("scores values", TRUE, "scores vector has the expected values.")
-    } else {
-      record_test("scores values", FALSE, "Set scores to c(85, 92, 78, 95, 88).")
-    }
-    if (length(scores) == 5) {
-      record_test("scores length", TRUE, "scores has length 5.")
-    } else {
-      record_test("scores length", FALSE, "scores should contain exactly 5 elements.")
+    employees <- get("employees", envir = env, inherits = FALSE)
+    expected_names <- c("Alice", "Bob", "Carol")
+    expected_age <- c(28, 35, 42)
+    expected_salary <- c(50000, 65000, 72000)
+
+    is_df <- is.data.frame(employees)
+    record_test("employees is data frame", is_df, "`employees` must be a data frame.")
+    if (is_df) {
+      has_columns <- identical(colnames(employees), c("name", "age", "salary"))
+      record_test("employees columns", has_columns, "Use columns: name, age, salary.")
+      has_rows <- nrow(employees) == 3
+      record_test("employees rows", has_rows, "employees should contain 3 rows.")
+      matches_values <- identical(as.character(employees$name), expected_names) &&
+        identical(as.numeric(employees$age), expected_age) &&
+        identical(as.numeric(employees$salary), expected_salary)
+      record_test("employees values", matches_values, "employees values do not match the exercise.")
     }
   }
 }
@@ -61,7 +66,7 @@ if (passed_all) {
   status <- "passed"
   feedback <- c(feedback, "Correct solution submitted.")
 } else if (length(feedback) == 0) {
-  feedback <- c(feedback, "Create scores with the requested values and print its length.")
+  feedback <- c(feedback, "Create employees data frame with the requested columns and values.")
 }
 
 output_lines <- c(paste0("STATUS:", status))

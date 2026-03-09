@@ -38,20 +38,24 @@ if (!execution_ok) {
   feedback <- c(feedback, paste("Execution error:", execution_error))
 } else {
   record_test("code runs", TRUE, "Code executed without errors.")
-  if (!exists("scores", envir = env, inherits = FALSE)) {
-    record_test("scores exists", FALSE, "Define a vector named `scores`.")
+  if (!exists("subset_df", envir = env, inherits = FALSE)) {
+    record_test("subset_df exists", FALSE, "Define `subset_df` with the filtered rows.")
   } else {
-    scores <- get("scores", envir = env, inherits = FALSE)
-    expected <- c(85, 92, 78, 95, 88)
-    if (is.numeric(scores) && identical(as.numeric(scores), expected)) {
-      record_test("scores values", TRUE, "scores vector has the expected values.")
-    } else {
-      record_test("scores values", FALSE, "Set scores to c(85, 92, 78, 95, 88).")
-    }
-    if (length(scores) == 5) {
-      record_test("scores length", TRUE, "scores has length 5.")
-    } else {
-      record_test("scores length", FALSE, "scores should contain exactly 5 elements.")
+    subset_df <- get("subset_df", envir = env, inherits = FALSE)
+    expected <- data.frame(
+      name = c("Bob", "Carol"),
+      salary = c(65000, 72000)
+    )
+    is_df <- is.data.frame(subset_df)
+    record_test("subset_df is data frame", is_df, "`subset_df` must be a data frame.")
+    if (is_df) {
+      has_columns <- identical(colnames(subset_df), c("name", "salary"))
+      record_test("subset_df columns", has_columns, "subset_df should include only name and salary.")
+      has_rows <- nrow(subset_df) == 2
+      record_test("subset_df rows", has_rows, "subset_df should contain Bob and Carol.")
+      matches_values <- identical(as.character(subset_df$name), as.character(expected$name)) &&
+        identical(as.numeric(subset_df$salary), as.numeric(expected$salary))
+      record_test("subset_df values", matches_values, "subset_df values do not match expected output.")
     }
   }
 }
@@ -61,7 +65,7 @@ if (passed_all) {
   status <- "passed"
   feedback <- c(feedback, "Correct solution submitted.")
 } else if (length(feedback) == 0) {
-  feedback <- c(feedback, "Create scores with the requested values and print its length.")
+  feedback <- c(feedback, "Filter employees with age > 30 and keep only name/salary columns.")
 }
 
 output_lines <- c(paste0("STATUS:", status))

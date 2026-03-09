@@ -1,7 +1,61 @@
 args <- commandArgs(trailingOnly = TRUE)
+
+if (length(args) < 2) {
+  stop("Usage: checker.R <submission_path> <output_path>")
+}
+
 submission_path <- args[[1]]
 output_path <- args[[2]]
-source(submission_path, local = TRUE)
 
-# TODO: replace this scaffold assertion with exercise-specific checks.
-cat('PASS: Replace scaffold checks with real tests.\n', file = output_path)
+test_results <- list()
+feedback <- c()
+status <- "failed"
+
+record_test <- function(name, passed, message) {
+  test_results[[length(test_results) + 1]] <<- list(
+    name = name,
+    passed = passed,
+    message = message
+  )
+}
+
+execution_ok <- TRUE
+execution_error <- NULL
+captured_output <- character()
+
+tryCatch(
+  {
+    captured_output <- capture.output(source(submission_path, local = new.env(parent = baseenv())))
+  },
+  error = function(e) {
+    execution_ok <<- FALSE
+    execution_error <<- conditionMessage(e)
+  }
+)
+
+if (!execution_ok) {
+  record_test("code runs", FALSE, "Your code did not run successfully.")
+  feedback <- c(feedback, paste("Execution error:", execution_error))
+} else {
+  record_test("code runs", TRUE, "Code executed without errors.")
+  has_greeting <- any(grepl("Hello, R!", captured_output, fixed = TRUE))
+  if (has_greeting) {
+    record_test("prints hello r", TRUE, "Output includes 'Hello, R!'.")
+    status <- "passed"
+    feedback <- c(feedback, "Correct solution submitted.")
+  } else {
+    record_test("prints hello r", FALSE, "Use print() to output exactly 'Hello, R!'.")
+    feedback <- c(feedback, "Use print() to output exactly 'Hello, R!'.")
+  }
+}
+
+output_lines <- c(paste0("STATUS:", status))
+for (msg in feedback) {
+  output_lines <- c(output_lines, paste0("FEEDBACK:", msg))
+}
+for (t in test_results) {
+  pass_label <- if (isTRUE(t$passed)) "pass" else "fail"
+  output_lines <- c(output_lines, paste0("TEST:", t$name, "|", pass_label, "|", t$message))
+}
+
+writeLines(output_lines, con = output_path)
