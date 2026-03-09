@@ -95,6 +95,7 @@ Auth supports two modes via `AUTH_MODE`: `bootstrap` (email POST to `/api/auth/s
 Top-level learner navigation now centers on `/` (Home), `/learn`, `/classroom`, and `/progress`; `/practice` redirects to `/learn`.
 The `/progress` page includes learner-facing streak/activity summaries (current streak, best streak, 7-day completions, top course by XP, and last completion timestamp).
 The classroom dashboard also supports assignment creation and due-state indicators per section.
+Classroom UX is positioned as a teaching companion (assign practice content + monitor participation/leaderboards), not a required graded/compliance system.
 When a classroom has no sections yet, the dashboard shows a "Getting started checklist" with quick-create term and section forms for instructors.
 Dashboard cards and section headers include pass-rate and stuck-learner indicators derived from section export summaries.
 Assignment authoring in the dashboard uses chapter/exercise options derived from `lib/courses.ts` for the selected section course.

@@ -900,6 +900,29 @@ export default function ClassroomDashboardClient() {
     };
   }, [sections]);
 
+  const leaderboardRows = useMemo(() => {
+    return sections
+      .flatMap((panel) =>
+        panel.gradeSummary.map((row) => ({
+          sectionId: panel.section.sectionId,
+          sectionTitle: panel.section.title,
+          courseSlug: panel.section.courseSlug,
+          userId: row.userId,
+          completionRate: row.completionRate,
+          completedAssignments: row.completedAssignments,
+          assignmentsCount: row.assignmentsCount,
+          attemptsCount: row.attemptsCount,
+        }))
+      )
+      .sort((a, b) => {
+        if (b.completionRate !== a.completionRate) return b.completionRate - a.completionRate;
+        if (b.completedAssignments !== a.completedAssignments) {
+          return b.completedAssignments - a.completedAssignments;
+        }
+        return a.attemptsCount - b.attemptsCount;
+      });
+  }, [sections]);
+
   const onboardingChecklist = useMemo(
     () => [
       { label: "Sign in as instructor", done: Boolean(profile && profile.role === "instructor") },
@@ -997,7 +1020,7 @@ export default function ClassroomDashboardClient() {
       >
         <h1 className="text-2xl font-bold text-gray-900 mb-2">Classroom Dashboard</h1>
         <p className="text-sm text-gray-600 mb-4">
-          Instructor-facing overview for sections, learner activity, and exports.
+          Use this to assign practice content, track class participation, and identify bonus-credit candidates.
         </p>
 
         {!profile && authMode === "bootstrap" && (
@@ -1210,47 +1233,122 @@ export default function ClassroomDashboardClient() {
           )}
 
           <section
-            id="classroom-archive-governance"
+            id="classroom-leaderboards"
             className="scroll-mt-20 bg-white border border-gray-200 rounded-xl p-5"
           >
-            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-              <h2 className="font-semibold text-gray-900">Backups and archive settings</h2>
-              <button
-                onClick={() => onRunDueArchivesNow()}
-                disabled={riskArchiveRunBusy.__all_due__}
-                className="rounded border border-indigo-300 px-2 py-1 text-xs text-indigo-700 hover:bg-indigo-50 disabled:opacity-60"
-              >
-                {riskArchiveRunBusy.__all_due__ ? "Running backups..." : "Run backups now"}
-              </button>
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <div>
+                <h2 className="font-semibold text-gray-900">Class leaderboards</h2>
+                <p className="text-sm text-gray-600">
+                  Highlight participation and completion across all your sections.
+                </p>
+              </div>
             </div>
-            <p className="mb-2 text-sm text-gray-600">
-              Most instructors can ignore this section. These settings are for automated backup delivery and incident recovery.
+            {leaderboardRows.length === 0 ? (
+              <p className="text-sm text-gray-600">
+                No learner activity yet. Leaderboards appear after students start submitting.
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-xs">
+                  <thead>
+                    <tr className="text-left text-gray-500">
+                      <th className="py-1 pr-2">Rank</th>
+                      <th className="py-1 pr-2">Learner</th>
+                      <th className="py-1 pr-2">Section</th>
+                      <th className="py-1 pr-2">Completion</th>
+                      <th className="py-1 pr-2">Assignments</th>
+                      <th className="py-1 pr-2">Bonus candidate</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {leaderboardRows.slice(0, 25).map((row, index) => {
+                      const bonusCandidate =
+                        row.assignmentsCount > 0 &&
+                        row.completionRate >= 80 &&
+                        row.completedAssignments >= Math.ceil(row.assignmentsCount * 0.8);
+                      return (
+                        <tr key={`${row.sectionId}:${row.userId}`} className="border-t border-gray-100">
+                          <td className="py-1.5 pr-2 font-semibold text-gray-800">#{index + 1}</td>
+                          <td className="py-1.5 pr-2 font-mono">{row.userId}</td>
+                          <td className="py-1.5 pr-2">
+                            {row.sectionTitle}
+                            <span className="ml-1 text-gray-400">({row.courseSlug})</span>
+                          </td>
+                          <td className="py-1.5 pr-2">{row.completionRate.toFixed(1)}%</td>
+                          <td className="py-1.5 pr-2">
+                            {row.completedAssignments}/{row.assignmentsCount}
+                          </td>
+                          <td className="py-1.5 pr-2">
+                            {bonusCandidate ? (
+                              <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-emerald-700">
+                                Eligible
+                              </span>
+                            ) : (
+                              <span className="rounded-full bg-gray-100 px-2 py-0.5 text-gray-600">
+                                Not yet
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+
+          <details
+            id="classroom-advanced-ops"
+            className="scroll-mt-20 rounded-xl border border-gray-200 bg-white p-5"
+          >
+            <summary className="cursor-pointer select-none text-sm font-medium text-gray-800">
+              Advanced operations (optional)
+            </summary>
+            <p className="mt-2 text-xs text-gray-500">
+              Optional tools for backup delivery diagnostics and policy auditing. Most instructors can
+              skip this.
             </p>
-            {riskArchiveRunResult.__all_due__ && (
-              <p className="mb-2 text-xs text-indigo-700">{riskArchiveRunResult.__all_due__}</p>
-            )}
-            {archiveGovernanceError && (
-              <p className="text-sm text-rose-700 mb-2">{archiveGovernanceError}</p>
-            )}
-            {!archiveGovernanceError && !archiveGovernanceConfig && (
-              <p className="text-sm text-gray-600">Loading archive governance settings...</p>
-            )}
-            {archiveGovernanceConfig && (
-              <>
+            <section
+              id="classroom-archive-governance"
+              className="mt-4 border border-gray-200 rounded-xl p-4"
+            >
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <h2 className="font-semibold text-gray-900">Backups and archive settings</h2>
                 <button
-                  type="button"
-                  onClick={() => setShowAdvancedGovernance((prev) => !prev)}
-                  className="mb-3 rounded border border-gray-300 px-2 py-1 text-xs text-gray-700 hover:bg-gray-50"
+                  onClick={() => onRunDueArchivesNow()}
+                  disabled={riskArchiveRunBusy.__all_due__}
+                  className="rounded border border-indigo-300 px-2 py-1 text-xs text-indigo-700 hover:bg-indigo-50 disabled:opacity-60"
                 >
-                  {showAdvancedGovernance ? "Hide advanced technical details" : "Show advanced technical details"}
+                  {riskArchiveRunBusy.__all_due__ ? "Running backups..." : "Run backups now"}
                 </button>
-                {!showAdvancedGovernance && (
-                  <p className="text-xs text-gray-500">
-                    Advanced details include network allowlists, delivery retries/timeouts, and destination reference health.
-                  </p>
-                )}
-                {showAdvancedGovernance && (
-                  <>
+              </div>
+              {riskArchiveRunResult.__all_due__ && (
+                <p className="mb-2 text-xs text-indigo-700">{riskArchiveRunResult.__all_due__}</p>
+              )}
+              {archiveGovernanceError && (
+                <p className="text-sm text-rose-700 mb-2">{archiveGovernanceError}</p>
+              )}
+              {!archiveGovernanceError && !archiveGovernanceConfig && (
+                <p className="text-sm text-gray-600">Loading archive governance settings...</p>
+              )}
+              {archiveGovernanceConfig && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setShowAdvancedGovernance((prev) => !prev)}
+                    className="mb-3 rounded border border-gray-300 px-2 py-1 text-xs text-gray-700 hover:bg-gray-50"
+                  >
+                    {showAdvancedGovernance ? "Hide advanced technical details" : "Show advanced technical details"}
+                  </button>
+                  {!showAdvancedGovernance && (
+                    <p className="text-xs text-gray-500">
+                      Advanced details include network allowlists, delivery retries/timeouts, and destination reference health.
+                    </p>
+                  )}
+                  {showAdvancedGovernance && (
+                    <>
                 <div className="grid grid-cols-1 gap-2 text-xs text-gray-700 sm:grid-cols-2 lg:grid-cols-4">
                   <div className="rounded border border-gray-200 p-2">
                     <p className="font-medium text-gray-900">Webhook hosts</p>
@@ -1373,18 +1471,18 @@ export default function ClassroomDashboardClient() {
                     </li>
                     </ol>
                   </div>
-                  </>
-                )}
-              </>
-            )}
-          </section>
+                    </>
+                  )}
+                </>
+              )}
+            </section>
 
-          <section
-            id="classroom-risk-audit"
-            className="scroll-mt-20 bg-white border border-gray-200 rounded-xl p-5"
-          >
+            <section
+              id="classroom-risk-audit"
+              className="mt-4 border border-gray-200 rounded-xl p-4"
+            >
             <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-              <h2 className="font-semibold text-gray-900">Risk Policy Audit</h2>
+              <h2 className="font-semibold text-gray-900">Risk policy audit log (advanced)</h2>
               <div className="flex items-center gap-2">
                 <input
                   value={auditActorFilter}
@@ -1445,7 +1543,8 @@ export default function ClassroomDashboardClient() {
                 </table>
               </div>
             )}
-          </section>
+            </section>
+          </details>
 
           <section
             id="classroom-section-activity"

@@ -434,6 +434,11 @@ Primary target users are economics students, with platform usage planned across 
 - Added an explicit note that most instructors can ignore archive governance unless handling backup incidents.
 - Hid technical governance details (allowlists, retries/timeouts, destination health, runbook internals) behind an opt-in advanced toggle.
 
+92. Classroom companion-tool pivot (phase 2 progress)
+- Refocused classroom navigation toward instructor workflows that matter for an optional practice companion: leaderboards plus assignments/activity.
+- Added a class leaderboard section that ranks learner participation/completion across sections and flags bonus-credit candidates using assignment completion thresholds.
+- Moved governance-heavy tooling under an "Advanced operations (optional)" accordion so teaching workflows stay primary.
+
 ## Runtime Setup
 
 From repo root:
