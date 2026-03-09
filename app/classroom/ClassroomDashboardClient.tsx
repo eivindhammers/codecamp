@@ -7,25 +7,15 @@ import type {
   AcademicTermsResponse,
   AssignmentRecord,
   AuthConfigResponse,
-  RiskArchiveGovernanceConfigResponse,
-  RiskArchiveAutomationResponse,
-  RiskArchiveDestinationValidation,
   AuthSessionResponse,
   ClassSectionRecord,
   ClassSectionsResponse,
-  ClassroomRiskConfig,
   SectionAssignmentBreakdownRecord,
   SectionGradeSummaryRecord,
   SectionEnrollmentRecord,
   SectionEnrollmentsResponse,
   SectionLearnerMetric,
-  SectionRiskPolicyAuditRecord,
-  SectionRiskArchivePolicyRecord,
-  SectionRiskArchivePolicyResponse,
   SectionOverviewResponse,
-  SectionRiskArchiveRunRecord,
-  SectionRiskPolicyRecord,
-  SectionRiskPolicyResponse,
   UserProfileRecord,
   UserProfileResponse,
 } from "@/lib/grading/contracts";
@@ -37,20 +27,6 @@ interface SectionPanel {
   assignments: AssignmentRecord[];
   assignmentBreakdown: SectionAssignmentBreakdownRecord[];
   gradeSummary: SectionGradeSummaryRecord[];
-  riskPolicy?: SectionRiskPolicyRecord;
-  riskPolicyHistory: SectionRiskPolicyAuditRecord[];
-  riskArchivePolicy: SectionRiskArchivePolicyRecord;
-  riskArchiveNextAt: number;
-  riskArchiveRecentRuns: SectionRiskArchiveRunRecord[];
-  riskArchiveWindow: {
-    totalRuns: number;
-    successRuns: number;
-    failedRuns: number;
-    failureRate: number;
-    lastSuccessAt: number | null;
-    lastFailureAt: number | null;
-  };
-  effectiveRiskConfig: ClassroomRiskConfig;
   error?: string;
 }
 
@@ -59,13 +35,6 @@ interface AssignmentDraft {
   chapterId: string;
   exerciseId: string;
   dueAtLocal: string;
-}
-
-interface RiskArchiveDraft {
-  enabled: boolean;
-  cadence: "daily" | "weekly" | "monthly";
-  retentionDays: number;
-  destinationLabel: string;
 }
 
 interface TermDraft {
@@ -85,12 +54,7 @@ interface MemberDraft {
   role: "student" | "ta" | "instructor";
 }
 
-const DEFAULT_RISK_CONFIG: ClassroomRiskConfig = {
-  minAttemptsAtRisk: 5,
-  maxCompletionRateAtRisk: 25,
-  overdueIncompleteFlagsAtRisk: true,
-  maxCompletionRateStalledAssignment: 60,
-};
+const STALLED_ASSIGNMENT_THRESHOLD = 60;
 const SECTION_VIRTUAL_ROW_HEIGHT = 170;
 const SECTION_VIRTUAL_OVERSCAN = 3;
 const SECTION_VIRTUAL_VIEWPORT_PX = 900;
@@ -156,15 +120,18 @@ async function readJson<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
   return (await response.json()) as T;
 }
 
-export default function ClassroomDashboardClient() {
+export type ClassroomDashboardView = "overview" | "leaderboards" | "members" | "assignments";
+
+export default function ClassroomDashboardClient({
+  view = "overview",
+}: {
+  view?: ClassroomDashboardView;
+}) {
   const [email, setEmail] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [authMode, setAuthMode] = useState<"bootstrap" | "oidc">("bootstrap");
   const [authBusy, setAuthBusy] = useState(false);
   const [authError, setAuthError] = useState("");
-  const [archiveGovernanceError, setArchiveGovernanceError] = useState("");
-  const [archiveGovernanceConfig, setArchiveGovernanceConfig] =
-    useState<RiskArchiveGovernanceConfigResponse["config"]>();
   const [profile, setProfile] = useState<UserProfileRecord>();
   const [sections, setSections] = useState<SectionPanel[]>([]);
   const [loadingSections, setLoadingSections] = useState(false);
@@ -184,29 +151,9 @@ export default function ClassroomDashboardClient() {
   const [hasMoreSections, setHasMoreSections] = useState(false);
   const [totalSectionsCount, setTotalSectionsCount] = useState(0);
   const [learnerSearch, setLearnerSearch] = useState<Record<string, string>>({});
-  const [learnerRiskFilter] = useState<Record<string, "all" | "at-risk" | "on-track">>({});
   const [learnerPage, setLearnerPage] = useState<Record<string, number>>({});
-  const [riskPolicyDrafts, setRiskPolicyDrafts] = useState<Record<string, ClassroomRiskConfig>>(
-    {}
-  );
-  const [riskPolicyBusy, setRiskPolicyBusy] = useState<Record<string, boolean>>({});
-  const [riskPolicyError, setRiskPolicyError] = useState<Record<string, string>>({});
-  const [riskArchiveDrafts, setRiskArchiveDrafts] = useState<Record<string, RiskArchiveDraft>>({});
-  const [riskArchiveBusy, setRiskArchiveBusy] = useState<Record<string, boolean>>({});
-  const [riskArchiveError, setRiskArchiveError] = useState<Record<string, string>>({});
-  const [riskArchiveValidateBusy, setRiskArchiveValidateBusy] = useState<Record<string, boolean>>(
-    {}
-  );
-  const [riskArchiveValidation, setRiskArchiveValidation] = useState<
-    Record<string, RiskArchiveDestinationValidation | undefined>
-  >({});
-  const [riskArchiveRunBusy, setRiskArchiveRunBusy] = useState<Record<string, boolean>>({});
-  const [riskArchiveRunResult, setRiskArchiveRunResult] = useState<Record<string, string>>({});
-  const [expandedSections] = useState<Record<string, boolean>>({});
   const [virtualizeSectionList] = useState(true);
   const [sectionListScrollTop, setSectionListScrollTop] = useState(0);
-  const [auditActorFilter, setAuditActorFilter] = useState("");
-  const [auditActionFilter, setAuditActionFilter] = useState<"all" | "upsert" | "reset">("all");
   const [termDraft, setTermDraft] = useState<TermDraft>(() => getDefaultTermDraft());
   const [sectionDraft, setSectionDraft] = useState<SectionDraft>(() =>
     getDefaultSectionDraft("", courses[0]?.slug ?? "")
@@ -214,13 +161,15 @@ export default function ClassroomDashboardClient() {
   const [setupBusy, setSetupBusy] = useState<"none" | "term" | "section">("none");
   const [setupError, setSetupError] = useState("");
   const [setupSuccess, setSetupSuccess] = useState("");
-  const [showAdvancedGovernance, setShowAdvancedGovernance] = useState(false);
   const [memberDrafts, setMemberDrafts] = useState<Record<string, MemberDraft>>({});
   const [memberBusy, setMemberBusy] = useState<Record<string, boolean>>({});
   const [memberError, setMemberError] = useState<Record<string, string>>({});
 
   const isStaff = profile?.role === "instructor" || profile?.role === "ta";
-  const showAdvancedOps = false;
+  const showOverview = view === "overview";
+  const showLeaderboards = view === "leaderboards";
+  const showMembers = view === "members";
+  const showAssignments = view === "assignments";
 
   const loadSections = useCallback(async (offset = 0, append = false) => {
     if (!isStaff) {
@@ -259,13 +208,6 @@ export default function ClassroomDashboardClient() {
               assignments: overview.assignments,
               assignmentBreakdown: overview.assignmentBreakdown,
               gradeSummary: overview.gradeSummary,
-              riskPolicy: overview.riskPolicy,
-              riskPolicyHistory: overview.riskPolicyHistory,
-              riskArchivePolicy: overview.riskArchivePolicy,
-              riskArchiveNextAt: overview.riskArchiveNextAt,
-              riskArchiveRecentRuns: overview.riskArchiveRecentRuns,
-              riskArchiveWindow: overview.riskArchiveWindow,
-              effectiveRiskConfig: overview.effectiveRiskConfig,
             } as SectionPanel;
           } catch (error) {
             return {
@@ -275,27 +217,6 @@ export default function ClassroomDashboardClient() {
               assignments: [],
               assignmentBreakdown: [],
               gradeSummary: [],
-              riskPolicyHistory: [],
-              riskArchivePolicy: {
-                sectionId: section.sectionId,
-                enabled: false,
-                cadence: "weekly",
-                retentionDays: 180,
-                destinationLabel: null,
-                lastArchivedAt: null,
-                updatedAt: Date.now(),
-              },
-              riskArchiveNextAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
-              riskArchiveRecentRuns: [],
-              riskArchiveWindow: {
-                totalRuns: 0,
-                successRuns: 0,
-                failedRuns: 0,
-                failureRate: 0,
-                lastSuccessAt: null,
-                lastFailureAt: null,
-              },
-              effectiveRiskConfig: DEFAULT_RISK_CONFIG,
               error:
                 error instanceof Error
                   ? `Could not load classroom data: ${error.message}`
@@ -321,25 +242,6 @@ export default function ClassroomDashboardClient() {
               panel.section.courseSlug
             );
           }
-        }
-        return next;
-      });
-      setRiskPolicyDrafts((prev) => {
-        const next = { ...prev };
-        for (const panel of panels) {
-          next[panel.section.sectionId] = panel.effectiveRiskConfig;
-        }
-        return next;
-      });
-      setRiskArchiveDrafts((prev) => {
-        const next = { ...prev };
-        for (const panel of panels) {
-          next[panel.section.sectionId] = {
-            enabled: panel.riskArchivePolicy.enabled,
-            cadence: panel.riskArchivePolicy.cadence,
-            retentionDays: panel.riskArchivePolicy.retentionDays,
-            destinationLabel: panel.riskArchivePolicy.destinationLabel ?? "",
-          };
         }
         return next;
       });
@@ -394,29 +296,6 @@ export default function ClassroomDashboardClient() {
       }
     };
     void loadTerms();
-  }, [isStaff, profile]);
-
-  useEffect(() => {
-    if (!profile || !isStaff) {
-      setArchiveGovernanceConfig(undefined);
-      setArchiveGovernanceError("");
-      return;
-    }
-    const loadArchiveGovernance = async () => {
-      try {
-        const payload = await readJson<RiskArchiveGovernanceConfigResponse>(
-          "/api/classroom/risk-archive/config"
-        );
-        setArchiveGovernanceConfig(payload.config);
-        setArchiveGovernanceError("");
-      } catch (error) {
-        setArchiveGovernanceConfig(undefined);
-        setArchiveGovernanceError(
-          error instanceof Error ? error.message : "Failed to load archive governance config."
-        );
-      }
-    };
-    void loadArchiveGovernance();
   }, [isStaff, profile]);
 
   useEffect(() => {
@@ -479,284 +358,6 @@ export default function ClassroomDashboardClient() {
   function setLearnerSearchValue(sectionId: string, value: string) {
     setLearnerSearch((prev) => ({ ...prev, [sectionId]: value }));
     setLearnerPage((prev) => ({ ...prev, [sectionId]: 1 }));
-  }
-
-  function setRiskPolicyDraftValue(
-    sectionId: string,
-    field: keyof ClassroomRiskConfig,
-    value: number | boolean
-  ) {
-    setRiskPolicyDrafts((prev) => {
-      const current = prev[sectionId] ?? DEFAULT_RISK_CONFIG;
-      return {
-        ...prev,
-        [sectionId]: {
-          ...current,
-          [field]: value,
-        },
-      };
-    });
-  }
-
-  function setRiskArchiveDraftValue(
-    sectionId: string,
-    field: keyof RiskArchiveDraft,
-    value: string | number | boolean
-  ) {
-    setRiskArchiveDrafts((prev) => {
-      const current = prev[sectionId] ?? {
-        enabled: false,
-        cadence: "weekly",
-        retentionDays: 180,
-        destinationLabel: "",
-      };
-      return {
-        ...prev,
-        [sectionId]: {
-          ...current,
-          [field]: value,
-        } as RiskArchiveDraft,
-      };
-    });
-  }
-
-  async function onSaveRiskPolicy(sectionId: string) {
-    const draft = riskPolicyDrafts[sectionId];
-    if (!draft) return;
-    setRiskPolicyBusy((prev) => ({ ...prev, [sectionId]: true }));
-    setRiskPolicyError((prev) => ({ ...prev, [sectionId]: "" }));
-    try {
-      await readJson<SectionRiskPolicyResponse>(
-        `/api/classroom/sections/risk-policy?sectionId=${encodeURIComponent(sectionId)}`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(draft),
-        }
-      );
-      await loadSections(0, false);
-    } catch (error) {
-      setRiskPolicyError((prev) => ({
-        ...prev,
-        [sectionId]:
-          error instanceof Error ? error.message : "Failed to save section risk policy.",
-      }));
-    } finally {
-      setRiskPolicyBusy((prev) => ({ ...prev, [sectionId]: false }));
-    }
-  }
-
-  async function onResetRiskPolicy(sectionId: string) {
-    setRiskPolicyBusy((prev) => ({ ...prev, [sectionId]: true }));
-    setRiskPolicyError((prev) => ({ ...prev, [sectionId]: "" }));
-    try {
-      await readJson<SectionRiskPolicyResponse>(
-        `/api/classroom/sections/risk-policy?sectionId=${encodeURIComponent(sectionId)}`,
-        { method: "DELETE" }
-      );
-      await loadSections(0, false);
-    } catch (error) {
-      setRiskPolicyError((prev) => ({
-        ...prev,
-        [sectionId]:
-          error instanceof Error ? error.message : "Failed to reset section risk policy.",
-      }));
-    } finally {
-      setRiskPolicyBusy((prev) => ({ ...prev, [sectionId]: false }));
-    }
-  }
-
-  async function onSaveRiskArchivePolicy(sectionId: string) {
-    const draft = riskArchiveDrafts[sectionId];
-    if (!draft) return;
-    setRiskArchiveBusy((prev) => ({ ...prev, [sectionId]: true }));
-    setRiskArchiveError((prev) => ({ ...prev, [sectionId]: "" }));
-    try {
-      await readJson<SectionRiskArchivePolicyResponse>(
-        `/api/classroom/sections/risk-policy/archive?sectionId=${encodeURIComponent(sectionId)}`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            enabled: draft.enabled,
-            cadence: draft.cadence,
-            retentionDays: draft.retentionDays,
-            destinationLabel: draft.destinationLabel,
-          }),
-        }
-      );
-      await loadSections(0, false);
-    } catch (error) {
-      setRiskArchiveError((prev) => ({
-        ...prev,
-        [sectionId]:
-          error instanceof Error ? error.message : "Failed to save archive policy.",
-      }));
-    } finally {
-      setRiskArchiveBusy((prev) => ({ ...prev, [sectionId]: false }));
-    }
-  }
-
-  async function onValidateRiskArchiveDestination(sectionId: string) {
-    const draft = riskArchiveDrafts[sectionId];
-    if (!draft) return;
-    setRiskArchiveValidateBusy((prev) => ({ ...prev, [sectionId]: true }));
-    setRiskArchiveError((prev) => ({ ...prev, [sectionId]: "" }));
-    try {
-      const result = await readJson<RiskArchiveDestinationValidation>(
-        `/api/classroom/sections/risk-policy/archive/validate?sectionId=${encodeURIComponent(
-          sectionId
-        )}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ destinationLabel: draft.destinationLabel }),
-        }
-      );
-      setRiskArchiveValidation((prev) => ({ ...prev, [sectionId]: result }));
-    } catch (error) {
-      setRiskArchiveError((prev) => ({
-        ...prev,
-        [sectionId]:
-          error instanceof Error ? error.message : "Failed to validate archive destination.",
-      }));
-      setRiskArchiveValidation((prev) => ({ ...prev, [sectionId]: undefined }));
-    } finally {
-      setRiskArchiveValidateBusy((prev) => ({ ...prev, [sectionId]: false }));
-    }
-  }
-
-  async function onRunArchiveNow(sectionId: string) {
-    setRiskArchiveRunBusy((prev) => ({ ...prev, [sectionId]: true }));
-    setRiskArchiveError((prev) => ({ ...prev, [sectionId]: "" }));
-    setRiskArchiveRunResult((prev) => ({ ...prev, [sectionId]: "" }));
-    try {
-      const response = await readJson<RiskArchiveAutomationResponse>(
-        "/api/classroom/risk-archive/run",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sectionId }),
-        }
-      );
-      const item = response.processed[0];
-      if (!item) {
-        setRiskArchiveRunResult((prev) => ({
-          ...prev,
-          [sectionId]: "No archive run item was returned.",
-        }));
-      } else if (item.status === "success") {
-        setRiskArchiveRunResult((prev) => ({
-          ...prev,
-          [sectionId]: `Archive run succeeded (${item.archivedRecords} records).`,
-        }));
-      } else if (item.status === "skipped") {
-        setRiskArchiveRunResult((prev) => ({
-          ...prev,
-          [sectionId]: [
-            "Archive run skipped (not due or policy disabled).",
-            item.alertLevel && item.alertLevel !== "none"
-              ? `Alert level: ${item.alertLevel}.`
-              : "",
-          ]
-            .filter((part) => part.length > 0)
-            .join(" "),
-        }));
-      } else {
-        const recommendationText =
-          item.recommendedActions && item.recommendedActions.length > 0
-            ? ` Next actions: ${item.recommendedActions.join(" ")}`
-            : "";
-        const notifyText = item.notificationTarget
-          ? ` Notify target: ${item.notificationTarget}.`
-          : "";
-        const streakText =
-          typeof item.failureStreak === "number" ? ` Failure streak: ${item.failureStreak}.` : "";
-        setRiskArchiveRunResult((prev) => ({
-          ...prev,
-          [sectionId]: `Archive run failed: ${item.errorMessage ?? "Unknown error."}${streakText}${notifyText}${recommendationText}`,
-        }));
-      }
-      await loadSections(0, false);
-    } catch (error) {
-      setRiskArchiveError((prev) => ({
-        ...prev,
-        [sectionId]:
-          error instanceof Error ? error.message : "Failed to record archive run.",
-      }));
-    } finally {
-      setRiskArchiveRunBusy((prev) => ({ ...prev, [sectionId]: false }));
-    }
-  }
-
-  async function onRunDueArchivesNow() {
-    const globalKey = "__all_due__";
-    setRiskArchiveRunBusy((prev) => ({ ...prev, [globalKey]: true }));
-    setRiskArchiveRunResult((prev) => ({ ...prev, [globalKey]: "" }));
-    try {
-      const response = await readJson<RiskArchiveAutomationResponse>(
-        "/api/classroom/risk-archive/run",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({}),
-        }
-      );
-      const total = response.processed.length;
-      const successCount = response.processed.filter((item) => item.status === "success").length;
-      const failed = response.processed.filter((item) => item.status === "failure");
-      const skippedCount = response.processed.filter((item) => item.status === "skipped").length;
-      const criticalCount = response.processed.filter((item) => item.alertLevel === "critical").length;
-
-      let summary = `Run due archives complete: ${successCount} success, ${failed.length} failure, ${skippedCount} skipped across ${total} sections.`;
-      if (criticalCount > 0) {
-        summary += ` ${criticalCount} section(s) are at critical escalation level.`;
-      }
-      const notifyTargets = Array.from(
-        new Set(
-          failed
-            .map((item) => item.notificationTarget ?? "")
-            .filter((target) => target.length > 0)
-        )
-      );
-      if (notifyTargets.length > 0) {
-        summary += ` Notify: ${notifyTargets.join(", ")}.`;
-      }
-      setRiskArchiveRunResult((prev) => ({ ...prev, [globalKey]: summary }));
-      await loadSections(0, false);
-    } catch (error) {
-      setRiskArchiveRunResult((prev) => ({
-        ...prev,
-        [globalKey]:
-          error instanceof Error ? error.message : "Failed to run due archive automation.",
-      }));
-    } finally {
-      setRiskArchiveRunBusy((prev) => ({ ...prev, [globalKey]: false }));
-    }
-  }
-
-  function getRiskPolicyExportHref(sectionId: string) {
-    const params = new URLSearchParams({
-      sectionId,
-      format: "csv",
-      limit: "500",
-    });
-    if (auditActionFilter !== "all") {
-      params.set("action", auditActionFilter);
-    }
-    if (auditActorFilter.trim().length > 0) {
-      params.set("actor", auditActorFilter.trim());
-    }
-    return `/api/classroom/sections/risk-policy/export?${params.toString()}`;
-  }
-
-  function getRiskArchiveRunExportHref(sectionId: string) {
-    const params = new URLSearchParams({
-      sectionId,
-      format: "csv",
-      limit: "100",
-    });
-    return `/api/classroom/sections/risk-policy/archive/report/export?${params.toString()}`;
   }
 
   async function onCreateAssignment(event: FormEvent<HTMLFormElement>, section: ClassSectionRecord) {
@@ -982,27 +583,6 @@ export default function ClassroomDashboardClient() {
     });
   }, [courseFilter, sections, termFilter]);
 
-  const auditRows = useMemo(() => {
-    const actorNeedle = auditActorFilter.trim().toLowerCase();
-    return filteredSections
-      .flatMap((panel) =>
-        panel.riskPolicyHistory.map((event) => ({
-          event,
-          sectionId: panel.section.sectionId,
-          sectionTitle: panel.section.title,
-          courseSlug: panel.section.courseSlug,
-        }))
-      )
-      .filter((row) => {
-        if (auditActionFilter !== "all" && row.event.action !== auditActionFilter) return false;
-        if (actorNeedle.length > 0 && !row.event.actorUserId.toLowerCase().includes(actorNeedle)) {
-          return false;
-        }
-        return true;
-      })
-      .sort((a, b) => b.event.createdAt - a.event.createdAt);
-  }, [auditActionFilter, auditActorFilter, filteredSections]);
-
   const shouldVirtualizeSections = useMemo(
     () => virtualizeSectionList && filteredSections.length > 8,
     [filteredSections.length, virtualizeSectionList]
@@ -1151,13 +731,13 @@ export default function ClassroomDashboardClient() {
             </div>
           </section>
 
-          {summary.sections === 0 && (
+          {showOverview && summary.sections === 0 && (
             <section className="bg-indigo-50 border border-indigo-200 rounded-xl p-5 space-y-4">
               <div>
                 <h2 className="font-semibold text-indigo-900">Getting started checklist</h2>
                 <p className="text-sm text-indigo-800 mt-1">
-                  Your classroom is empty right now. Complete these steps to populate Overview,
-                  Risk Policy Audit, and Section Activity.
+                  Your classroom is empty right now. Complete these steps to start managing members,
+                  assignments, and leaderboard progress.
                 </p>
               </div>
               <ul className="space-y-2 text-sm">
@@ -1266,7 +846,8 @@ export default function ClassroomDashboardClient() {
             </section>
           )}
 
-          <section
+          {showLeaderboards && (
+            <section
             id="classroom-leaderboards"
             className="scroll-mt-20 bg-white border border-gray-200 rounded-xl p-5"
           >
@@ -1331,16 +912,18 @@ export default function ClassroomDashboardClient() {
                 </table>
               </div>
             )}
-          </section>
+            </section>
+          )}
 
-          
-
-          <section
-            id="classroom-section-activity"
+          {(showMembers || showAssignments) && (
+            <section
+            id={showMembers ? "classroom-members" : "classroom-assignments"}
             className="scroll-mt-20 bg-white border border-gray-200 rounded-xl p-5"
           >
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-gray-900">Members, assignments, and activity</h2>
+              <h2 className="font-semibold text-gray-900">
+                {showMembers ? "Members and learner activity" : "Assignments and learning paths"}
+              </h2>
               <div className="flex items-center gap-2">
                 <input
                   value={sectionSearch}
@@ -1385,14 +968,18 @@ export default function ClassroomDashboardClient() {
                 <p className="text-xs text-gray-500">Members</p>
                 <p className="text-xl font-semibold text-gray-900">{summary.learners}</p>
                 <p className="mt-1 text-xs text-gray-600">
-                  Add and view members inside each section card below.
+                  {showMembers
+                    ? "Add and view members inside each section card below."
+                    : "Use the members page to add and manage enrollments."}
                 </p>
               </div>
               <div className="rounded border border-gray-200 p-3">
                 <p className="text-xs text-gray-500">Assignments / learning paths</p>
                 <p className="text-xl font-semibold text-gray-900">{summary.assignmentsPublished}</p>
                 <p className="mt-1 text-xs text-gray-600">
-                  Create assignments inside each section card below.
+                  {showAssignments
+                    ? "Create assignments inside each section card below."
+                    : "Use the assignments page to publish work for each section."}
                 </p>
               </div>
             </div>
@@ -1432,10 +1019,7 @@ export default function ClassroomDashboardClient() {
                 }
               >
               {visibleSectionPanels.map((panel) => {
-                const panelRiskConfig = panel.effectiveRiskConfig;
-                const sectionExpanded = expandedSections[panel.section.sectionId] ?? true;
                 const searchQuery = (learnerSearch[panel.section.sectionId] ?? "").trim().toLowerCase();
-                const riskMode = learnerRiskFilter[panel.section.sectionId] ?? "all";
                 const overdueAssignments = panel.assignments.filter(
                   (assignment) => assignment.dueAt !== null && assignment.dueAt < Date.now()
                 ).length;
@@ -1445,27 +1029,15 @@ export default function ClassroomDashboardClient() {
                       (row) => row.userId === metric.userId
                     );
                     const completionRate = learnerSummary?.completionRate ?? 0;
-                    const overdueRuleTriggered =
-                      panelRiskConfig.overdueIncompleteFlagsAtRisk &&
-                      overdueAssignments > 0 &&
-                      completionRate < 100;
-                    const attemptsRuleTriggered =
-                      metric.attemptsCount >= panelRiskConfig.minAttemptsAtRisk &&
-                      completionRate < panelRiskConfig.maxCompletionRateAtRisk;
-                    const atRisk =
-                      overdueRuleTriggered || attemptsRuleTriggered;
                     return {
                       metric,
                       completionRate,
-                      atRisk,
                     };
                   })
                   .filter((row) => {
                     if (searchQuery.length > 0 && !row.metric.userId.toLowerCase().includes(searchQuery)) {
                       return false;
                     }
-                    if (riskMode === "at-risk") return row.atRisk;
-                    if (riskMode === "on-track") return !row.atRisk;
                     return true;
                   });
 
@@ -1516,14 +1088,8 @@ export default function ClassroomDashboardClient() {
                       </a>
                     </div>
                   </div>
-                  {!sectionExpanded ? (
-                    <p className="text-xs text-gray-500">
-                      Details collapsed to improve dashboard rendering performance for large section lists.
-                    </p>
-                  ) : (
-                    <>
                   {panel.error && <p className="text-xs text-rose-700">{panel.error}</p>}
-                  {!panel.error && (
+                  {!panel.error && showMembers && (
                     <div className="mt-3 rounded border border-gray-100 p-3">
                       <h3 className="text-sm font-medium text-gray-900 mb-2">Members</h3>
                       <form
@@ -1603,10 +1169,10 @@ export default function ClassroomDashboardClient() {
                       )}
                     </div>
                   )}
-                  {!panel.error && panel.metrics.length === 0 && (
+                  {!panel.error && showMembers && panel.metrics.length === 0 && (
                     <p className="text-sm text-gray-600">No learner metrics yet.</p>
                   )}
-                  {!panel.error && panel.metrics.length > 0 && (
+                  {!panel.error && showMembers && panel.metrics.length > 0 && (
                     <div className="space-y-2">
                       <div className="flex flex-wrap items-center gap-2">
                         <input
@@ -1694,7 +1260,7 @@ export default function ClassroomDashboardClient() {
                       </div>
                     </div>
                   )}
-                  {!panel.error && (
+                  {!panel.error && showAssignments && (
                     <div className="mt-4 border-t border-gray-100 pt-3">
                       <h3 className="text-sm font-medium text-gray-900 mb-2">Assignments</h3>
                       <form
@@ -1813,7 +1379,7 @@ export default function ClassroomDashboardClient() {
                                   isLate &&
                                   breakdown !== undefined &&
                                   breakdown.completionRate <
-                                    panelRiskConfig.maxCompletionRateStalledAssignment;
+                                    STALLED_ASSIGNMENT_THRESHOLD;
                                 return (
                                   <tr
                                     key={assignment.assignmentId}
@@ -1866,9 +1432,7 @@ export default function ClassroomDashboardClient() {
                       )}
                     </div>
                   )}
-                    </>
-                  )}
-                </div>
+                  </div>
                 );
               })}
               </div>
@@ -1885,7 +1449,8 @@ export default function ClassroomDashboardClient() {
                 </button>
               </div>
             )}
-          </section>
+            </section>
+          )}
         </>
       )}
     </div>

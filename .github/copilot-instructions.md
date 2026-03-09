@@ -98,6 +98,8 @@ The classroom dashboard also supports assignment creation and due-state indicato
 Classroom UX is positioned as a teaching companion (assign practice content + monitor participation/leaderboards), not a required graded/compliance system.
 When a classroom has no sections yet, the dashboard shows a "Getting started checklist" with quick-create term and section forms for instructors.
 Dashboard cards focus on simple instructor KPIs: sections, learners tracked, attempts logged, average completion rate, and assignments published.
+Classroom now uses dedicated sub-pages for instructor workflows: `/classroom` (overview), `/classroom/leaderboards`, `/classroom/members`, and `/classroom/assignments`.
+Members and assignments are intentionally separated into distinct pages to reduce clutter and keep each workflow focused.
 Assignment authoring in the dashboard uses chapter/exercise options derived from `lib/courses.ts` for the selected section course.
 Section activity is intentionally simplified around member roster management, learner participation visibility, and assignment/learning-path management.
 Enrollment API enforces role assignment guardrails: only instructor actors can assign `instructor`/`ta` roles in section enrollments.

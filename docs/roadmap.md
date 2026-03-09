@@ -454,6 +454,11 @@ Primary target users are economics students, with platform usage planned across 
 - Classroom activity cards now focus on members, assignments/learning paths, and learner progress visibility only.
 - Keeps governance/archive APIs available in backend for future admin tooling, without exposing them in the default instructor workflow.
 
+96. Classroom workflow split into dedicated pages (phase 2 progress)
+- Reorganized `/classroom` into separate routes for Overview, Leaderboards, Members, and Assignments to avoid stacked, mixed-purpose panels.
+- Members and Assignments now have dedicated views so instructors can manage each workflow independently without cross-page clutter.
+- Sidebar navigation now links to these classroom sub-pages directly (`/classroom`, `/classroom/leaderboards`, `/classroom/members`, `/classroom/assignments`).
+
 ## Runtime Setup
 
 From repo root:
