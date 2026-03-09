@@ -92,6 +92,7 @@ Protected classroom routes now use session-backed identity (`codecamp_session` c
 `/api/classroom/sections` supports server-backed filtering/sorting/pagination via query params (`termId`, `search`, `courseSlug`, `sort`, `limit`, `offset`).
 Auth supports two modes via `AUTH_MODE`: `bootstrap` (email POST to `/api/auth/session`) and `oidc` (redirect via `/api/auth/login` and callback at `/api/auth/callback`).
 `/classroom` provides an instructor dashboard client for section metrics and exports.
+Top-level learner navigation now includes `/learn`, `/practice`, and `/progress` routes in addition to `/classroom`.
 The classroom dashboard also supports assignment creation and due-state indicators per section.
 Dashboard cards and section headers include pass-rate and stuck-learner indicators derived from section export summaries.
 Assignment authoring in the dashboard uses chapter/exercise options derived from `lib/courses.ts` for the selected section course.

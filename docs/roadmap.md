@@ -379,6 +379,10 @@ Primary target users are economics students, with platform usage planned across 
 - `GET /api/classroom/risk-config` now requires authenticated global staff session access.
 - This closes remaining unauthenticated classroom policy-read exposure and aligns with other classroom governance endpoints.
 
+84. Multi-page information architecture foundation (phase 2 progress)
+- Added first-class top-level routes: `/learn`, `/practice`, and `/progress`, with homepage shifted to a hub-style landing page.
+- Header navigation now links across Learn/Practice/Progress/Classroom, creating a scalable route structure for future features like leaderboard/high scores.
+
 ## Runtime Setup
 
 From repo root:
@@ -481,6 +485,9 @@ Use this queue for day-to-day execution; keep it small and rotate items after ea
 
 3. Broader server-side grading coverage
 - Enable server-graded checkers for more migrated filesystem exercises across both R and Python tracks.
+
+4. Progress and leaderboard surfaces
+- Build on the new `/progress` route with high scores, streaks, and milestone/achievement views.
 
 ### Later
 1. Broader server-side grading coverage across additional exercises/courses.
