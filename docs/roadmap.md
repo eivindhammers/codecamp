@@ -393,6 +393,7 @@ Primary target users are economics students, with platform usage planned across 
 86. Content-pack migration throughput expansion (phase 2 progress)
 - Scaffolded filesystem pack for `intro-python/basics/variables` via `scaffold:content-pack`, including `exercise.json`, `checker.py`, and `solution.py`.
 - Added additional scaffolded packs for `intro-python/basics/conditionals` and `intro-r/basics/data-types` to keep migration throughput moving on beginner tracks.
+- Added scaffolded packs for `intro-r/basics/hello-r` and `intro-python/lists-dicts/lists` to expand beginner coverage across both language tracks.
 - Keeps migration momentum on the current "Content migration throughput" Now item while preserving metadata parity and pack validation workflows.
 
 ## Runtime Setup

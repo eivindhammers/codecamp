@@ -1,0 +1,9 @@
+{
+  "id": "lists",
+  "language": "python",
+  "title": "Working with Lists",
+  "instructions": "Create a list `countries` with `\"Norway\", \"Sweden\", \"Denmark\", \"Finland\"`. Append `\"Iceland\"`, then print the list sorted alphabetically.",
+  "starterCode": "# Create and modify a list\ncountries = [___]\ncountries.append(___)\nprint(sorted(countries))",
+  "xp": 15,
+  "checker": "checker.py"
+}
