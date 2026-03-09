@@ -79,7 +79,7 @@ Classroom metadata reads for terms/sections are staff-authenticated (`GET /api/c
 Protected classroom routes now use session-backed identity (`codecamp_session` cookie) with role/section checks; production identity provider integration is still pending.
 `/api/classroom/sections/export` provides JSON/CSV grade-summary exports for section instructors.
 `/api/classroom/sections/assignment-breakdown` provides assignment-level completion rollups for section staff.
-`/api/classroom/risk-config` returns environment-backed thresholds used by dashboard risk indicators.
+`/api/classroom/risk-config` returns environment-backed thresholds used by dashboard risk indicators and requires staff authentication.
 `/api/classroom/sections/risk-policy` supports per-section staff overrides and returns policy audit history (filterable via `limit`, `action`, `actor` query params).
 `/api/classroom/sections/risk-policy/export` provides CSV/JSON exports for section policy audit history.
 `/api/classroom/sections/risk-policy/archive` manages section-level audit archival cadence/retention policy metadata.

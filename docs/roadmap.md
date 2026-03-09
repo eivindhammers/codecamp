@@ -375,6 +375,10 @@ Primary target users are economics students, with platform usage planned across 
 - `ProgressContext` now exposes backend hydration sync state (`syncing`/`synced`/`error`) and surfaces explicit error text when catalog sync fails.
 - Header XP UI now shows sync-in-progress and sync-issue indicators so backend progress failures are no longer silent.
 
+83. Classroom risk-config read authentication boundary (phase 2 progress)
+- `GET /api/classroom/risk-config` now requires authenticated global staff session access.
+- This closes remaining unauthenticated classroom policy-read exposure and aligns with other classroom governance endpoints.
+
 ## Runtime Setup
 
 From repo root:
@@ -421,6 +425,7 @@ npm run redis:down
 - Verify staff-role assignment to an explicitly student-profile user is rejected.
 - Verify `/api/classroom/profile` rejects unauthenticated writes and rejects cross-user profile updates.
 - Verify unauthenticated requests to `/api/classroom/terms` and `/api/classroom/sections` are rejected.
+- Verify unauthenticated requests to `/api/classroom/risk-config` are rejected.
 
 5. Governance/sandbox gates
 - Run `npm run check:sandbox-images`, `npm run check:sandbox-policy`, `npm run check:sandbox-faults` (docker mode).
