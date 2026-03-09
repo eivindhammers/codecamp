@@ -395,6 +395,7 @@ Primary target users are economics students, with platform usage planned across 
 - Added additional scaffolded packs for `intro-python/basics/conditionals` and `intro-r/basics/data-types` to keep migration throughput moving on beginner tracks.
 - Added scaffolded packs for `intro-r/basics/hello-r` and `intro-python/lists-dicts/lists` to expand beginner coverage across both language tracks.
 - Added scaffolded packs for `intro-r/vectors/create-vector` and `intro-python/lists-dicts/dicts` for broader beginner sequence coverage.
+- Added scaffolded packs for `intro-r/vectors/vector-ops` and `intro-python/functions/define-function` to extend beginner progression into vectors and functions.
 - Keeps migration momentum on the current "Content migration throughput" Now item while preserving metadata parity and pack validation workflows.
 
 ## Runtime Setup

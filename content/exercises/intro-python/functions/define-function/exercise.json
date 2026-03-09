@@ -1,0 +1,9 @@
+{
+  "id": "define-function",
+  "language": "python",
+  "title": "Define a Function",
+  "instructions": "Define a function `compound_growth(principal, rate, years)` that returns the future value using the formula `principal * (1 + rate) ** years`. Test it with `principal=1000, rate=0.05, years=10`.",
+  "starterCode": "def compound_growth(principal, rate, years):\n    # Return future value\n    return ___\n\n# Test the function\nresult = compound_growth(1000, 0.05, 10)\nprint(round(result, 2))",
+  "xp": 20,
+  "checker": "checker.py"
+}
