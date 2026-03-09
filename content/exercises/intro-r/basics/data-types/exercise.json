@@ -1,0 +1,9 @@
+{
+  "id": "data-types",
+  "language": "r",
+  "title": "Data Types",
+  "instructions": "Create a numeric variable `age` with value `30`, a character variable `name` with value `\"Alice\"`, and a logical variable `is_student` set to `TRUE`. Print all three.",
+  "starterCode": "# Create variables of different types\nage <- ___\nname <- ___\nis_student <- ___\nprint(age)\nprint(name)\nprint(is_student)",
+  "xp": 10,
+  "checker": "checker.R"
+}
