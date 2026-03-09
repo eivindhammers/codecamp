@@ -7,7 +7,7 @@ export default function ClassroomPage() {
       title="Classroom"
       links={[
         { href: "#classroom-overview", label: "Overview" },
-        { href: "#classroom-archive-governance", label: "Archive governance" },
+        { href: "#classroom-archive-governance", label: "Backups & archive" },
         { href: "#classroom-risk-audit", label: "Risk policy audit" },
         { href: "#classroom-section-activity", label: "Section activity" },
       ]}

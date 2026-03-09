@@ -206,6 +206,7 @@ export default function ClassroomDashboardClient() {
   const [setupBusy, setSetupBusy] = useState<"none" | "term" | "section">("none");
   const [setupError, setSetupError] = useState("");
   const [setupSuccess, setSetupSuccess] = useState("");
+  const [showAdvancedGovernance, setShowAdvancedGovernance] = useState(false);
 
   const isStaff = profile?.role === "instructor" || profile?.role === "ta";
 
@@ -1213,15 +1214,18 @@ export default function ClassroomDashboardClient() {
             className="scroll-mt-20 bg-white border border-gray-200 rounded-xl p-5"
           >
             <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-              <h2 className="font-semibold text-gray-900">Archive Delivery Governance</h2>
+              <h2 className="font-semibold text-gray-900">Backups and archive settings</h2>
               <button
                 onClick={() => onRunDueArchivesNow()}
                 disabled={riskArchiveRunBusy.__all_due__}
                 className="rounded border border-indigo-300 px-2 py-1 text-xs text-indigo-700 hover:bg-indigo-50 disabled:opacity-60"
               >
-                {riskArchiveRunBusy.__all_due__ ? "Running due archives..." : "Run due archives now"}
+                {riskArchiveRunBusy.__all_due__ ? "Running backups..." : "Run backups now"}
               </button>
             </div>
+            <p className="mb-2 text-sm text-gray-600">
+              Most instructors can ignore this section. These settings are for automated backup delivery and incident recovery.
+            </p>
             {riskArchiveRunResult.__all_due__ && (
               <p className="mb-2 text-xs text-indigo-700">{riskArchiveRunResult.__all_due__}</p>
             )}
@@ -1233,6 +1237,20 @@ export default function ClassroomDashboardClient() {
             )}
             {archiveGovernanceConfig && (
               <>
+                <button
+                  type="button"
+                  onClick={() => setShowAdvancedGovernance((prev) => !prev)}
+                  className="mb-3 rounded border border-gray-300 px-2 py-1 text-xs text-gray-700 hover:bg-gray-50"
+                >
+                  {showAdvancedGovernance ? "Hide advanced technical details" : "Show advanced technical details"}
+                </button>
+                {!showAdvancedGovernance && (
+                  <p className="text-xs text-gray-500">
+                    Advanced details include network allowlists, delivery retries/timeouts, and destination reference health.
+                  </p>
+                )}
+                {showAdvancedGovernance && (
+                  <>
                 <div className="grid grid-cols-1 gap-2 text-xs text-gray-700 sm:grid-cols-2 lg:grid-cols-4">
                   <div className="rounded border border-gray-200 p-2">
                     <p className="font-medium text-gray-900">Webhook hosts</p>
@@ -1353,8 +1371,10 @@ export default function ClassroomDashboardClient() {
                       If failure streak or failure-rate escalation thresholds are exceeded, notify the configured
                       escalation target and capture remediation evidence in section exports.
                     </li>
-                  </ol>
-                </div>
+                    </ol>
+                  </div>
+                  </>
+                )}
               </>
             )}
           </section>

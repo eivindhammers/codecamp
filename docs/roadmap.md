@@ -429,6 +429,11 @@ Primary target users are economics students, with platform usage planned across 
 - Added quick-create forms in the onboarding panel for instructors to create an academic term and first section directly from the dashboard.
 - Checklist completion state now reflects live dashboard data (term/section/assignment/attempt milestones).
 
+91. Classroom archive UX simplification (phase 2 progress)
+- Renamed the archive area to plain-language "Backups and archive settings" and updated action copy to "Run backups now."
+- Added an explicit note that most instructors can ignore archive governance unless handling backup incidents.
+- Hid technical governance details (allowlists, retries/timeouts, destination health, runbook internals) behind an opt-in advanced toggle.
+
 ## Runtime Setup
 
 From repo root:

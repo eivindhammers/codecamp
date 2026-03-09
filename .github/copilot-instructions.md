@@ -124,6 +124,7 @@ Archive governance config now includes per-reference health (ref/env key/revoked
 Archive governance panel now includes an instructor-facing incident runbook for destination validation, ref rotation/revocation triage, and failure recovery/export flow.
 Archive controls now include section-scoped "Run archive now" execution wired to `/api/classroom/risk-archive/run`, with immediate outcome feedback in dashboard cards.
 Archive governance panel also includes a global "Run due archives now" control that executes due archive automation across sections and reports summarized outcomes.
+Archive governance technical detail is now hidden behind an explicit advanced-details toggle, with plain-language copy for typical instructor workflows.
 Archive execution and manual archive-run recording endpoints are instructor-only write actions.
 
 ## Conventions
