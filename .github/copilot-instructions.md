@@ -63,7 +63,7 @@ content/exercises/{courseSlug}/{chapterId}/{exerciseId}/
   checker.R|checker.py  # Runs submitted code + assertions; output parsed by language-specific grader
   solution.R|solution.py # Reference solution
 ```
-Current migrated packs include intro exercises plus examples in intermediate-python, economics-data-science, and r-for-economists tracks.
+Current migrated packs include intro exercises plus examples in intermediate-python, economics-data-science, and r-for-economists tracks (including `intro-python/basics/variables`).
 Both R and Python have server-side grading support (currently enabled for selected exercises).
 
 ### API routes all use `runtime = 'nodejs'`

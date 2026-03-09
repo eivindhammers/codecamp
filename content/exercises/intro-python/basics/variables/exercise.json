@@ -1,0 +1,9 @@
+{
+  "id": "variables",
+  "language": "python",
+  "title": "Variables and Types",
+  "instructions": "Create variables: `city = \"Oslo\"`, `population = 693494`, `gdp_per_capita = 82236.8`. Print each variable and its type using `type()`.",
+  "starterCode": "# Define variables\ncity = ___\npopulation = ___\ngdp_per_capita = ___\n\n# Print each variable and its type\nprint(city, type(city))\nprint(population, type(population))\nprint(gdp_per_capita, type(gdp_per_capita))",
+  "xp": 10,
+  "checker": "checker.py"
+}

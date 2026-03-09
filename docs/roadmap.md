@@ -390,6 +390,10 @@ Primary target users are economics students, with platform usage planned across 
 - Sidebar navigation is now rendered as a true fixed left rail (`xl` breakpoint) on Learn/Classroom pages rather than an in-content column.
 - Added mobile/tablet hamburger-triggered side-nav drawer on Learn/Classroom so navigation remains accessible when the fixed left rail is hidden.
 
+86. Content-pack migration throughput expansion (phase 2 progress)
+- Scaffolded filesystem pack for `intro-python/basics/variables` via `scaffold:content-pack`, including `exercise.json`, `checker.py`, and `solution.py`.
+- Keeps migration momentum on the current "Content migration throughput" Now item while preserving metadata parity and pack validation workflows.
+
 ## Runtime Setup
 
 From repo root:
