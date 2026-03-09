@@ -202,7 +202,7 @@ export default function ClassroomDashboardClient() {
   >({});
   const [riskArchiveRunBusy, setRiskArchiveRunBusy] = useState<Record<string, boolean>>({});
   const [riskArchiveRunResult, setRiskArchiveRunResult] = useState<Record<string, string>>({});
-  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
+  const [expandedSections] = useState<Record<string, boolean>>({});
   const [virtualizeSectionList] = useState(true);
   const [sectionListScrollTop, setSectionListScrollTop] = useState(0);
   const [auditActorFilter, setAuditActorFilter] = useState("");
@@ -518,10 +518,6 @@ export default function ClassroomDashboardClient() {
         } as RiskArchiveDraft,
       };
     });
-  }
-
-  function setSectionExpanded(sectionId: string, expanded: boolean) {
-    setExpandedSections((prev) => ({ ...prev, [sectionId]: expanded }));
   }
 
   async function onSaveRiskPolicy(sectionId: string) {
@@ -1663,7 +1659,7 @@ export default function ClassroomDashboardClient() {
               >
               {visibleSectionPanels.map((panel) => {
                 const panelRiskConfig = panel.effectiveRiskConfig;
-                const sectionExpanded = expandedSections[panel.section.sectionId] ?? false;
+                const sectionExpanded = expandedSections[panel.section.sectionId] ?? true;
                 const searchQuery = (learnerSearch[panel.section.sectionId] ?? "").trim().toLowerCase();
                 const riskMode = learnerRiskFilter[panel.section.sectionId] ?? "all";
                 const overdueAssignments = panel.assignments.filter(
@@ -1744,15 +1740,6 @@ export default function ClassroomDashboardClient() {
                       >
                         Download CSV
                       </a>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setSectionExpanded(panel.section.sectionId, !sectionExpanded)
-                        }
-                        className="text-xs border border-gray-300 rounded px-2 py-1 hover:bg-gray-50"
-                      >
-                        {sectionExpanded ? "Collapse details" : "Expand details"}
-                      </button>
                     </div>
                   </div>
                   {!sectionExpanded ? (
