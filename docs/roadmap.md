@@ -444,6 +444,11 @@ Primary target users are economics students, with platform usage planned across 
 - Added in-dashboard member administration per section (add member + role, view enrollment roster/status) using existing enrollments API.
 - Removed advanced/governance navigation from the instructor-facing sidebar and trimmed section-level controls to reduce configuration overload.
 
+94. Section staff-access deadlock recovery (phase 2 progress)
+- `POST /api/classroom/sections` now auto-enrolls section creators as active instructors so members/assignments are immediately manageable.
+- Section auth now permits section owners (`instructorUserId`) as recovery staff access for legacy sections missing explicit instructor enrollment rows.
+- Fixes "Actor must be actively enrolled as staff in this section" deadlock for first-time instructor setup.
+
 ## Runtime Setup
 
 From repo root:

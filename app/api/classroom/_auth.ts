@@ -4,6 +4,7 @@ import {
   getAuthSession,
   getSectionEnrollment,
   getUserProfile,
+  listClassSections,
 } from "@/lib/grading/submissionDb";
 
 interface AuthResult {
@@ -77,6 +78,15 @@ export function requireSectionStaff(
   }
 
   const enrollment = getSectionEnrollment(sectionId, globalAccess.value.actorUserId);
+  if (!enrollment) {
+    const section = listClassSections().find((item) => item.sectionId === sectionId);
+    if (
+      section &&
+      section.instructorUserId === globalAccess.value.actorUserId
+    ) {
+      return globalAccess;
+    }
+  }
   if (!enrollment || enrollment.status !== "active") {
     return {
       ok: false,

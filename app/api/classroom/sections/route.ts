@@ -4,6 +4,7 @@ import { ClassSectionsResponse } from "@/lib/grading/contracts";
 import {
   countClassSections,
   createClassSection,
+  enrollUserInSection,
   getUserProfile,
   listClassSections,
 } from "@/lib/grading/submissionDb";
@@ -97,6 +98,12 @@ export async function POST(req: Request) {
     courseSlug,
     title,
     instructorUserId,
+  });
+  enrollUserInSection({
+    enrollmentId: randomUUID(),
+    sectionId: section.sectionId,
+    userId: instructorUserId,
+    role: "instructor",
   });
   return NextResponse.json(section, { status: 201 });
 }

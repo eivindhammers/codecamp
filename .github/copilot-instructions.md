@@ -108,6 +108,8 @@ Enrollment instructor-write checks now use section instructor role when section-
 Enrollment status updates (`PATCH /api/classroom/enrollments`) require section-staff auth and are instructor-only when changing staff (non-student) enrollment statuses.
 Enrollment routes validate section existence and prevent dropping/demoting the last active instructor in a section.
 Term/section creation endpoints are instructor-only (`POST /api/classroom/terms`, `POST /api/classroom/sections`).
+Section creation now auto-enrolls the creator as active section instructor to avoid first-section management deadlocks.
+Section-staff auth also allows the section owner (`instructorUserId`) as recovery access when legacy sections are missing explicit instructor enrollment rows.
 Assignment creation API validates section/course alignment, exercise existence in `lib/courses.ts`, and due dates within the section term window.
 Assignment creation also enforces max due-date publish horizon and chapter pacing windows via env-configurable policies.
 Assignment tables include per-assignment completion/last-completion data and stalled overdue indicators.
