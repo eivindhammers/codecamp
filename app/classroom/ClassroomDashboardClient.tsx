@@ -1627,8 +1627,29 @@ export default function ClassroomDashboardClient() {
                 {loadingSections && <span className="text-xs text-gray-500">Refreshing...</span>}
               </div>
             </div>
+            <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="rounded border border-gray-200 p-3">
+                <p className="text-xs text-gray-500">Members</p>
+                <p className="text-xl font-semibold text-gray-900">{summary.learners}</p>
+                <p className="mt-1 text-xs text-gray-600">
+                  Add and view members inside each section card below.
+                </p>
+              </div>
+              <div className="rounded border border-gray-200 p-3">
+                <p className="text-xs text-gray-500">Assignments / learning paths</p>
+                <p className="text-xl font-semibold text-gray-900">{summary.assignmentsPublished}</p>
+                <p className="mt-1 text-xs text-gray-600">
+                  Create assignments inside each section card below.
+                </p>
+              </div>
+            </div>
             {sections.length === 0 && !loadingSections && (
-              <p className="text-sm text-gray-600">No sections available yet.</p>
+              <div className="rounded border border-indigo-200 bg-indigo-50 p-3 text-sm text-indigo-900">
+                <p className="font-medium">No sections yet.</p>
+                <p className="mt-1">
+                  Create your first section in the Getting started checklist above; members and assignment controls will appear immediately after.
+                </p>
+              </div>
             )}
             {sections.length > 0 && filteredSections.length === 0 && (
               <p className="text-sm text-gray-600">No sections match these filters.</p>
