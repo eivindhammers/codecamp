@@ -120,6 +120,7 @@ Archive automation supports archive upload destinations via `puturl:<url>` (HTTP
 Archive governance config now includes per-reference health (ref/env key/revoked/url-present), and dashboard shows this table for operational credential lifecycle checks.
 Archive governance panel now includes an instructor-facing incident runbook for destination validation, ref rotation/revocation triage, and failure recovery/export flow.
 Archive controls now include section-scoped "Run archive now" execution wired to `/api/classroom/risk-archive/run`, with immediate outcome feedback in dashboard cards.
+Archive governance panel also includes a global "Run due archives now" control that executes due archive automation across sections and reports summarized outcomes.
 Archive execution and manual archive-run recording endpoints are instructor-only write actions.
 
 ## Conventions

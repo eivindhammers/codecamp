@@ -633,6 +633,52 @@ export default function ClassroomDashboardClient() {
     }
   }
 
+  async function onRunDueArchivesNow() {
+    const globalKey = "__all_due__";
+    setRiskArchiveRunBusy((prev) => ({ ...prev, [globalKey]: true }));
+    setRiskArchiveRunResult((prev) => ({ ...prev, [globalKey]: "" }));
+    try {
+      const response = await readJson<RiskArchiveAutomationResponse>(
+        "/api/classroom/risk-archive/run",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({}),
+        }
+      );
+      const total = response.processed.length;
+      const successCount = response.processed.filter((item) => item.status === "success").length;
+      const failed = response.processed.filter((item) => item.status === "failure");
+      const skippedCount = response.processed.filter((item) => item.status === "skipped").length;
+      const criticalCount = response.processed.filter((item) => item.alertLevel === "critical").length;
+
+      let summary = `Run due archives complete: ${successCount} success, ${failed.length} failure, ${skippedCount} skipped across ${total} sections.`;
+      if (criticalCount > 0) {
+        summary += ` ${criticalCount} section(s) are at critical escalation level.`;
+      }
+      const notifyTargets = Array.from(
+        new Set(
+          failed
+            .map((item) => item.notificationTarget ?? "")
+            .filter((target) => target.length > 0)
+        )
+      );
+      if (notifyTargets.length > 0) {
+        summary += ` Notify: ${notifyTargets.join(", ")}.`;
+      }
+      setRiskArchiveRunResult((prev) => ({ ...prev, [globalKey]: summary }));
+      await loadSections(0, false);
+    } catch (error) {
+      setRiskArchiveRunResult((prev) => ({
+        ...prev,
+        [globalKey]:
+          error instanceof Error ? error.message : "Failed to run due archive automation.",
+      }));
+    } finally {
+      setRiskArchiveRunBusy((prev) => ({ ...prev, [globalKey]: false }));
+    }
+  }
+
   function getRiskPolicyExportHref(sectionId: string) {
     const params = new URLSearchParams({
       sectionId,
@@ -921,7 +967,19 @@ export default function ClassroomDashboardClient() {
             id="classroom-archive-governance"
             className="scroll-mt-20 bg-white border border-gray-200 rounded-xl p-5"
           >
-            <h2 className="font-semibold text-gray-900 mb-2">Archive Delivery Governance</h2>
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <h2 className="font-semibold text-gray-900">Archive Delivery Governance</h2>
+              <button
+                onClick={() => onRunDueArchivesNow()}
+                disabled={riskArchiveRunBusy.__all_due__}
+                className="rounded border border-indigo-300 px-2 py-1 text-xs text-indigo-700 hover:bg-indigo-50 disabled:opacity-60"
+              >
+                {riskArchiveRunBusy.__all_due__ ? "Running due archives..." : "Run due archives now"}
+              </button>
+            </div>
+            {riskArchiveRunResult.__all_due__ && (
+              <p className="mb-2 text-xs text-indigo-700">{riskArchiveRunResult.__all_due__}</p>
+            )}
             {archiveGovernanceError && (
               <p className="text-sm text-rose-700 mb-2">{archiveGovernanceError}</p>
             )}

@@ -412,6 +412,7 @@ Primary target users are economics students, with platform usage planned across 
 - Archive automation now computes per-section failure streaks and escalation levels (`none`/`warning`/`critical`) at execution time, with recommended remediation actions attached to run results.
 - Governance config now exposes escalation thresholds and notification target settings (`CLASSROOM_RISK_ARCHIVE_ESCALATION_*`) for staff visibility.
 - Classroom run-now feedback now surfaces escalation metadata (failure streak, notify target, and next actions) so incidents are actionable without leaving the dashboard.
+- Governance panel now supports a global "Run due archives now" action with cross-section outcome summary (success/failure/skipped counts plus critical escalation indicator).
 
 ## Runtime Setup
 
