@@ -402,6 +402,8 @@ Primary target users are economics students, with platform usage planned across 
 - Replaced placeholder scaffold checkers with exercise-specific R checks for intro-r packs (`hello-r`, `data-types`, `create-vector`, `vector-ops`, `create-df`, `df-subset`) using structured checker output (`STATUS/FEEDBACK/TEST`).
 - Added scaffolded packs for `intermediate-python/numpy/arrays`, `intermediate-python/numpy/array-ops`, `intermediate-python/pandas/dataframes`, and `intermediate-python/matplotlib/line-plot`.
 - Replaced placeholder scaffold checkers with exercise-specific Python checks for intermediate-python packs (`arrays`, `array-ops`, `dataframes`, `groupby`, `line-plot`) using structured checker output (`STATUS/FEEDBACK/TEST`).
+- Added scaffolded packs for economics and economist tracks: `economics-data-science/regression/interpretation`, `economics-data-science/causal-inference/diff-in-diff`, `economics-data-science/time-series/rolling-stats`, `economics-data-science/time-series/arima`, `r-for-economists/iv-regression/2sls`, and `r-for-economists/reproducible-research/regression-table`.
+- Replaced placeholder scaffold checkers with exercise-specific checks across economics and economist packs (`ols`, `interpretation`, `diff-in-diff`, `rolling-stats`, `arima`, `fe-regression`, `2sls`, `regression-table`) using structured checker output (`STATUS/FEEDBACK/TEST`).
 - Keeps migration momentum on the current "Content migration throughput" Now item while preserving metadata parity and pack validation workflows.
 
 ## Runtime Setup

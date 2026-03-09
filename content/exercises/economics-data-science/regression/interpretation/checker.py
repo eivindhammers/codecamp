@@ -1,4 +1,5 @@
 import io
+import numbers
 import runpy
 import sys
 
@@ -18,22 +19,17 @@ def main() -> None:
         tests.append(("code runs", False, "Code did not run successfully."))
         feedback.append(f"Execution error: {error}")
 
-    model = namespace.get("model")
-    if model is None:
-        tests.append(("model exists", False, "Define fitted model variable named model."))
-    else:
-        has_params = hasattr(model, "params")
-        tests.append(("model has params", has_params, "Model should expose regression parameters."))
-        if has_params:
-            params_len_ok = len(model.params) >= 3
-            tests.append(("model parameter count", params_len_ok, "Model should include const, education, and experience."))
+    for key in ("edu_coef", "edu_pval", "r_squared"):
+        value = namespace.get(key)
+        ok = isinstance(value, numbers.Real)
+        tests.append((f"{key} numeric", ok, f"Define {key} as a numeric value from model output."))
 
     passed_all = tests and all(item[1] for item in tests)
     if passed_all:
         status = "passed"
         feedback.append("Correct solution submitted.")
     elif not feedback:
-        feedback.append("Fit OLS as model = sm.OLS(wage, X).fit() and print summary.")
+        feedback.append("Extract edu_coef, edu_pval, and r_squared from the fitted model.")
 
     output_stream = io.StringIO()
     output_stream.write(f"STATUS:{status}\n")

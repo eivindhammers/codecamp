@@ -38,12 +38,12 @@ if (!execution_ok) {
   feedback <- c(feedback, paste("Execution error:", execution_error))
 } else {
   record_test("code runs", TRUE, "Code executed without errors.")
-  has_model <- exists("model", envir = env, inherits = FALSE)
-  record_test("model exists", has_model, "Define fixed-effects model as `model`.")
+  has_model <- exists("iv_model", envir = env, inherits = FALSE)
+  record_test("iv_model exists", has_model, "Define IV model as `iv_model`.")
   if (has_model) {
-    model <- get("model", envir = env, inherits = FALSE)
-    is_fixest <- inherits(model, "fixest")
-    record_test("model class", is_fixest, "`model` should be a fixest model from feols().")
+    iv_model <- get("iv_model", envir = env, inherits = FALSE)
+    is_fixest <- inherits(iv_model, "fixest")
+    record_test("iv_model class", is_fixest, "`iv_model` should be a fixest model from feols().")
   }
 }
 
@@ -52,7 +52,7 @@ if (passed_all) {
   status <- "passed"
   feedback <- c(feedback, "Correct solution submitted.")
 } else if (length(feedback) == 0) {
-  feedback <- c(feedback, "Estimate the fixed-effects model and store it in `model`.")
+  feedback <- c(feedback, "Estimate the 2SLS model and store it in `iv_model`.")
 }
 
 output_lines <- c(paste0("STATUS:", status))

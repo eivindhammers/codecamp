@@ -1,0 +1,9 @@
+{
+  "id": "rolling-stats",
+  "language": "python",
+  "title": "Rolling Statistics",
+  "instructions": "Create a monthly GDP time series with trend and noise. Compute 3-month and 12-month rolling means using pandas. Print the last 5 rows showing both rolling means alongside the original values.",
+  "starterCode": "import numpy as np\nimport pandas as pd\n\nnp.random.seed(7)\ndates = pd.date_range('2015-01', periods=60, freq='MS')\ngdp = 100 + np.arange(60) * 0.5 + np.random.normal(0, 2, 60)\n\ndf = pd.DataFrame({'date': dates, 'gdp': gdp}).set_index('date')\ndf['ma3']  = df['gdp'].rolling(window=___).mean()\ndf['ma12'] = df['gdp'].rolling(window=___).mean()\nprint(df.tail(5))",
+  "xp": 40,
+  "checker": "checker.py"
+}

@@ -18,22 +18,21 @@ def main() -> None:
         tests.append(("code runs", False, "Code did not run successfully."))
         feedback.append(f"Execution error: {error}")
 
-    model = namespace.get("model")
-    if model is None:
-        tests.append(("model exists", False, "Define fitted model variable named model."))
+    df = namespace.get("df")
+    if df is None:
+        tests.append(("df exists", False, "Define DataFrame variable df."))
     else:
-        has_params = hasattr(model, "params")
-        tests.append(("model has params", has_params, "Model should expose regression parameters."))
-        if has_params:
-            params_len_ok = len(model.params) >= 3
-            tests.append(("model parameter count", params_len_ok, "Model should include const, education, and experience."))
+        has_ma3 = "ma3" in getattr(df, "columns", [])
+        has_ma12 = "ma12" in getattr(df, "columns", [])
+        tests.append(("ma3 column", has_ma3, "Create df['ma3'] with rolling window 3."))
+        tests.append(("ma12 column", has_ma12, "Create df['ma12'] with rolling window 12."))
 
     passed_all = tests and all(item[1] for item in tests)
     if passed_all:
         status = "passed"
         feedback.append("Correct solution submitted.")
     elif not feedback:
-        feedback.append("Fit OLS as model = sm.OLS(wage, X).fit() and print summary.")
+        feedback.append("Compute rolling means for ma3 and ma12 on df['gdp'].")
 
     output_stream = io.StringIO()
     output_stream.write(f"STATUS:{status}\n")

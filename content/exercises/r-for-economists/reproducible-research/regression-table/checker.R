@@ -38,12 +38,22 @@ if (!execution_ok) {
   feedback <- c(feedback, paste("Execution error:", execution_error))
 } else {
   record_test("code runs", TRUE, "Code executed without errors.")
-  has_model <- exists("model", envir = env, inherits = FALSE)
-  record_test("model exists", has_model, "Define fixed-effects model as `model`.")
-  if (has_model) {
-    model <- get("model", envir = env, inherits = FALSE)
-    is_fixest <- inherits(model, "fixest")
-    record_test("model class", is_fixest, "`model` should be a fixest model from feols().")
+  for (model_name in c("m1", "m2", "m3")) {
+    exists_ok <- exists(model_name, envir = env, inherits = FALSE)
+    record_test(
+      paste0(model_name, " exists"),
+      exists_ok,
+      paste0("Define model `", model_name, "`.")
+    )
+    if (exists_ok) {
+      model <- get(model_name, envir = env, inherits = FALSE)
+      is_lm <- inherits(model, "lm")
+      record_test(
+        paste0(model_name, " class"),
+        is_lm,
+        paste0("`", model_name, "` should be an lm model.")
+      )
+    }
   }
 }
 
@@ -52,7 +62,7 @@ if (passed_all) {
   status <- "passed"
   feedback <- c(feedback, "Correct solution submitted.")
 } else if (length(feedback) == 0) {
-  feedback <- c(feedback, "Estimate the fixed-effects model and store it in `model`.")
+  feedback <- c(feedback, "Fit m1, m2, m3 and call modelsummary(list(m1, m2, m3), stars = TRUE).")
 }
 
 output_lines <- c(paste0("STATUS:", status))
