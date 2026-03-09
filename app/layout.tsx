@@ -47,6 +47,12 @@ export default function RootLayout({
                 >
                   Classroom
                 </Link>
+                <Link
+                  href="/progress"
+                  className="text-xs sm:text-sm border border-gray-300 rounded-md px-2 py-1 text-gray-600 hover:bg-gray-50"
+                >
+                  Progress
+                </Link>
                 <ThemeToggle />
                 <XPBar />
               </div>

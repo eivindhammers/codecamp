@@ -385,7 +385,7 @@ Primary target users are economics students, with platform usage planned across 
 
 85. Navigation refinement for multi-page UX (phase 2 progress)
 - Consolidated redundant learner navigation by redirecting `/practice` to `/learn`, while keeping `/progress` as the distinct progress surface.
-- Updated global navigation to Home/Learn/Classroom and introduced Datacamp-style left sidebar navigation on `/learn` and `/classroom` for section-level jump links.
+- Updated global navigation to Home/Learn/Classroom/Progress and introduced Datacamp-style left sidebar navigation on `/learn` and `/classroom` for section-level jump links.
 - Removed decorative emoji-heavy labels from core navigation and landing surfaces for a cleaner, more product-like visual tone.
 - Sidebar navigation is now rendered as a true fixed left rail (`xl` breakpoint) on Learn/Classroom pages rather than an in-content column.
 - Added mobile/tablet hamburger-triggered side-nav drawer on Learn/Classroom so navigation remains accessible when the fixed left rail is hidden.
@@ -394,6 +394,7 @@ Primary target users are economics students, with platform usage planned across 
 - Scaffolded filesystem pack for `intro-python/basics/variables` via `scaffold:content-pack`, including `exercise.json`, `checker.py`, and `solution.py`.
 - Added additional scaffolded packs for `intro-python/basics/conditionals` and `intro-r/basics/data-types` to keep migration throughput moving on beginner tracks.
 - Added scaffolded packs for `intro-r/basics/hello-r` and `intro-python/lists-dicts/lists` to expand beginner coverage across both language tracks.
+- Added scaffolded packs for `intro-r/vectors/create-vector` and `intro-python/lists-dicts/dicts` for broader beginner sequence coverage.
 - Keeps migration momentum on the current "Content migration throughput" Now item while preserving metadata parity and pack validation workflows.
 
 ## Runtime Setup

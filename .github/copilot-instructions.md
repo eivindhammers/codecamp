@@ -63,7 +63,7 @@ content/exercises/{courseSlug}/{chapterId}/{exerciseId}/
   checker.R|checker.py  # Runs submitted code + assertions; output parsed by language-specific grader
   solution.R|solution.py # Reference solution
 ```
-Current migrated packs include intro exercises plus examples in intermediate-python, economics-data-science, and r-for-economists tracks (including `intro-python/basics/variables`, `intro-python/basics/conditionals`, `intro-r/basics/data-types`, `intro-r/basics/hello-r`, and `intro-python/lists-dicts/lists`).
+Current migrated packs include intro exercises plus examples in intermediate-python, economics-data-science, and r-for-economists tracks (including `intro-python/basics/variables`, `intro-python/basics/conditionals`, `intro-r/basics/data-types`, `intro-r/basics/hello-r`, `intro-python/lists-dicts/lists`, `intro-r/vectors/create-vector`, and `intro-python/lists-dicts/dicts`).
 Both R and Python have server-side grading support (currently enabled for selected exercises).
 
 ### API routes all use `runtime = 'nodejs'`
@@ -92,7 +92,7 @@ Protected classroom routes now use session-backed identity (`codecamp_session` c
 `/api/classroom/sections` supports server-backed filtering/sorting/pagination via query params (`termId`, `search`, `courseSlug`, `sort`, `limit`, `offset`).
 Auth supports two modes via `AUTH_MODE`: `bootstrap` (email POST to `/api/auth/session`) and `oidc` (redirect via `/api/auth/login` and callback at `/api/auth/callback`).
 `/classroom` provides an instructor dashboard client for section metrics and exports.
-Top-level learner navigation now centers on `/` (Home), `/learn`, and `/classroom`; `/practice` redirects to `/learn`, and `/progress` remains available as a dedicated progress surface.
+Top-level learner navigation now centers on `/` (Home), `/learn`, `/classroom`, and `/progress`; `/practice` redirects to `/learn`.
 The classroom dashboard also supports assignment creation and due-state indicators per section.
 Dashboard cards and section headers include pass-rate and stuck-learner indicators derived from section export summaries.
 Assignment authoring in the dashboard uses chapter/exercise options derived from `lib/courses.ts` for the selected section course.
