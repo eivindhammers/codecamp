@@ -323,6 +323,10 @@ export interface RiskArchiveAutomationItem {
   archivedRecords: number;
   deliveryRef?: string | null;
   errorMessage?: string;
+  failureStreak?: number;
+  alertLevel?: "none" | "warning" | "critical";
+  notificationTarget?: string | null;
+  recommendedActions?: string[];
 }
 
 export interface RiskArchiveAutomationResponse {
@@ -347,6 +351,10 @@ export interface RiskArchiveGovernanceConfig {
   deliveryRetryBackoffMs: number;
   archiveBatchLimit: number;
   defaultActorUserId: string;
+  escalationFailureStreak: number;
+  escalationFailureRatePercent: number;
+  escalationWindowDays: number;
+  escalationNotificationTarget: string | null;
 }
 
 export interface RiskArchiveGovernanceConfigResponse {

@@ -166,6 +166,7 @@ Use these for API response shapes. Add new types here rather than inline.
 - Archive automation controls include `CLASSROOM_RISK_ARCHIVE_BASE_DIR`, `CLASSROOM_RISK_ARCHIVE_BATCH_LIMIT`, `CLASSROOM_RISK_ARCHIVE_ACTOR_USER_ID`, `CLASSROOM_RISK_ARCHIVE_WEBHOOK_ALLOW_HOSTS`, and `CLASSROOM_RISK_ARCHIVE_WEBHOOK_TIMEOUT_MS`.
 - Webhook delivery retries are configurable via `CLASSROOM_RISK_ARCHIVE_DELIVERY_RETRY_COUNT` and `CLASSROOM_RISK_ARCHIVE_DELIVERY_RETRY_BACKOFF_MS`.
 - PUT destination controls are env-configurable via `CLASSROOM_RISK_ARCHIVE_UPLOAD_ALLOW_HOSTS` and `CLASSROOM_RISK_ARCHIVE_UPLOAD_TIMEOUT_MS`.
+- Archive escalation controls are env-configurable via `CLASSROOM_RISK_ARCHIVE_ESCALATION_FAILURE_STREAK`, `CLASSROOM_RISK_ARCHIVE_ESCALATION_FAILURE_RATE_PERCENT`, `CLASSROOM_RISK_ARCHIVE_ESCALATION_WINDOW_DAYS`, and `CLASSROOM_RISK_ARCHIVE_ESCALATION_NOTIFY_TARGET`.
 - Destination references can be configured with `CLASSROOM_RISK_ARCHIVE_DESTINATION_REF_NAMES` plus per-ref URL env vars (`CLASSROOM_RISK_ARCHIVE_DESTINATION_<REF_NAME>`), and used via `webhookref:<refName>` / `puturlref:<refName>`.
 - Destination reference revocation is env-configurable via `CLASSROOM_RISK_ARCHIVE_DESTINATION_REVOKED_REF_NAMES` (revoked refs are rejected during validation and archive delivery execution).
 - Archive destination validation reuses delivery governance checks, including webhook/upload host allowlists and protocol enforcement.

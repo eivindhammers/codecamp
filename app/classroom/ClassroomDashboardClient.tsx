@@ -597,12 +597,28 @@ export default function ClassroomDashboardClient() {
       } else if (item.status === "skipped") {
         setRiskArchiveRunResult((prev) => ({
           ...prev,
-          [sectionId]: "Archive run skipped (not due or policy disabled).",
+          [sectionId]: [
+            "Archive run skipped (not due or policy disabled).",
+            item.alertLevel && item.alertLevel !== "none"
+              ? `Alert level: ${item.alertLevel}.`
+              : "",
+          ]
+            .filter((part) => part.length > 0)
+            .join(" "),
         }));
       } else {
+        const recommendationText =
+          item.recommendedActions && item.recommendedActions.length > 0
+            ? ` Next actions: ${item.recommendedActions.join(" ")}`
+            : "";
+        const notifyText = item.notificationTarget
+          ? ` Notify target: ${item.notificationTarget}.`
+          : "";
+        const streakText =
+          typeof item.failureStreak === "number" ? ` Failure streak: ${item.failureStreak}.` : "";
         setRiskArchiveRunResult((prev) => ({
           ...prev,
-          [sectionId]: `Archive run failed: ${item.errorMessage ?? "Unknown error."}`,
+          [sectionId]: `Archive run failed: ${item.errorMessage ?? "Unknown error."}${streakText}${notifyText}${recommendationText}`,
         }));
       }
       await loadSections(0, false);
@@ -947,6 +963,19 @@ export default function ClassroomDashboardClient() {
                     <p className="mt-1">batch limit {archiveGovernanceConfig.archiveBatchLimit}</p>
                     <p className="mt-1">actor {archiveGovernanceConfig.defaultActorUserId}</p>
                     <p className="mt-1">
+                      escalation streak {archiveGovernanceConfig.escalationFailureStreak}
+                    </p>
+                    <p className="mt-1">
+                      escalation failure rate {archiveGovernanceConfig.escalationFailureRatePercent}% over{" "}
+                      {archiveGovernanceConfig.escalationWindowDays}d
+                    </p>
+                    <p className="mt-1">
+                      notify{" "}
+                      {archiveGovernanceConfig.escalationNotificationTarget
+                        ? archiveGovernanceConfig.escalationNotificationTarget
+                        : "not configured"}
+                    </p>
+                    <p className="mt-1">
                       refs{" "}
                       {archiveGovernanceConfig.destinationReferenceNames.length > 0
                         ? archiveGovernanceConfig.destinationReferenceNames.join(", ")
@@ -1016,6 +1045,10 @@ export default function ClassroomDashboardClient() {
                     <li>
                       If direct URLs fail, switch to an allowed host (webhook/upload allowlists above), then
                       re-run archive delivery and export runs CSV for audit evidence.
+                    </li>
+                    <li>
+                      If failure streak or failure-rate escalation thresholds are exceeded, notify the configured
+                      escalation target and capture remediation evidence in section exports.
                     </li>
                   </ol>
                 </div>

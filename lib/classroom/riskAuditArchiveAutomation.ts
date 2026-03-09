@@ -6,8 +6,10 @@ import {
   SectionRiskArchivePolicyRecord,
 } from "@/lib/grading/contracts";
 import {
+  getSectionRiskArchiveReport,
   getSectionRiskArchivePolicy,
   listClassSections,
+  listSectionRiskArchiveRuns,
   listSectionRiskArchivePolicies,
   listSectionRiskPolicyAuditSince,
   recordSectionRiskArchiveRun,
@@ -48,6 +50,92 @@ function archiveBatchLimit(): number {
 
 function defaultActorUserId(): string {
   return process.env.CLASSROOM_RISK_ARCHIVE_ACTOR_USER_ID?.trim() || "system:risk-archive";
+}
+
+function escalationFailureStreakThreshold(): number {
+  const raw = Number.parseInt(
+    process.env.CLASSROOM_RISK_ARCHIVE_ESCALATION_FAILURE_STREAK ?? "",
+    10
+  );
+  if (!Number.isFinite(raw)) return 3;
+  return Math.min(Math.max(raw, 1), 20);
+}
+
+function escalationFailureRateThreshold(): number {
+  const raw = Number.parseInt(
+    process.env.CLASSROOM_RISK_ARCHIVE_ESCALATION_FAILURE_RATE_PERCENT ?? "",
+    10
+  );
+  if (!Number.isFinite(raw)) return 50;
+  return Math.min(Math.max(raw, 1), 100);
+}
+
+function escalationWindowDays(): number {
+  const raw = Number.parseInt(
+    process.env.CLASSROOM_RISK_ARCHIVE_ESCALATION_WINDOW_DAYS ?? "",
+    10
+  );
+  if (!Number.isFinite(raw)) return 30;
+  return Math.min(Math.max(raw, 1), 365);
+}
+
+function escalationNotificationTarget(): string | null {
+  const value = process.env.CLASSROOM_RISK_ARCHIVE_ESCALATION_NOTIFY_TARGET?.trim();
+  return value && value.length > 0 ? value : null;
+}
+
+function computeFailureStreak(sectionId: string): number {
+  const recentRuns = listSectionRiskArchiveRuns(sectionId, { limit: 20 });
+  let streak = 0;
+  for (const run of recentRuns) {
+    if (run.status !== "failure") break;
+    streak += 1;
+  }
+  return streak;
+}
+
+function buildEscalationDetails(
+  sectionId: string,
+  runStatus: "success" | "failure" | "skipped"
+): {
+  failureStreak: number;
+  alertLevel: "none" | "warning" | "critical";
+  notificationTarget: string | null;
+  recommendedActions: string[];
+} {
+  const streakThreshold = escalationFailureStreakThreshold();
+  const failureRateThreshold = escalationFailureRateThreshold();
+  const windowDays = escalationWindowDays();
+  const notificationTarget = escalationNotificationTarget();
+
+  const failureStreak = computeFailureStreak(sectionId);
+  const report = getSectionRiskArchiveReport(sectionId, windowDays);
+  const severeStreak = failureStreak >= streakThreshold;
+  const severeRate =
+    report.totalRuns >= 3 && report.failureRate >= failureRateThreshold;
+
+  const recommendedActions: string[] = [];
+  let alertLevel: "none" | "warning" | "critical" = "none";
+  if (runStatus === "failure") {
+    alertLevel = severeStreak || severeRate ? "critical" : "warning";
+    recommendedActions.push("Validate destination label and host allowlist.");
+    recommendedActions.push("Check destination reference health for missing or revoked refs.");
+    recommendedActions.push("Rotate destination reference or switch to a known-good endpoint.");
+    if (notificationTarget) {
+      recommendedActions.push(`Notify ${notificationTarget} and attach archive run export evidence.`);
+    }
+  } else if (runStatus === "success" && (severeStreak || severeRate)) {
+    alertLevel = "warning";
+    recommendedActions.push("Monitor subsequent archive runs to confirm recovery.");
+    recommendedActions.push("Review recent failures and keep incident notes linked to export evidence.");
+  }
+
+  return {
+    failureStreak,
+    alertLevel,
+    notificationTarget,
+    recommendedActions,
+  };
 }
 
 async function writeArchiveArtifact(
@@ -434,21 +522,31 @@ export async function executeSectionRiskAuditArchive(
 ): Promise<RiskArchiveAutomationItem> {
   const policy = getSectionRiskArchivePolicy(sectionId);
   if (!policy || !policy.enabled) {
+    const escalation = buildEscalationDetails(sectionId, "skipped");
     return {
       sectionId,
       due: false,
       status: "skipped",
       archivedRecords: 0,
       errorMessage: "Archive policy is not enabled for this section.",
+      failureStreak: escalation.failureStreak,
+      alertLevel: escalation.alertLevel,
+      notificationTarget: escalation.notificationTarget,
+      recommendedActions: escalation.recommendedActions,
     };
   }
   const due = now >= nextArchiveAt(policy);
   if (!due) {
+    const escalation = buildEscalationDetails(sectionId, "skipped");
     return {
       sectionId,
       due: false,
       status: "skipped",
       archivedRecords: 0,
+      failureStreak: escalation.failureStreak,
+      alertLevel: escalation.alertLevel,
+      notificationTarget: escalation.notificationTarget,
+      recommendedActions: escalation.recommendedActions,
     };
   }
 
@@ -507,12 +605,17 @@ export async function executeSectionRiskAuditArchive(
       errorMessage: null,
       actorUserId,
     });
+    const escalation = buildEscalationDetails(sectionId, "success");
     return {
       sectionId,
       due: true,
       status: "success",
       archivedRecords: run.archivedRecords,
       deliveryRef: run.deliveryRef,
+      failureStreak: escalation.failureStreak,
+      alertLevel: escalation.alertLevel,
+      notificationTarget: escalation.notificationTarget,
+      recommendedActions: escalation.recommendedActions,
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Archive execution failed.";
@@ -524,12 +627,17 @@ export async function executeSectionRiskAuditArchive(
       errorMessage: message,
       actorUserId,
     });
+    const escalation = buildEscalationDetails(sectionId, "failure");
     return {
       sectionId,
       due: true,
       status: "failure",
       archivedRecords: run.archivedRecords,
       errorMessage: run.errorMessage ?? message,
+      failureStreak: escalation.failureStreak,
+      alertLevel: escalation.alertLevel,
+      notificationTarget: escalation.notificationTarget,
+      recommendedActions: escalation.recommendedActions,
     };
   }
 }

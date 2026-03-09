@@ -47,6 +47,11 @@ function defaultActorUserId(): string {
   return process.env.CLASSROOM_RISK_ARCHIVE_ACTOR_USER_ID?.trim() || "system:risk-archive";
 }
 
+function escalationNotificationTarget(): string | null {
+  const value = process.env.CLASSROOM_RISK_ARCHIVE_ESCALATION_NOTIFY_TARGET?.trim();
+  return value && value.length > 0 ? value : null;
+}
+
 function destinationEnvKey(name: string): string {
   return `CLASSROOM_RISK_ARCHIVE_DESTINATION_${name.toUpperCase()}`;
 }
@@ -106,6 +111,25 @@ export async function GET(req: Request) {
       ),
       archiveBatchLimit: readNumberEnv("CLASSROOM_RISK_ARCHIVE_BATCH_LIMIT", 5000, 100, 20000),
       defaultActorUserId: defaultActorUserId(),
+      escalationFailureStreak: readNumberEnv(
+        "CLASSROOM_RISK_ARCHIVE_ESCALATION_FAILURE_STREAK",
+        3,
+        1,
+        20
+      ),
+      escalationFailureRatePercent: readNumberEnv(
+        "CLASSROOM_RISK_ARCHIVE_ESCALATION_FAILURE_RATE_PERCENT",
+        50,
+        1,
+        100
+      ),
+      escalationWindowDays: readNumberEnv(
+        "CLASSROOM_RISK_ARCHIVE_ESCALATION_WINDOW_DAYS",
+        30,
+        1,
+        365
+      ),
+      escalationNotificationTarget: escalationNotificationTarget(),
     },
   };
   return NextResponse.json(response);

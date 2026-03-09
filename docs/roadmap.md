@@ -408,6 +408,11 @@ Primary target users are economics students, with platform usage planned across 
 - Replaced placeholder scaffold checkers with exercise-specific R checks for intermediate-r packs (`filter-mutate`, `group-summarise`, `scatter-plot`, `bar-chart`, `pivot-wider`, `map-functions`) using structured checker output (`STATUS/FEEDBACK/TEST`).
 - Keeps migration momentum on the current "Content migration throughput" Now item while preserving metadata parity and pack validation workflows.
 
+87. Archive escalation and lifecycle hooks (phase 2 progress)
+- Archive automation now computes per-section failure streaks and escalation levels (`none`/`warning`/`critical`) at execution time, with recommended remediation actions attached to run results.
+- Governance config now exposes escalation thresholds and notification target settings (`CLASSROOM_RISK_ARCHIVE_ESCALATION_*`) for staff visibility.
+- Classroom run-now feedback now surfaces escalation metadata (failure streak, notify target, and next actions) so incidents are actionable without leaving the dashboard.
+
 ## Runtime Setup
 
 From repo root:
@@ -493,25 +498,22 @@ Use this queue for day-to-day execution; keep it small and rotate items after ea
 - On completion: ship code + update roadmap + move the next highest-priority **Next** item into **Now**.
 
 ### Now
-1. Content migration throughput (next tranche)
-- Outcome: more exercises moved to filesystem content packs with metadata parity checks passing.
-- Acceptance: migrated packs validate via `npm run check:content-packs`; lint/build pass.
-
-2. Archive credential lifecycle automation depth
+1. Archive credential lifecycle automation depth
 - Outcome: archive automation gains additional operational hooks (alerts/checklists/escalation paths) beyond run-now and runbook guidance.
 - Acceptance: new operational hooks are documented and exercised through dashboard/API flow where applicable; lint/build pass.
 
-### Next
-1. Enrollment/identity edge-case hardening
-- Continue tightening remaining write-boundary gaps for instructor/TA/student transitions.
+2. Enrollment/identity edge-case hardening
+- Outcome: remaining write-boundary gaps are closed for instructor/TA/student transitions.
+- Acceptance: protected routes reject invalid role mutations with explicit errors; lint/build pass.
 
-2. Sandbox digest-only rollout
+### Next
+1. Sandbox digest-only rollout
 - Move production/CI image references to digest-pinned form with strict enforcement enabled.
 
-3. Broader server-side grading coverage
+2. Broader server-side grading coverage
 - Enable server-graded checkers for more migrated filesystem exercises across both R and Python tracks.
 
-4. Progress and leaderboard surfaces
+3. Progress and leaderboard surfaces
 - Build on the new `/progress` route with high scores, streaks, and milestone/achievement views.
 
 ### Later
