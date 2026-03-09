@@ -1,0 +1,9 @@
+{
+  "id": "pivot-wider",
+  "language": "r",
+  "title": "Pivoting Data",
+  "instructions": "Using `tidyr`, convert a long-format data frame to wide format using `pivot_wider()`. The data has columns `country`, `year`, and `gdp`. Pivot so each year becomes a column.",
+  "starterCode": "library(tidyr)\n\ngdp_long <- data.frame(\n  country = c(\"Norway\", \"Norway\", \"Sweden\", \"Sweden\"),\n  year = c(2022, 2023, 2022, 2023),\n  gdp = c(579.3, 601.2, 585.9, 597.1)\n)\n\ngdp_wide <- gdp_long |>\n  pivot_wider(names_from = ___, values_from = ___)\nprint(gdp_wide)",
+  "xp": 25,
+  "checker": "checker.R"
+}

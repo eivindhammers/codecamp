@@ -1,0 +1,9 @@
+{
+  "id": "bar-chart",
+  "language": "r",
+  "title": "Bar Chart",
+  "instructions": "Create a bar chart showing average `mpg` by `cyl` group. Use `stat = \"identity\"` and fill by cylinder count. Add a horizontal line at `mpg = 20` using `geom_hline()`.",
+  "starterCode": "library(dplyr)\nlibrary(ggplot2)\n\nmtcars |>\n  group_by(cyl) |>\n  summarise(avg_mpg = mean(mpg)) |>\n  ggplot(aes(x = factor(cyl), y = avg_mpg, fill = factor(cyl))) +\n  geom_bar(stat = \"identity\") +\n  geom_hline(yintercept = ___, linetype = \"dashed\") +\n  labs(x = \"Cylinders\", y = \"Average MPG\", title = \"Average MPG by Cylinder Count\")",
+  "xp": 25,
+  "checker": "checker.R"
+}
