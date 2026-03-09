@@ -29,6 +29,36 @@ function getOrCreateUserId(): string {
   return generated;
 }
 
+function renderInstructionText(text: string) {
+  const lines = text.split("\n");
+  return (
+    <>
+      {lines.map((line, lineIndex) => {
+        const segments = line.split(/(`[^`]+`)/g);
+        return (
+          <span key={`line-${lineIndex}`}>
+            {segments.map((segment, segmentIndex) => {
+              const isInlineCode = segment.startsWith("`") && segment.endsWith("`");
+              if (!isInlineCode) {
+                return <span key={`segment-${lineIndex}-${segmentIndex}`}>{segment}</span>;
+              }
+              return (
+                <code
+                  key={`segment-${lineIndex}-${segmentIndex}`}
+                  className="rounded bg-gray-100 px-1 py-0.5 font-mono text-[0.85em] text-gray-900"
+                >
+                  {segment.slice(1, -1)}
+                </code>
+              );
+            })}
+            {lineIndex < lines.length - 1 && <br />}
+          </span>
+        );
+      })}
+    </>
+  );
+}
+
 interface Props {
   exercise: Exercise;
   courseSlug: string;
@@ -313,8 +343,8 @@ export default function ExerciseEditor({
       {/* Instructions */}
       <div className="bg-white border border-gray-200 rounded-xl p-5">
         <h2 className="font-semibold text-gray-900 text-lg mb-2">{exercise.title}</h2>
-        <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-line">
-          {exercise.instructions}
+        <p className="text-gray-700 text-sm leading-relaxed">
+          {renderInstructionText(exercise.instructions)}
         </p>
         <div className="mt-3 flex items-center gap-2">
           <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full font-medium">
