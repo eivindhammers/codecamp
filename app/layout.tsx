@@ -30,6 +30,24 @@ export default function RootLayout({
               </Link>
               <div className="flex items-center gap-2 sm:gap-3">
                 <Link
+                  href="/learn"
+                  className="text-xs sm:text-sm border border-gray-300 rounded-md px-2 py-1 text-gray-600 hover:bg-gray-50"
+                >
+                  Learn
+                </Link>
+                <Link
+                  href="/practice"
+                  className="text-xs sm:text-sm border border-gray-300 rounded-md px-2 py-1 text-gray-600 hover:bg-gray-50"
+                >
+                  Practice
+                </Link>
+                <Link
+                  href="/progress"
+                  className="text-xs sm:text-sm border border-gray-300 rounded-md px-2 py-1 text-gray-600 hover:bg-gray-50"
+                >
+                  Progress
+                </Link>
+                <Link
                   href="/classroom"
                   className="text-xs sm:text-sm border border-gray-300 rounded-md px-2 py-1 text-gray-600 hover:bg-gray-50"
                 >
