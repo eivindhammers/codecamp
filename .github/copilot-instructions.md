@@ -114,11 +114,11 @@ Assignment creation API validates section/course alignment, exercise existence i
 Assignment creation also enforces max due-date publish horizon and chapter pacing windows via env-configurable policies.
 Assignment tables include per-assignment completion/last-completion data and stalled overdue indicators.
 Assignment creation writes are instructor-only (`POST /api/classroom/assignments`); TAs remain read-capable for assignment visibility.
-Dashboard section risk panels include archive run governance summaries (30-day totals, failures, and last run outcomes).
+The default instructor dashboard no longer surfaces risk-policy/archive controls; it focuses on members, assignments, participation metrics, and leaderboards.
 Archive automation writes local JSON artifacts to `.data/risk-audit-archives/` and stores delivery refs on archive runs.
 Archive automation also supports webhook delivery via destination labels (`webhook:<url>`), with host allowlisting for outbound safety.
 Archive automation supports archive upload destinations via `puturl:<url>` (HTTP PUT of archive artifact JSON, useful for pre-signed object storage endpoints).
-Archive governance tooling remains available in code but is hidden from the default instructor-facing classroom navigation/flow.
+Archive governance tooling remains available in code/backend APIs for future admin-focused workflows.
 Archive execution and manual archive-run recording endpoints are instructor-only write actions.
 
 ## Conventions

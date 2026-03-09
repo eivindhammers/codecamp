@@ -449,6 +449,11 @@ Primary target users are economics students, with platform usage planned across 
 - Section auth now permits section owners (`instructorUserId`) as recovery staff access for legacy sections missing explicit instructor enrollment rows.
 - Fixes "Actor must be actively enrolled as staff in this section" deadlock for first-time instructor setup.
 
+95. Instructor UI governance-control removal (phase 2 progress)
+- Removed instructor-facing section controls for risk policy, archival policy, destination validation, and archive run actions.
+- Classroom activity cards now focus on members, assignments/learning paths, and learner progress visibility only.
+- Keeps governance/archive APIs available in backend for future admin tooling, without exposing them in the default instructor workflow.
+
 ## Runtime Setup
 
 From repo root:
