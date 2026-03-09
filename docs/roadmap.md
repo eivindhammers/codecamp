@@ -424,6 +424,11 @@ Primary target users are economics students, with platform usage planned across 
 - Added top-course-by-XP summary and last completion timestamp to improve at-a-glance motivation and orientation.
 - Progress page now surfaces backend timeline fetch failures with explicit messaging while preserving cached totals display.
 
+90. Classroom onboarding empty-state guidance (phase 2 progress)
+- Added a first-time "Getting started checklist" on `/classroom` when no sections exist, clarifying the sequence from sign-in to first learner submission.
+- Added quick-create forms in the onboarding panel for instructors to create an academic term and first section directly from the dashboard.
+- Checklist completion state now reflects live dashboard data (term/section/assignment/attempt milestones).
+
 ## Runtime Setup
 
 From repo root:

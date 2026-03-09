@@ -65,6 +65,18 @@ interface RiskArchiveDraft {
   destinationLabel: string;
 }
 
+interface TermDraft {
+  title: string;
+  startsAtLocal: string;
+  endsAtLocal: string;
+}
+
+interface SectionDraft {
+  termId: string;
+  courseSlug: string;
+  title: string;
+}
+
 const DEFAULT_RISK_CONFIG: ClassroomRiskConfig = {
   minAttemptsAtRisk: 5,
   maxCompletionRateAtRisk: 25,
@@ -74,6 +86,34 @@ const DEFAULT_RISK_CONFIG: ClassroomRiskConfig = {
 const SECTION_VIRTUAL_ROW_HEIGHT = 170;
 const SECTION_VIRTUAL_OVERSCAN = 3;
 const SECTION_VIRTUAL_VIEWPORT_PX = 900;
+
+function toLocalDateTimeInputValue(timestamp: number): string {
+  const date = new Date(timestamp);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
+function getDefaultTermDraft(): TermDraft {
+  const now = Date.now();
+  const plus90Days = now + 90 * 24 * 60 * 60 * 1000;
+  return {
+    title: "",
+    startsAtLocal: toLocalDateTimeInputValue(now),
+    endsAtLocal: toLocalDateTimeInputValue(plus90Days),
+  };
+}
+
+function getDefaultSectionDraft(termId = "", courseSlug = ""): SectionDraft {
+  return {
+    termId,
+    courseSlug,
+    title: "",
+  };
+}
 
 function getDefaultDraftForCourse(courseSlug: string): AssignmentDraft {
   const course = courses.find((item) => item.slug === courseSlug);
@@ -159,6 +199,13 @@ export default function ClassroomDashboardClient() {
   const [sectionListScrollTop, setSectionListScrollTop] = useState(0);
   const [auditActorFilter, setAuditActorFilter] = useState("");
   const [auditActionFilter, setAuditActionFilter] = useState<"all" | "upsert" | "reset">("all");
+  const [termDraft, setTermDraft] = useState<TermDraft>(() => getDefaultTermDraft());
+  const [sectionDraft, setSectionDraft] = useState<SectionDraft>(() =>
+    getDefaultSectionDraft("", courses[0]?.slug ?? "")
+  );
+  const [setupBusy, setSetupBusy] = useState<"none" | "term" | "section">("none");
+  const [setupError, setSetupError] = useState("");
+  const [setupSuccess, setSetupSuccess] = useState("");
 
   const isStaff = profile?.role === "instructor" || profile?.role === "ta";
 
@@ -746,6 +793,72 @@ export default function ClassroomDashboardClient() {
     }
   }
 
+  async function onCreateTerm(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSetupBusy("term");
+    setSetupError("");
+    setSetupSuccess("");
+    try {
+      const startsAt = new Date(termDraft.startsAtLocal).getTime();
+      const endsAt = new Date(termDraft.endsAtLocal).getTime();
+      if (!termDraft.title.trim()) {
+        throw new Error("Term title is required.");
+      }
+      if (!Number.isFinite(startsAt) || !Number.isFinite(endsAt)) {
+        throw new Error("Term start and end dates are required.");
+      }
+      await readJson<AcademicTermRecord>("/api/classroom/terms", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: termDraft.title.trim(),
+          startsAt,
+          endsAt,
+        }),
+      });
+      const payload = await readJson<AcademicTermsResponse>("/api/classroom/terms");
+      setTerms(payload.terms);
+      const newest = [...payload.terms].sort((a, b) => b.createdAt - a.createdAt)[0];
+      setSectionDraft((prev) => ({ ...prev, termId: newest?.termId ?? prev.termId }));
+      setTermDraft(getDefaultTermDraft());
+      setSetupSuccess("Term created. Next: create your first section.");
+    } catch (error) {
+      setSetupError(error instanceof Error ? error.message : "Failed to create term.");
+    } finally {
+      setSetupBusy("none");
+    }
+  }
+
+  async function onCreateSection(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!profile) return;
+    setSetupBusy("section");
+    setSetupError("");
+    setSetupSuccess("");
+    try {
+      if (!sectionDraft.termId || !sectionDraft.courseSlug || !sectionDraft.title.trim()) {
+        throw new Error("Section term, course, and title are required.");
+      }
+      await readJson<ClassSectionRecord>("/api/classroom/sections", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          termId: sectionDraft.termId,
+          courseSlug: sectionDraft.courseSlug,
+          title: sectionDraft.title.trim(),
+          instructorUserId: profile.userId,
+        }),
+      });
+      setSectionDraft((prev) => ({ ...prev, title: "" }));
+      setSetupSuccess("Section created. Next: add assignments in Section Activity.");
+      await loadSections(0, false);
+    } catch (error) {
+      setSetupError(error instanceof Error ? error.message : "Failed to create section.");
+    } finally {
+      setSetupBusy("none");
+    }
+  }
+
   const summary = useMemo(() => {
     const learners = sections.reduce((acc, section) => acc + section.metrics.length, 0);
     const attempts = sections.reduce(
@@ -785,6 +898,23 @@ export default function ClassroomDashboardClient() {
       stuckLearners,
     };
   }, [sections]);
+
+  const onboardingChecklist = useMemo(
+    () => [
+      { label: "Sign in as instructor", done: Boolean(profile && profile.role === "instructor") },
+      { label: "Create an academic term", done: terms.length > 0 },
+      { label: "Create a section", done: sections.length > 0 },
+      {
+        label: "Create at least one assignment",
+        done: sections.some((panel) => panel.assignments.length > 0),
+      },
+      {
+        label: "Receive first learner submission",
+        done: summary.attempts > 0,
+      },
+    ],
+    [profile, sections, summary.attempts, terms.length]
+  );
 
   const filteredSections = useMemo(() => {
     return sections.filter((panel) => {
@@ -962,6 +1092,121 @@ export default function ClassroomDashboardClient() {
               <p className="text-2xl font-semibold text-rose-700">{summary.stuckLearners}</p>
             </div>
           </section>
+
+          {summary.sections === 0 && (
+            <section className="bg-indigo-50 border border-indigo-200 rounded-xl p-5 space-y-4">
+              <div>
+                <h2 className="font-semibold text-indigo-900">Getting started checklist</h2>
+                <p className="text-sm text-indigo-800 mt-1">
+                  Your classroom is empty right now. Complete these steps to populate Overview,
+                  Risk Policy Audit, and Section Activity.
+                </p>
+              </div>
+              <ul className="space-y-2 text-sm">
+                {onboardingChecklist.map((step) => (
+                  <li key={step.label} className="flex items-center gap-2 text-indigo-900">
+                    <span
+                      className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-xs font-semibold ${
+                        step.done ? "bg-emerald-100 text-emerald-700" : "bg-white text-indigo-700"
+                      }`}
+                    >
+                      {step.done ? "✓" : "•"}
+                    </span>
+                    <span>{step.label}</span>
+                  </li>
+                ))}
+              </ul>
+              {profile.role === "instructor" && (
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <form className="space-y-2 rounded border border-indigo-200 bg-white p-3" onSubmit={onCreateTerm}>
+                    <p className="text-sm font-medium text-gray-900">1) Create academic term</p>
+                    <input
+                      value={termDraft.title}
+                      onChange={(event) => setTermDraft((prev) => ({ ...prev, title: event.target.value }))}
+                      placeholder="e.g. Spring 2026"
+                      className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm"
+                      required
+                    />
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        type="datetime-local"
+                        value={termDraft.startsAtLocal}
+                        onChange={(event) =>
+                          setTermDraft((prev) => ({ ...prev, startsAtLocal: event.target.value }))
+                        }
+                        className="border border-gray-300 rounded px-2 py-1.5 text-sm"
+                        required
+                      />
+                      <input
+                        type="datetime-local"
+                        value={termDraft.endsAtLocal}
+                        onChange={(event) =>
+                          setTermDraft((prev) => ({ ...prev, endsAtLocal: event.target.value }))
+                        }
+                        className="border border-gray-300 rounded px-2 py-1.5 text-sm"
+                        required
+                      />
+                    </div>
+                    <button
+                      disabled={setupBusy !== "none"}
+                      className="rounded bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-60"
+                    >
+                      {setupBusy === "term" ? "Creating term..." : "Create term"}
+                    </button>
+                  </form>
+                  <form className="space-y-2 rounded border border-indigo-200 bg-white p-3" onSubmit={onCreateSection}>
+                    <p className="text-sm font-medium text-gray-900">2) Create section</p>
+                    <select
+                      value={sectionDraft.termId}
+                      onChange={(event) =>
+                        setSectionDraft((prev) => ({ ...prev, termId: event.target.value }))
+                      }
+                      className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm"
+                      required
+                    >
+                      <option value="">Select term</option>
+                      {terms.map((term) => (
+                        <option key={term.termId} value={term.termId}>
+                          {term.title}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      value={sectionDraft.courseSlug}
+                      onChange={(event) =>
+                        setSectionDraft((prev) => ({ ...prev, courseSlug: event.target.value }))
+                      }
+                      className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm"
+                      required
+                    >
+                      {courses.map((course) => (
+                        <option key={course.slug} value={course.slug}>
+                          {course.title}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      value={sectionDraft.title}
+                      onChange={(event) =>
+                        setSectionDraft((prev) => ({ ...prev, title: event.target.value }))
+                      }
+                      placeholder="e.g. Econ 101 - Section A"
+                      className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm"
+                      required
+                    />
+                    <button
+                      disabled={setupBusy !== "none"}
+                      className="rounded bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-60"
+                    >
+                      {setupBusy === "section" ? "Creating section..." : "Create section"}
+                    </button>
+                  </form>
+                </div>
+              )}
+              {setupError && <p className="text-sm text-rose-700">{setupError}</p>}
+              {setupSuccess && <p className="text-sm text-emerald-700">{setupSuccess}</p>}
+            </section>
+          )}
 
           <section
             id="classroom-archive-governance"
