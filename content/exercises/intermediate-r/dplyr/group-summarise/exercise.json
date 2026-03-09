@@ -1,0 +1,9 @@
+{
+  "id": "group-summarise",
+  "language": "r",
+  "title": "group_by() and summarise()",
+  "instructions": "Using `mtcars`, calculate the mean `mpg` and mean `hp` for each cylinder count (`cyl`), sorted by `cyl`.",
+  "starterCode": "library(dplyr)\n\nmtcars |>\n  group_by(___) |>\n  summarise(\n    mean_mpg = mean(___),\n    mean_hp = mean(___)\n  ) |>\n  arrange(___)",
+  "xp": 25,
+  "checker": "checker.R"
+}

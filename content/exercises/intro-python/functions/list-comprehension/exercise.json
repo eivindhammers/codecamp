@@ -1,0 +1,9 @@
+{
+  "id": "list-comprehension",
+  "language": "python",
+  "title": "List Comprehensions",
+  "instructions": "Use a list comprehension to create a list `squared` containing the squares of all even numbers from 1 to 20 (inclusive). Print the result.",
+  "starterCode": "# Create list of squared even numbers from 1 to 20\nsquared = [___ for x in range(1, 21) if ___]\nprint(squared)",
+  "xp": 20,
+  "checker": "checker.py"
+}

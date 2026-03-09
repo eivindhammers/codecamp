@@ -1,0 +1,9 @@
+{
+  "id": "create-df",
+  "language": "r",
+  "title": "Create a Data Frame",
+  "instructions": "Create a data frame `employees` with columns `name` (`\"Alice\", \"Bob\", \"Carol\"`), `age` (`28, 35, 42`), and `salary` (`50000, 65000, 72000`). Print the data frame.",
+  "starterCode": "# Create a data frame\nemployees <- data.frame(\n  name = c(\"Alice\", \"Bob\", \"Carol\"),\n  age = c(___),\n  salary = c(___)\n)\nprint(employees)",
+  "xp": 15,
+  "checker": "checker.R"
+}

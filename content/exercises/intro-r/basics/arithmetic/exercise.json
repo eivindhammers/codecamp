@@ -1,0 +1,9 @@
+{
+  "id": "arithmetic",
+  "language": "r",
+  "title": "Basic Arithmetic",
+  "instructions": "Calculate the result of `7 * 6` and store it in a variable called `result`. Then print `result`.",
+  "starterCode": "# Store the product of 7 and 6\nresult <- ___\nprint(result)",
+  "xp": 10,
+  "checker": "checker.R"
+}

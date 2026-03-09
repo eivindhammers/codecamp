@@ -1,0 +1,9 @@
+{
+  "id": "arima",
+  "language": "python",
+  "title": "ARIMA Forecasting",
+  "instructions": "Fit an ARIMA(1,1,1) model to a simulated GDP series using `statsmodels`. Print the model summary and generate a 4-step-ahead forecast.",
+  "starterCode": "import numpy as np\nimport pandas as pd\nfrom statsmodels.tsa.arima.model import ARIMA\n\nnp.random.seed(42)\ngdp = 100 + np.cumsum(np.random.normal(0.5, 1.5, 80))\n\nmodel = ARIMA(gdp, order=(1, 1, 1)).fit()\nprint(model.summary())\n\nforecast = model.forecast(steps=___)\nprint(\"\\n4-step forecast:\", forecast.round(2))",
+  "xp": 50,
+  "checker": "checker.py"
+}

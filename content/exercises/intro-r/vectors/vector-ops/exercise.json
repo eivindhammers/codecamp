@@ -1,0 +1,9 @@
+{
+  "id": "vector-ops",
+  "language": "r",
+  "title": "Vector Operations",
+  "instructions": "Given `prices <- c(10.5, 20.0, 15.75, 8.25)`, calculate the mean with `mean()`, the sum with `sum()`, and filter prices above 12 using subsetting.",
+  "starterCode": "prices <- c(10.5, 20.0, 15.75, 8.25)\n# Calculate mean\nprint(mean(prices))\n# Calculate sum\nprint(sum(prices))\n# Filter prices above 12\nprint(prices[___])",
+  "xp": 15,
+  "checker": "checker.R"
+}

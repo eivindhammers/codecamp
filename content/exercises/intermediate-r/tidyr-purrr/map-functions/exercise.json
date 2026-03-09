@@ -1,0 +1,9 @@
+{
+  "id": "map-functions",
+  "language": "r",
+  "title": "Map Functions with purrr",
+  "instructions": "Use `purrr::map_dbl()` to compute the standard deviation of each numeric column in `mtcars`. Print the named numeric vector of results.",
+  "starterCode": "library(purrr)\n\n# Apply sd() to each column of mtcars\nresult <- map_dbl(___, ___)\nprint(round(result, 2))",
+  "xp": 25,
+  "checker": "checker.R"
+}

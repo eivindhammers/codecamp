@@ -1,0 +1,9 @@
+{
+  "id": "dicts",
+  "language": "python",
+  "title": "Dictionaries",
+  "instructions": "Create a dictionary `country_data` with keys `\"Norway\"`, `\"Sweden\"`, `\"Denmark\"` and values for their populations `5421241`, `10379295`, `5831404`. Print each country and its population using a `for` loop.",
+  "starterCode": "# Create a dictionary\ncountry_data = {\n    ___\n}\n\n# Iterate and print\nfor country, population in country_data.___():\n    print(f\"{country}: {population}\")",
+  "xp": 15,
+  "checker": "checker.py"
+}

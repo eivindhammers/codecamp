@@ -1,0 +1,9 @@
+{
+  "id": "create-vector",
+  "language": "r",
+  "title": "Create a Vector",
+  "instructions": "Create a numeric vector `scores` containing `85, 92, 78, 95, 88`. Print the vector and its length using `length()`.",
+  "starterCode": "# Create a vector of scores\nscores <- c(___)\nprint(scores)\nprint(length(scores))",
+  "xp": 15,
+  "checker": "checker.R"
+}

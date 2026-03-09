@@ -1,0 +1,9 @@
+{
+  "id": "arrays",
+  "language": "python",
+  "title": "NumPy Arrays",
+  "instructions": "Import NumPy as `np`. Create a 2D array `matrix` with shape (3, 3) containing values 1–9. Print the array, its shape, and the mean of the second column.",
+  "starterCode": "import numpy as np\n\n# Create a 3x3 matrix\nmatrix = np.arange(1, 10).reshape(___)\nprint(matrix)\nprint(\"Shape:\", matrix.___)\nprint(\"Mean of col 2:\", matrix[:, ___].mean())",
+  "xp": 25,
+  "checker": "checker.py"
+}

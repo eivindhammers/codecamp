@@ -1,0 +1,9 @@
+{
+  "id": "hello-r",
+  "language": "r",
+  "title": "Hello, R!",
+  "instructions": "Use `print()` to display `\"Hello, R!\"` in the console.",
+  "starterCode": "# Print a greeting\nprint(\"Hello, World!\")",
+  "xp": 10,
+  "checker": "checker.R"
+}

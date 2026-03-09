@@ -1,0 +1,9 @@
+{
+  "id": "conditionals",
+  "language": "python",
+  "title": "Conditionals",
+  "instructions": "Write an `if/elif/else` statement: if `gdp > 50000` print `\"High income\"`, elif `gdp > 20000` print `\"Middle income\"`, else print `\"Low income\"`. Test with `gdp = 45000`.",
+  "starterCode": "gdp = 45000\n\nif ___:\n    print(\"High income\")\nelif ___:\n    print(\"Middle income\")\nelse:\n    print(\"Low income\")",
+  "xp": 10,
+  "checker": "checker.py"
+}

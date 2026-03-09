@@ -1,0 +1,9 @@
+{
+  "id": "df-subset",
+  "language": "r",
+  "title": "Subsetting Data Frames",
+  "instructions": "Using the `employees` data frame, select only employees older than 30 and print their names and salaries.",
+  "starterCode": "employees <- data.frame(\n  name = c(\"Alice\", \"Bob\", \"Carol\"),\n  age = c(28, 35, 42),\n  salary = c(50000, 65000, 72000)\n)\n# Select employees older than 30\nsubset_df <- employees[___, ___]\nprint(subset_df)",
+  "xp": 20,
+  "checker": "checker.R"
+}

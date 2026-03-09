@@ -1,0 +1,9 @@
+{
+  "id": "interpretation",
+  "language": "python",
+  "title": "Interpreting Coefficients",
+  "instructions": "Fit the same wage regression. Extract the coefficient on `education`, its p-value, and the R-squared. Print formatted results like:\n`Education coef: 2.5, p-value: 0.000, R²: 0.85`",
+  "starterCode": "import numpy as np\nimport statsmodels.api as sm\n\nnp.random.seed(42)\nn = 100\neducation = np.random.randint(8, 22, n)\nexperience = np.random.randint(0, 30, n)\nwage = 5 + 2.5 * education + 0.8 * experience + np.random.normal(0, 3, n)\nX = sm.add_constant(np.column_stack([education, experience]))\nmodel = sm.OLS(wage, X).fit()\n\nedu_coef = model.params[___]\nedu_pval = model.pvalues[___]\nr_squared = model.___\n\nprint(f\"Education coef: {edu_coef:.2f}, p-value: {edu_pval:.3f}, R\\u00b2: {r_squared:.3f}\")",
+  "xp": 30,
+  "checker": "checker.py"
+}

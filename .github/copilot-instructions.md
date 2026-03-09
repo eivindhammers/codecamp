@@ -1,0 +1,188 @@
+# Copilot Instructions
+
+## Commands
+
+```bash
+npm run dev         # Dev server (Turbopack, http://localhost:3000)
+npm run build       # Production build
+npm run lint        # ESLint
+npm run check:sandbox # Validate grader sandbox production config
+npm run check:sandbox-images # Validate grader Docker image refs (tag/digest, no latest)
+npm run check:sandbox-policy # Verify sandbox policy flags are enforced in runner
+npm run check:sandbox-runtime # Execute R/Python graders in docker sandbox as smoke check
+npm run check:sandbox-startup # Measure R/Python docker grader startup time against thresholds
+npm run check:sandbox-faults # Assert timeout fault handling in docker sandbox
+npm run check:content-packs # Validate filesystem exercise packs against course metadata/contracts
+npm run check:archive-refs # Validate archive destination reference environment/allowlist consistency
+npm run scaffold:content-pack -- --key <course/chapter/exercise> [--force] # Scaffold exercise pack files from courses.ts
+npm run archive:risk-audit # Execute due risk-audit archive runs and record outcomes
+npm run worker      # Background grading worker (requires Redis)
+npm run redis:up    # Start Redis via Docker Compose
+npm run redis:down  # Stop Redis
+```
+
+No unit test suite exists yet. Playwright is available for end-to-end tests (`@playwright/test`). After edits, always run `npm run lint` then `npm run build` and fix any failures before finishing.
+
+## Architecture
+
+**CodeCamp** is a gamified, open-source coding learning platform (R/Python) built with Next.js App Router + TypeScript.
+
+### Stack
+- **Next.js 16** (App Router, TypeScript, Turbopack)
+- **React 19** with Tailwind CSS v4
+- **SQLite** (`better-sqlite3`) at `.data/codecamp.db` — authoritative progress store
+- **Redis + BullMQ** — async job queue for code grading
+- **Monaco Editor** — in-browser code editor (loaded via dynamic import, client-only)
+
+### Key data flow: exercise submission
+```
+ExerciseEditor (client)
+  → client-side validation (lib/exerciseValidation.ts)
+  → local-validation pass → POST /api/progress (idempotent first-pass write)
+  → server-graded exercises → POST /api/submissions  → insert DB row + enqueue BullMQ job
+  → worker/submissionWorker.ts picks up job
+      → language-specific grader runs content/exercises/{course}/{chapter}/{exercise}/checker
+      → updates DB with result + awards XP
+  → client polls GET /api/submissions/[id] until complete
+```
+
+### State management: two sources of truth
+- **localStorage** (`codecamp_progress`, `codecamp_user_id`) — client-side XP/completion cache via `ProgressContext` (`useReducer`)
+- **SQLite** — backend authoritative record; queried via `/api/progress` and `/api/attempts`
+
+Backend progress now supports full-catalog hydration via `/api/progress?userId=...`, and client-validated completions are persisted via `POST /api/progress` for backend-first XP/progress continuity.
+`ProgressContext` now treats backend rows as authoritative on hydration when backend records exist, using local cache only as fallback when backend is empty.
+`ProgressContext` also surfaces sync status/error state consumed by header XP UI so backend sync failures are visible to users.
+
+### All courses are defined in TypeScript
+`lib/courses.ts` (~645 lines) contains all `Course → Chapter → Exercise` data as typed objects. There is no CMS or database for course content.
+
+### Exercise checker content lives in the filesystem
+```
+content/exercises/{courseSlug}/{chapterId}/{exerciseId}/
+  checker.R|checker.py  # Runs submitted code + assertions; output parsed by language-specific grader
+  solution.R|solution.py # Reference solution
+```
+Current migrated packs include intro exercises plus examples in intermediate-python, intermediate-r, economics-data-science, and r-for-economists tracks (including `intro-python/basics/variables`, `intro-python/basics/conditionals`, `intro-r/basics/data-types`, `intro-r/basics/hello-r`, `intro-python/lists-dicts/lists`, `intro-r/vectors/create-vector`, `intro-python/lists-dicts/dicts`, `intro-r/vectors/vector-ops`, `intro-python/functions/define-function`, `intro-python/functions/list-comprehension`, `intro-r/data-frames/create-df`, `intro-r/data-frames/df-subset`, `intermediate-python/numpy/arrays`, `intermediate-python/numpy/array-ops`, `intermediate-python/pandas/dataframes`, `intermediate-python/matplotlib/line-plot`, `intermediate-r/dplyr/filter-mutate`, `intermediate-r/dplyr/group-summarise`, `intermediate-r/ggplot2/scatter-plot`, `intermediate-r/ggplot2/bar-chart`, `intermediate-r/tidyr-purrr/pivot-wider`, `intermediate-r/tidyr-purrr/map-functions`, `economics-data-science/regression/interpretation`, `economics-data-science/causal-inference/diff-in-diff`, `economics-data-science/time-series/rolling-stats`, `economics-data-science/time-series/arima`, `r-for-economists/iv-regression/2sls`, and `r-for-economists/reproducible-research/regression-table`).
+Both R and Python have server-side grading support (currently enabled for selected exercises).
+
+### API routes all use `runtime = 'nodejs'`
+Required for `better-sqlite3` and Redis. Every `app/api/*/route.ts` must include:
+```ts
+export const runtime = 'nodejs';
+```
+
+### Classroom backend foundation exists
+`/api/classroom/*` includes terms, sections, enrollments, assignments, profile, metrics, and export endpoints backed by SQLite tables in `submissionDb.ts`.
+Classroom metadata reads for terms/sections are staff-authenticated (`GET /api/classroom/terms`, `GET /api/classroom/sections`), matching dashboard access expectations.
+`/api/classroom/sections/metrics` provides instructor-oriented learner progress rollups per section.
+Protected classroom routes now use session-backed identity (`codecamp_session` cookie) with role/section checks; production identity provider integration is still pending.
+`/api/classroom/sections/export` provides JSON/CSV grade-summary exports for section instructors.
+`/api/classroom/sections/assignment-breakdown` provides assignment-level completion rollups for section staff.
+`/api/classroom/risk-config` returns environment-backed thresholds used by dashboard risk indicators and requires staff authentication.
+`/api/classroom/sections/risk-policy` supports per-section staff overrides and returns policy audit history (filterable via `limit`, `action`, `actor` query params).
+`/api/classroom/sections/risk-policy/export` provides CSV/JSON exports for section policy audit history.
+`/api/classroom/sections/risk-policy/archive` manages section-level audit archival cadence/retention policy metadata.
+`/api/classroom/sections/risk-policy/archive/report` exposes archive run outcomes (success/failure), recent runs, and failure-rate reporting.
+`/api/classroom/sections/risk-policy/archive/report/export` exports archive run history (CSV/JSON) for section governance reviews.
+`/api/classroom/sections/risk-policy/archive/validate` validates archive destination labels against webhook/PUT governance controls before save/run.
+`/api/classroom/risk-archive/run` executes due archive policies (or a specific section) for operational automation.
+`/api/classroom/risk-archive/config` exposes archive governance settings (timeouts, retries, allowlists, batch limits) for staff visibility.
+`/api/classroom/sections/overview` returns aggregated section dashboard data to reduce multi-endpoint fetch fanout.
+`/api/classroom/sections` supports server-backed filtering/sorting/pagination via query params (`termId`, `search`, `courseSlug`, `sort`, `limit`, `offset`).
+Auth supports two modes via `AUTH_MODE`: `bootstrap` (email POST to `/api/auth/session`) and `oidc` (redirect via `/api/auth/login` and callback at `/api/auth/callback`).
+`/classroom` provides an instructor dashboard client for section metrics and exports.
+Top-level learner navigation now centers on `/` (Home), `/learn`, `/classroom`, and `/progress`; `/practice` redirects to `/learn`.
+The `/progress` page includes learner-facing streak/activity summaries (current streak, best streak, 7-day completions, top course by XP, and last completion timestamp).
+The classroom dashboard also supports assignment creation and due-state indicators per section.
+Classroom UX is positioned as a teaching companion (assign practice content + monitor participation/leaderboards), not a required graded/compliance system.
+When a classroom has no sections yet, the dashboard shows a "Getting started checklist" with quick-create term and section forms for instructors.
+Dashboard cards focus on simple instructor KPIs: sections, learners tracked, attempts logged, average completion rate, and assignments published.
+Classroom now uses dedicated sub-pages for instructor workflows: `/classroom` (overview), `/classroom/leaderboards`, `/classroom/members`, and `/classroom/assignments`.
+Members and assignments are intentionally separated into distinct pages to reduce clutter and keep each workflow focused.
+Assignment authoring in the dashboard uses chapter/exercise options derived from `lib/courses.ts` for the selected section course.
+Section activity is intentionally simplified around member roster management, learner participation visibility, and assignment/learning-path management.
+Enrollment API enforces role assignment guardrails: only instructor actors can assign `instructor`/`ta` roles in section enrollments.
+Enrollment upsert writes also treat existing role changes as instructor-only operations (preventing TA role demotion/escalation via re-enroll).
+Staff-role enrollment assignments reject targets explicitly profiled as `student` (while preserving profile-missing migration fallback IDs).
+Enrollment instructor-write checks now use section instructor role when section-staff bypass is disabled, and global instructor role when bypass is enabled.
+`POST /api/classroom/profile` is now authenticated and self-scoped: actor must have an active session and can only update their own profile display name (email/role remain session identity controlled).
+Enrollment status updates (`PATCH /api/classroom/enrollments`) require section-staff auth and are instructor-only when changing staff (non-student) enrollment statuses.
+Enrollment routes validate section existence and prevent dropping/demoting the last active instructor in a section.
+Term/section creation endpoints are instructor-only (`POST /api/classroom/terms`, `POST /api/classroom/sections`).
+Section creation now auto-enrolls the creator as active section instructor to avoid first-section management deadlocks.
+Section-staff auth also allows the section owner (`instructorUserId`) as recovery access when legacy sections are missing explicit instructor enrollment rows.
+Assignment creation API validates section/course alignment, exercise existence in `lib/courses.ts`, and due dates within the section term window.
+Assignment creation also enforces max due-date publish horizon and chapter pacing windows via env-configurable policies.
+Assignment tables include per-assignment completion/last-completion data and stalled overdue indicators.
+Assignment creation writes are instructor-only (`POST /api/classroom/assignments`); TAs remain read-capable for assignment visibility.
+The default instructor dashboard no longer surfaces risk-policy/archive controls; it focuses on members, assignments, participation metrics, and leaderboards.
+Archive automation writes local JSON artifacts to `.data/risk-audit-archives/` and stores delivery refs on archive runs.
+Archive automation also supports webhook delivery via destination labels (`webhook:<url>`), with host allowlisting for outbound safety.
+Archive automation supports archive upload destinations via `puturl:<url>` (HTTP PUT of archive artifact JSON, useful for pre-signed object storage endpoints).
+Archive governance tooling remains available in code/backend APIs for future admin-focused workflows.
+Archive execution and manual archive-run recording endpoints are instructor-only write actions.
+
+## Conventions
+
+### Exercise key format
+`"${courseSlug}/${chapterId}/${exerciseId}"` — used everywhere for tracking completion (localStorage, DB queries, progress context).
+
+### Component boundary
+- Server Components: layout, data fetching, course/exercise page wrappers
+- Client Components (`"use client"`): `ExerciseEditor`, `CourseCard`, `XPBar`, `ThemeToggle`, `ProgressContext`
+- Monaco Editor must be loaded with `dynamic(..., { ssr: false })`
+
+### TypeScript strictness is enforced
+`tsconfig.json` has `"strict": true`. Preserve this — no `any` escapes, no implicit returns on union types.
+
+### Import alias
+`@/` maps to the repo root. Use it for all non-relative imports.
+
+### DB helpers are in `lib/grading/submissionDb.ts`
+All SQLite reads/writes go through the typed helpers there. Don't use raw `better-sqlite3` calls outside that file.
+
+### Response/contract types are in `lib/grading/contracts.ts`
+Use these for API response shapes. Add new types here rather than inline.
+
+### Sandbox mode controls
+- `GRADER_SANDBOX_MODE=docker` enables Docker-isolated checker execution.
+- `GRADER_TIMEOUT_MS` controls checker timeout (1000-30000ms, default 8000).
+- Docker mode uses `GRADER_DOCKER_R_IMAGE` / `GRADER_DOCKER_PYTHON_IMAGE` when set.
+- Production runtime ignores `GRADER_SANDBOX_MODE=host` unless breakglass override `GRADER_ALLOW_HOST_MODE_IN_PRODUCTION=true` is explicitly set.
+- `GRADER_REQUIRE_IMAGE_DIGESTS=true` enables digest-only enforcement in `check:sandbox-images` for staged rollout toward fully pinned grader images.
+- Startup check thresholds are env-configurable via `GRADER_STARTUP_MAX_MS_R` and `GRADER_STARTUP_MAX_MS_PYTHON`.
+- `AUTH_BOOTSTRAP_INSTRUCTOR_EMAILS` (comma-separated) grants bootstrap instructor role for listed emails during session sign-in.
+- OIDC mode requires `AUTH_OIDC_AUTHORIZATION_URL`, `AUTH_OIDC_TOKEN_URL`, `AUTH_OIDC_USERINFO_URL`, `AUTH_OIDC_CLIENT_ID`, `AUTH_OIDC_CLIENT_SECRET` (+ optional `AUTH_OIDC_REDIRECT_URI`, `AUTH_OIDC_SCOPE`).
+- OIDC role sync supports env-driven claim mapping: `AUTH_OIDC_ROLE_CLAIM`, `AUTH_OIDC_GROUP_CLAIM`, `AUTH_OIDC_INSTRUCTOR_ROLE_VALUES`, `AUTH_OIDC_TA_ROLE_VALUES`, `AUTH_OIDC_INSTRUCTOR_GROUP_VALUES`, `AUTH_OIDC_TA_GROUP_VALUES`, `AUTH_OIDC_INSTRUCTOR_EMAILS`, `AUTH_OIDC_TA_EMAILS`, `AUTH_OIDC_DEFAULT_ROLE`.
+- Section-staff auth can be role-derived via `AUTH_SECTION_STAFF_ROLE_BYPASS` (defaults true in OIDC mode, false in bootstrap mode).
+- Risk indicator thresholds are env-configurable via `CLASSROOM_RISK_MIN_ATTEMPTS`, `CLASSROOM_RISK_MAX_COMPLETION_RATE`, `CLASSROOM_RISK_OVERDUE_INCOMPLETE_ENABLED`, `CLASSROOM_STALLED_MAX_COMPLETION_RATE`.
+- Dashboard applies per-section effective risk policies when overrides are saved via section risk-policy API.
+- Risk policy changes are audit-recorded with actor user ID and timestamp for section governance visibility.
+- Classroom dashboard includes a dedicated cross-section risk-policy audit table with actor/action filters.
+- Classroom dashboard section activity list uses server-backed paging with search/sort and load-more controls.
+- Assignment due-date governance supports `CLASSROOM_ASSIGNMENT_MAX_DUE_DAYS_AHEAD` (default 180) and `CLASSROOM_ASSIGNMENT_PACING_EARLY_TOLERANCE_DAYS` (default 14).
+- Risk policy audit retention controls are env-driven: `CLASSROOM_RISK_AUDIT_RETENTION_DAYS`, `CLASSROOM_RISK_AUDIT_MAX_ROWS_PER_SECTION`.
+- Risk audit archival defaults are env-configurable with `CLASSROOM_RISK_ARCHIVE_DEFAULT_CADENCE` and `CLASSROOM_RISK_ARCHIVE_DEFAULT_RETENTION_DAYS`.
+- Archive automation controls include `CLASSROOM_RISK_ARCHIVE_BASE_DIR`, `CLASSROOM_RISK_ARCHIVE_BATCH_LIMIT`, `CLASSROOM_RISK_ARCHIVE_ACTOR_USER_ID`, `CLASSROOM_RISK_ARCHIVE_WEBHOOK_ALLOW_HOSTS`, and `CLASSROOM_RISK_ARCHIVE_WEBHOOK_TIMEOUT_MS`.
+- Webhook delivery retries are configurable via `CLASSROOM_RISK_ARCHIVE_DELIVERY_RETRY_COUNT` and `CLASSROOM_RISK_ARCHIVE_DELIVERY_RETRY_BACKOFF_MS`.
+- PUT destination controls are env-configurable via `CLASSROOM_RISK_ARCHIVE_UPLOAD_ALLOW_HOSTS` and `CLASSROOM_RISK_ARCHIVE_UPLOAD_TIMEOUT_MS`.
+- Archive escalation controls are env-configurable via `CLASSROOM_RISK_ARCHIVE_ESCALATION_FAILURE_STREAK`, `CLASSROOM_RISK_ARCHIVE_ESCALATION_FAILURE_RATE_PERCENT`, `CLASSROOM_RISK_ARCHIVE_ESCALATION_WINDOW_DAYS`, and `CLASSROOM_RISK_ARCHIVE_ESCALATION_NOTIFY_TARGET`.
+- Destination references can be configured with `CLASSROOM_RISK_ARCHIVE_DESTINATION_REF_NAMES` plus per-ref URL env vars (`CLASSROOM_RISK_ARCHIVE_DESTINATION_<REF_NAME>`), and used via `webhookref:<refName>` / `puturlref:<refName>`.
+- Destination reference revocation is env-configurable via `CLASSROOM_RISK_ARCHIVE_DESTINATION_REVOKED_REF_NAMES` (revoked refs are rejected during validation and archive delivery execution).
+- Archive destination validation reuses delivery governance checks, including webhook/upload host allowlists and protocol enforcement.
+- `check:archive-refs` validates configured destination refs, revoked-ref consistency, and per-ref URL/host allowlist compatibility.
+- In production, sandbox mode defaults to Docker when `GRADER_SANDBOX_MODE` is unset.
+- CI workflow (`.github/workflows/ci.yml`) enforces `check:sandbox`, `check:sandbox-images`, `check:sandbox-policy`, `check:sandbox-runtime`, `check:sandbox-startup`, `check:sandbox-faults`, lint, and build.
+- CI workflow (`.github/workflows/ci.yml`) also enforces `check:content-packs` and `check:archive-refs` before lint/build.
+- `check:content-packs` validates pack manifests (`exercise.json`) against `lib/courses.ts` metadata plus required checker/solution files.
+- `scaffold:content-pack` bootstraps `content/exercises/...` packs from `lib/courses.ts` (manifest + checker + solution), with optional `--force` overwrite.
+- `check:sandbox-faults` covers timeout, memory pressure, process-limit pressure, outbound-network isolation, and read-only root filesystem scenarios for Docker grader execution.
+- Docker sandbox execution drops all capabilities (`--cap-drop ALL`) and enforces `no-new-privileges` to reduce privilege-escalation surface.
+- Sandbox runtime/startup/fault scripts avoid redundant pulls by inspecting local Docker images before pulling missing images.
+
+### Working style (from project Copilot.md)
+- Read relevant files before editing.
+- Prefer existing patterns over introducing new architecture.
+- Keep edits focused; avoid unrelated changes.
+- Output per turn: what changed → files touched → lint/build result → next options.

@@ -1,0 +1,9 @@
+{
+  "id": "2sls",
+  "language": "r",
+  "title": "Two-Stage Least Squares",
+  "instructions": "Estimate a 2SLS model using `fixest::feols()`. The endogenous variable is `education`, the instrument is `proximity_to_college`, and the outcome is `wage`. Use the IV syntax `wage ~ 1 | education ~ proximity_to_college`.",
+  "starterCode": "library(fixest)\n\nset.seed(99)\nn <- 200\nproximity <- rnorm(n)\nability <- rnorm(n)\neducation <- 12 + proximity * 2 + ability + rnorm(n)\nwage <- 5 + education * 1.5 + ability * 3 + rnorm(n)\n\ndf <- data.frame(wage, education, proximity_to_college = proximity)\n\n# IV regression\niv_model <- feols(wage ~ 1 | education ~ proximity_to_college, data = df)\nprint(summary(iv_model))",
+  "xp": 50,
+  "checker": "checker.R"
+}

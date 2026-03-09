@@ -1,0 +1,9 @@
+{
+  "id": "ols",
+  "language": "python",
+  "title": "OLS Regression",
+  "instructions": "Using `statsmodels`, estimate a simple OLS regression of `wage` on `education` and `experience`. Use the sample data provided. Print the regression summary.",
+  "starterCode": "import numpy as np\nimport statsmodels.api as sm\n\nnp.random.seed(42)\nn = 100\neducation = np.random.randint(8, 22, n)\nexperience = np.random.randint(0, 30, n)\nwage = 5 + 2.5 * education + 0.8 * experience + np.random.normal(0, 3, n)\n\nX = np.column_stack([education, experience])\nX = sm.add_constant(X)\n\n# Fit OLS\nmodel = sm.OLS(___, ___).fit()\nprint(model.summary())",
+  "xp": 40,
+  "checker": "checker.py"
+}

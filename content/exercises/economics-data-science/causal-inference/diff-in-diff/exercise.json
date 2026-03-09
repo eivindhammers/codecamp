@@ -1,0 +1,9 @@
+{
+  "id": "diff-in-diff",
+  "language": "python",
+  "title": "Difference-in-Differences",
+  "instructions": "Implement a Difference-in-Differences estimator. You have a panel with `treated` (0/1), `post` (0/1), and `outcome`. Add an interaction term `treated_post = treated * post` and run OLS. The DiD estimate is the coefficient on `treated_post`.",
+  "starterCode": "import numpy as np\nimport pandas as pd\nimport statsmodels.api as sm\n\nnp.random.seed(0)\nn = 200\ntreated = np.repeat([0, 1], n // 2)\npost = np.tile([0, 1], n // 2)\ntrue_did = 5.0\noutcome = 10 + 3 * treated + 2 * post + true_did * (treated * post) + np.random.normal(0, 2, n)\n\ndf = pd.DataFrame({'treated': treated, 'post': post, 'outcome': outcome})\ndf['treated_post'] = ___\n\nX = sm.add_constant(df[['treated', 'post', 'treated_post']])\nmodel = sm.OLS(df['outcome'], X).fit()\nprint(f\"DiD estimate: {model.params['treated_post']:.2f}\")\nprint(f\"True effect:  {true_did:.2f}\")",
+  "xp": 50,
+  "checker": "checker.py"
+}

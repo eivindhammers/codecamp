@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    env:
+      NODE_ENV: production
+      GRADER_SANDBOX_MODE: docker
+      GRADER_DOCKER_R_IMAGE: r-base:4.4.1
+      GRADER_DOCKER_PYTHON_IMAGE: python:3.12-alpine
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install deps
+        run: npm ci --include=dev
+
+      - name: Validate sandbox config
+        run: npm run check:sandbox
+
+      - name: Validate sandbox image refs
+        run: npm run check:sandbox-images
+
+      - name: Validate sandbox policy
+        run: npm run check:sandbox-policy
+
+      - name: Validate sandbox runtime
+        run: npm run check:sandbox-runtime
+
+      - name: Validate sandbox startup performance
+        run: npm run check:sandbox-startup
+
+      - name: Validate sandbox fault handling
+        run: npm run check:sandbox-faults
+
+      - name: Validate content exercise packs
+        run: npm run check:content-packs
+
+      - name: Validate archive destination refs
+        run: npm run check:archive-refs
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build

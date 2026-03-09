@@ -1,0 +1,9 @@
+{
+  "id": "hello-python",
+  "language": "python",
+  "title": "Hello, Python!",
+  "instructions": "Print `\"Hello, Python!\"` using the `print()` function.",
+  "starterCode": "# Print a greeting\nprint(\"Hello, World!\")",
+  "xp": 10,
+  "checker": "checker.py"
+}

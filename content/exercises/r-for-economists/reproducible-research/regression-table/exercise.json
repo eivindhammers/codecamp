@@ -1,0 +1,9 @@
+{
+  "id": "regression-table",
+  "language": "r",
+  "title": "Regression Tables",
+  "instructions": "Fit three OLS models of increasing complexity and produce a formatted regression table using `modelsummary`. Model 1: wage ~ education; Model 2: wage ~ education + experience; Model 3: wage ~ education + experience + age.",
+  "starterCode": "library(modelsummary)\n\nset.seed(5)\nn <- 150\ndf <- data.frame(\n  education = sample(8:20, n, replace = TRUE),\n  experience = sample(0:30, n, replace = TRUE),\n  age = sample(22:65, n, replace = TRUE)\n)\ndf$wage <- 3 + 2 * df$education + 0.5 * df$experience + 0.1 * df$age + rnorm(n, 0, 4)\n\nm1 <- lm(wage ~ education, data = df)\nm2 <- lm(wage ~ education + experience, data = df)\nm3 <- lm(wage ~ education + experience + age, data = df)\n\nmodelsummary(list(m1, m2, m3), stars = ___)",
+  "xp": 40,
+  "checker": "checker.R"
+}

@@ -1,0 +1,9 @@
+{
+  "id": "filter-mutate",
+  "language": "r",
+  "title": "filter() and mutate()",
+  "instructions": "Load the `dplyr` package. Using the built-in `mtcars` dataset, filter cars with `mpg > 20` and add a new column `kpl` (kilometres per litre) by multiplying `mpg` by `0.425`.",
+  "starterCode": "library(dplyr)\n\n# Filter and add a new column\nresult <- mtcars |>\n  filter(___) |>\n  mutate(kpl = ___)\nprint(head(result))",
+  "xp": 25,
+  "checker": "checker.R"
+}

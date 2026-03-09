@@ -1,0 +1,9 @@
+{
+  "id": "scatter-plot",
+  "language": "r",
+  "title": "Scatter Plot",
+  "instructions": "Using `ggplot2` and `mtcars`, create a scatter plot of `wt` (x-axis) vs `mpg` (y-axis), coloured by `factor(cyl)`. Add appropriate axis labels and a title.",
+  "starterCode": "library(ggplot2)\n\nggplot(mtcars, aes(x = ___, y = ___, colour = factor(___))) +\n  geom_point() +\n  labs(\n    x = \"Weight (1000 lbs)\",\n    y = \"Fuel Efficiency (MPG)\",\n    colour = \"Cylinders\",\n    title = ___\n  )",
+  "xp": 25,
+  "checker": "checker.R"
+}
