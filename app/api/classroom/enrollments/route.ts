@@ -12,7 +12,7 @@ import {
   listSectionEnrollments,
   updateSectionEnrollmentStatus,
 } from "@/lib/grading/submissionDb";
-import { requireSectionStaff } from "@/app/api/classroom/_auth";
+import { requireSectionInstructor, requireSectionStaff } from "@/app/api/classroom/_auth";
 
 export const runtime = "nodejs";
 
@@ -97,19 +97,13 @@ export async function POST(req: Request) {
   } catch (error) {
     return badRequest(error instanceof Error ? error.message : "Unknown sectionId.");
   }
-  const actorProfile = getUserProfile(auth.value.actorUserId);
-  if (!actorProfile) {
-    return forbidden("Actor profile not found.");
-  }
-  if (role !== "student" && actorProfile.role !== "instructor") {
+  const instructorAuth = requireSectionInstructor(req, sectionId);
+  const actorIsInstructor = instructorAuth.ok;
+  if (role !== "student" && !actorIsInstructor) {
     return forbidden("Only instructors can assign section staff roles.");
   }
   const existingEnrollment = getSectionEnrollment(sectionId, userId);
-  if (
-    existingEnrollment &&
-    existingEnrollment.role !== role &&
-    actorProfile.role !== "instructor"
-  ) {
+  if (existingEnrollment && existingEnrollment.role !== role && !actorIsInstructor) {
     return forbidden("Only instructors can change existing enrollment roles.");
   }
   const targetProfile = getUserProfile(userId);
@@ -160,16 +154,12 @@ export async function PATCH(req: Request) {
   } catch (error) {
     return badRequest(error instanceof Error ? error.message : "Unknown sectionId.");
   }
-  const actorProfile = getUserProfile(auth.value.actorUserId);
-  if (!actorProfile) {
-    return forbidden("Actor profile not found.");
-  }
-
   const existingEnrollment = getSectionEnrollment(sectionId, userId);
   if (!existingEnrollment) {
     return badRequest("Enrollment not found for sectionId/userId.");
   }
-  if (existingEnrollment.role !== "student" && actorProfile.role !== "instructor") {
+  const instructorAuth = requireSectionInstructor(req, sectionId);
+  if (existingEnrollment.role !== "student" && !instructorAuth.ok) {
     return forbidden("Only instructors can change staff enrollment status.");
   }
   if (

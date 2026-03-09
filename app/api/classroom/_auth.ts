@@ -93,3 +93,32 @@ export function requireSectionStaff(
 
   return globalAccess;
 }
+
+export function requireSectionInstructor(
+  req: Request,
+  sectionId: string
+): { ok: true; value: AuthResult } | { ok: false; response: NextResponse } {
+  const sectionStaff = requireSectionStaff(req, sectionId);
+  if (!sectionStaff.ok) return sectionStaff;
+
+  if (allowRoleBasedSectionStaffBypass()) {
+    const profile = getUserProfile(sectionStaff.value.actorUserId);
+    if (!profile || profile.role !== "instructor") {
+      return {
+        ok: false,
+        response: unauthorized("Only instructor roles can perform this action."),
+      };
+    }
+    return sectionStaff;
+  }
+
+  const enrollment = getSectionEnrollment(sectionId, sectionStaff.value.actorUserId);
+  if (!enrollment || enrollment.status !== "active" || enrollment.role !== "instructor") {
+    return {
+      ok: false,
+      response: unauthorized("Actor must be an active instructor in this section."),
+    };
+  }
+
+  return sectionStaff;
+}

@@ -93,6 +93,7 @@ Protected classroom routes now use session-backed identity (`codecamp_session` c
 Auth supports two modes via `AUTH_MODE`: `bootstrap` (email POST to `/api/auth/session`) and `oidc` (redirect via `/api/auth/login` and callback at `/api/auth/callback`).
 `/classroom` provides an instructor dashboard client for section metrics and exports.
 Top-level learner navigation now centers on `/` (Home), `/learn`, `/classroom`, and `/progress`; `/practice` redirects to `/learn`.
+The `/progress` page includes learner-facing streak/activity summaries (current streak, best streak, 7-day completions, top course by XP, and last completion timestamp).
 The classroom dashboard also supports assignment creation and due-state indicators per section.
 Dashboard cards and section headers include pass-rate and stuck-learner indicators derived from section export summaries.
 Assignment authoring in the dashboard uses chapter/exercise options derived from `lib/courses.ts` for the selected section course.
@@ -105,6 +106,7 @@ Section activity also supports virtualized list rendering (toggleable) so only a
 Enrollment API enforces role assignment guardrails: only instructor actors can assign `instructor`/`ta` roles in section enrollments.
 Enrollment upsert writes also treat existing role changes as instructor-only operations (preventing TA role demotion/escalation via re-enroll).
 Staff-role enrollment assignments reject targets explicitly profiled as `student` (while preserving profile-missing migration fallback IDs).
+Enrollment instructor-write checks now use section instructor role when section-staff bypass is disabled, and global instructor role when bypass is enabled.
 `POST /api/classroom/profile` is now authenticated and self-scoped: actor must have an active session and can only update their own profile display name (email/role remain session identity controlled).
 Enrollment status updates (`PATCH /api/classroom/enrollments`) require section-staff auth and are instructor-only when changing staff (non-student) enrollment statuses.
 Enrollment routes validate section existence and prevent dropping/demoting the last active instructor in a section.

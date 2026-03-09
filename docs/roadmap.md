@@ -414,6 +414,16 @@ Primary target users are economics students, with platform usage planned across 
 - Classroom run-now feedback now surfaces escalation metadata (failure streak, notify target, and next actions) so incidents are actionable without leaving the dashboard.
 - Governance panel now supports a global "Run due archives now" action with cross-section outcome summary (success/failure/skipped counts plus critical escalation indicator).
 
+88. Enrollment identity edge-case hardening (phase 2 progress)
+- Added `requireSectionInstructor` auth helper to centralize instructor-level write checks for section-scoped APIs.
+- Enrollment write routes now enforce instructor-only staff mutations using section-scoped instructor role when section bypass is disabled, and global instructor role when bypass is enabled.
+- Closes a remaining boundary gap where global role checks could diverge from section enrollment role expectations.
+
+89. Learner progress surface expansion (phase 2 progress)
+- Expanded `/progress` with learner-facing activity metrics: current streak, best streak, and completions in the last 7 days.
+- Added top-course-by-XP summary and last completion timestamp to improve at-a-glance motivation and orientation.
+- Progress page now surfaces backend timeline fetch failures with explicit messaging while preserving cached totals display.
+
 ## Runtime Setup
 
 From repo root:
@@ -499,13 +509,13 @@ Use this queue for day-to-day execution; keep it small and rotate items after ea
 - On completion: ship code + update roadmap + move the next highest-priority **Next** item into **Now**.
 
 ### Now
-1. Archive credential lifecycle automation depth
-- Outcome: archive automation gains additional operational hooks (alerts/checklists/escalation paths) beyond run-now and runbook guidance.
-- Acceptance: new operational hooks are documented and exercised through dashboard/API flow where applicable; lint/build pass.
+1. Progress and leaderboard surfaces
+- Outcome: extend `/progress` with learner-visible streaks/milestones/high-score summaries.
+- Acceptance: progress route shows new learner-facing metrics using existing progress data; lint/build pass.
 
-2. Enrollment/identity edge-case hardening
-- Outcome: remaining write-boundary gaps are closed for instructor/TA/student transitions.
-- Acceptance: protected routes reject invalid role mutations with explicit errors; lint/build pass.
+2. Broader server-side grading coverage
+- Outcome: enable backend grading on additional migrated filesystem exercises with checker parity.
+- Acceptance: selected new exercises submit through `/api/submissions` and complete grading end-to-end; lint/build pass.
 
 ### Next
 1. Sandbox digest-only rollout
