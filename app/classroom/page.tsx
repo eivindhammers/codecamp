@@ -8,8 +8,7 @@ export default function ClassroomPage() {
       links={[
         { href: "#classroom-overview", label: "Overview" },
         { href: "#classroom-leaderboards", label: "Leaderboards" },
-        { href: "#classroom-section-activity", label: "Assignments & activity" },
-        { href: "#classroom-advanced-ops", label: "Advanced (optional)" },
+        { href: "#classroom-section-activity", label: "Members, assignments & activity" },
       ]}
     >
       <ClassroomDashboardClient />

@@ -97,14 +97,9 @@ The `/progress` page includes learner-facing streak/activity summaries (current 
 The classroom dashboard also supports assignment creation and due-state indicators per section.
 Classroom UX is positioned as a teaching companion (assign practice content + monitor participation/leaderboards), not a required graded/compliance system.
 When a classroom has no sections yet, the dashboard shows a "Getting started checklist" with quick-create term and section forms for instructors.
-Dashboard cards and section headers include pass-rate and stuck-learner indicators derived from section export summaries.
+Dashboard cards focus on simple instructor KPIs: sections, learners tracked, attempts logged, average completion rate, and assignments published.
 Assignment authoring in the dashboard uses chapter/exercise options derived from `lib/courses.ts` for the selected section course.
-Learner rows in section activity include completion-rate and risk-state badges derived from assignment due dates and summary metrics.
-Section activity supports course filtering plus per-section learner search/risk filters with pagination for larger rosters.
-Section activity controls also include term-based filtering wired to server-backed section paging.
-Section activity supports configurable page size (10/25/50) for server-backed section list loading.
-Section cards support expand/collapse controls (plus global expand/collapse) to defer heavy detail rendering for large section sets.
-Section activity also supports virtualized list rendering (toggleable) so only a window of section cards is mounted during large-list scrolling.
+Section activity is intentionally simplified around member roster management, learner participation visibility, and assignment/learning-path management.
 Enrollment API enforces role assignment guardrails: only instructor actors can assign `instructor`/`ta` roles in section enrollments.
 Enrollment upsert writes also treat existing role changes as instructor-only operations (preventing TA role demotion/escalation via re-enroll).
 Staff-role enrollment assignments reject targets explicitly profiled as `student` (while preserving profile-missing migration fallback IDs).
@@ -121,11 +116,7 @@ Dashboard section risk panels include archive run governance summaries (30-day t
 Archive automation writes local JSON artifacts to `.data/risk-audit-archives/` and stores delivery refs on archive runs.
 Archive automation also supports webhook delivery via destination labels (`webhook:<url>`), with host allowlisting for outbound safety.
 Archive automation supports archive upload destinations via `puturl:<url>` (HTTP PUT of archive artifact JSON, useful for pre-signed object storage endpoints).
-Archive governance config now includes per-reference health (ref/env key/revoked/url-present), and dashboard shows this table for operational credential lifecycle checks.
-Archive governance panel now includes an instructor-facing incident runbook for destination validation, ref rotation/revocation triage, and failure recovery/export flow.
-Archive controls now include section-scoped "Run archive now" execution wired to `/api/classroom/risk-archive/run`, with immediate outcome feedback in dashboard cards.
-Archive governance panel also includes a global "Run due archives now" control that executes due archive automation across sections and reports summarized outcomes.
-Archive governance technical detail is now hidden behind an explicit advanced-details toggle, with plain-language copy for typical instructor workflows.
+Archive governance tooling remains available in code but is hidden from the default instructor-facing classroom navigation/flow.
 Archive execution and manual archive-run recording endpoints are instructor-only write actions.
 
 ## Conventions

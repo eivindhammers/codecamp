@@ -439,6 +439,11 @@ Primary target users are economics students, with platform usage planned across 
 - Added a class leaderboard section that ranks learner participation/completion across sections and flags bonus-credit candidates using assignment completion thresholds.
 - Moved governance-heavy tooling under an "Advanced operations (optional)" accordion so teaching workflows stay primary.
 
+93. Classroom surface simplification (phase 2 progress)
+- Further simplified classroom UI to focus on what instructors actually manage: members, assignments/learning paths, leaderboard outcomes, and top summary metrics.
+- Added in-dashboard member administration per section (add member + role, view enrollment roster/status) using existing enrollments API.
+- Removed advanced/governance navigation from the instructor-facing sidebar and trimmed section-level controls to reduce configuration overload.
+
 ## Runtime Setup
 
 From repo root:

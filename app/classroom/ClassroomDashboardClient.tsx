@@ -16,6 +16,8 @@ import type {
   ClassroomRiskConfig,
   SectionAssignmentBreakdownRecord,
   SectionGradeSummaryRecord,
+  SectionEnrollmentRecord,
+  SectionEnrollmentsResponse,
   SectionLearnerMetric,
   SectionRiskPolicyAuditRecord,
   SectionRiskArchivePolicyRecord,
@@ -30,6 +32,7 @@ import type {
 
 interface SectionPanel {
   section: ClassSectionRecord;
+  enrollments: SectionEnrollmentRecord[];
   metrics: SectionLearnerMetric[];
   assignments: AssignmentRecord[];
   assignmentBreakdown: SectionAssignmentBreakdownRecord[];
@@ -75,6 +78,11 @@ interface SectionDraft {
   termId: string;
   courseSlug: string;
   title: string;
+}
+
+interface MemberDraft {
+  userId: string;
+  role: "student" | "ta" | "instructor";
 }
 
 const DEFAULT_RISK_CONFIG: ClassroomRiskConfig = {
@@ -167,16 +175,16 @@ export default function ClassroomDashboardClient() {
   const [assignmentError, setAssignmentError] = useState<Record<string, string>>({});
   const [courseFilter, setCourseFilter] = useState<string>("all");
   const [termFilter, setTermFilter] = useState<string>("all");
-  const [sectionPageSize, setSectionPageSize] = useState<10 | 25 | 50>(10);
+  const [sectionPageSize] = useState<10 | 25 | 50>(10);
   const [terms, setTerms] = useState<AcademicTermRecord[]>([]);
   const [sectionSearch, setSectionSearch] = useState("");
-  const [sectionSort, setSectionSort] = useState<
+  const [sectionSort] = useState<
     "created_desc" | "created_asc" | "title_asc" | "title_desc"
   >("created_desc");
   const [hasMoreSections, setHasMoreSections] = useState(false);
   const [totalSectionsCount, setTotalSectionsCount] = useState(0);
   const [learnerSearch, setLearnerSearch] = useState<Record<string, string>>({});
-  const [learnerRiskFilter, setLearnerRiskFilter] = useState<Record<string, "all" | "at-risk" | "on-track">>({});
+  const [learnerRiskFilter] = useState<Record<string, "all" | "at-risk" | "on-track">>({});
   const [learnerPage, setLearnerPage] = useState<Record<string, number>>({});
   const [riskPolicyDrafts, setRiskPolicyDrafts] = useState<Record<string, ClassroomRiskConfig>>(
     {}
@@ -195,7 +203,7 @@ export default function ClassroomDashboardClient() {
   const [riskArchiveRunBusy, setRiskArchiveRunBusy] = useState<Record<string, boolean>>({});
   const [riskArchiveRunResult, setRiskArchiveRunResult] = useState<Record<string, string>>({});
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
-  const [virtualizeSectionList, setVirtualizeSectionList] = useState(true);
+  const [virtualizeSectionList] = useState(true);
   const [sectionListScrollTop, setSectionListScrollTop] = useState(0);
   const [auditActorFilter, setAuditActorFilter] = useState("");
   const [auditActionFilter, setAuditActionFilter] = useState<"all" | "upsert" | "reset">("all");
@@ -207,8 +215,12 @@ export default function ClassroomDashboardClient() {
   const [setupError, setSetupError] = useState("");
   const [setupSuccess, setSetupSuccess] = useState("");
   const [showAdvancedGovernance, setShowAdvancedGovernance] = useState(false);
+  const [memberDrafts, setMemberDrafts] = useState<Record<string, MemberDraft>>({});
+  const [memberBusy, setMemberBusy] = useState<Record<string, boolean>>({});
+  const [memberError, setMemberError] = useState<Record<string, string>>({});
 
   const isStaff = profile?.role === "instructor" || profile?.role === "ta";
+  const showAdvancedOps = false;
 
   const loadSections = useCallback(async (offset = 0, append = false) => {
     if (!isStaff) {
@@ -237,8 +249,12 @@ export default function ClassroomDashboardClient() {
             const overview = await readJson<SectionOverviewResponse>(
               `/api/classroom/sections/overview?sectionId=${encodeURIComponent(section.sectionId)}`
             );
+            const enrollmentsPayload = await readJson<SectionEnrollmentsResponse>(
+              `/api/classroom/enrollments?sectionId=${encodeURIComponent(section.sectionId)}`
+            );
             return {
               section,
+              enrollments: enrollmentsPayload.enrollments,
               metrics: overview.metrics,
               assignments: overview.assignments,
               assignmentBreakdown: overview.assignmentBreakdown,
@@ -254,6 +270,7 @@ export default function ClassroomDashboardClient() {
           } catch (error) {
             return {
               section,
+              enrollments: [],
               metrics: [],
               assignments: [],
               assignmentBreakdown: [],
@@ -323,6 +340,15 @@ export default function ClassroomDashboardClient() {
             retentionDays: panel.riskArchivePolicy.retentionDays,
             destinationLabel: panel.riskArchivePolicy.destinationLabel ?? "",
           };
+        }
+        return next;
+      });
+      setMemberDrafts((prev) => {
+        const next = { ...prev };
+        for (const panel of panels) {
+          if (!next[panel.section.sectionId]) {
+            next[panel.section.sectionId] = { userId: "", role: "student" };
+          }
         }
         return next;
       });
@@ -455,11 +481,6 @@ export default function ClassroomDashboardClient() {
     setLearnerPage((prev) => ({ ...prev, [sectionId]: 1 }));
   }
 
-  function setLearnerRiskFilterValue(sectionId: string, value: "all" | "at-risk" | "on-track") {
-    setLearnerRiskFilter((prev) => ({ ...prev, [sectionId]: value }));
-    setLearnerPage((prev) => ({ ...prev, [sectionId]: 1 }));
-  }
-
   function setRiskPolicyDraftValue(
     sectionId: string,
     field: keyof ClassroomRiskConfig,
@@ -501,15 +522,6 @@ export default function ClassroomDashboardClient() {
 
   function setSectionExpanded(sectionId: string, expanded: boolean) {
     setExpandedSections((prev) => ({ ...prev, [sectionId]: expanded }));
-  }
-
-  function setAllSectionsExpanded(expanded: boolean) {
-    setExpandedSections(
-      sections.reduce<Record<string, boolean>>((acc, panel) => {
-        acc[panel.section.sectionId] = expanded;
-        return acc;
-      }, {})
-    );
   }
 
   async function onSaveRiskPolicy(sectionId: string) {
@@ -860,6 +872,38 @@ export default function ClassroomDashboardClient() {
     }
   }
 
+  async function onAddMember(event: FormEvent<HTMLFormElement>, sectionId: string) {
+    event.preventDefault();
+    const draft = memberDrafts[sectionId];
+    if (!draft || !draft.userId.trim()) return;
+
+    setMemberBusy((prev) => ({ ...prev, [sectionId]: true }));
+    setMemberError((prev) => ({ ...prev, [sectionId]: "" }));
+    try {
+      await readJson<SectionEnrollmentRecord>("/api/classroom/enrollments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sectionId,
+          userId: draft.userId.trim(),
+          role: draft.role,
+        }),
+      });
+      setMemberDrafts((prev) => ({
+        ...prev,
+        [sectionId]: { ...prev[sectionId], userId: "" },
+      }));
+      await loadSections(0, false);
+    } catch (error) {
+      setMemberError((prev) => ({
+        ...prev,
+        [sectionId]: error instanceof Error ? error.message : "Failed to add member.",
+      }));
+    } finally {
+      setMemberBusy((prev) => ({ ...prev, [sectionId]: false }));
+    }
+  }
+
   const summary = useMemo(() => {
     const learners = sections.reduce((acc, section) => acc + section.metrics.length, 0);
     const attempts = sections.reduce(
@@ -881,14 +925,8 @@ export default function ClassroomDashboardClient() {
               }, 0) / sections.length
             ).toFixed(1)
           );
-    const stuckLearners = sections.reduce(
-      (acc, section) =>
-        acc +
-        section.gradeSummary.filter(
-          (row) =>
-            row.attemptsCount >= section.effectiveRiskConfig.minAttemptsAtRisk &&
-            row.completionRate < section.effectiveRiskConfig.maxCompletionRateAtRisk
-        ).length,
+    const assignmentsPublished = sections.reduce(
+      (acc, section) => acc + section.assignments.length,
       0
     );
     return {
@@ -896,7 +934,7 @@ export default function ClassroomDashboardClient() {
       learners,
       attempts,
       avgCompletionRate,
-      stuckLearners,
+      assignmentsPublished,
     };
   }, [sections]);
 
@@ -1112,8 +1150,8 @@ export default function ClassroomDashboardClient() {
               </p>
             </div>
             <div className="bg-white border border-gray-200 rounded-xl p-4">
-              <p className="text-xs text-gray-500">Stuck learners</p>
-              <p className="text-2xl font-semibold text-rose-700">{summary.stuckLearners}</p>
+              <p className="text-xs text-gray-500">Assignments published</p>
+              <p className="text-2xl font-semibold text-gray-900">{summary.assignmentsPublished}</p>
             </div>
           </section>
 
@@ -1299,10 +1337,11 @@ export default function ClassroomDashboardClient() {
             )}
           </section>
 
-          <details
-            id="classroom-advanced-ops"
-            className="scroll-mt-20 rounded-xl border border-gray-200 bg-white p-5"
-          >
+          {showAdvancedOps && (
+            <details
+              id="classroom-advanced-ops"
+              className="scroll-mt-20 rounded-xl border border-gray-200 bg-white p-5"
+            >
             <summary className="cursor-pointer select-none text-sm font-medium text-gray-800">
               Advanced operations (optional)
             </summary>
@@ -1544,14 +1583,15 @@ export default function ClassroomDashboardClient() {
               </div>
             )}
             </section>
-          </details>
+            </details>
+          )}
 
           <section
             id="classroom-section-activity"
             className="scroll-mt-20 bg-white border border-gray-200 rounded-xl p-5"
           >
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-gray-900">Section Activity</h2>
+              <h2 className="font-semibold text-gray-900">Members, assignments, and activity</h2>
               <div className="flex items-center gap-2">
                 <input
                   value={sectionSearch}
@@ -1559,35 +1599,6 @@ export default function ClassroomDashboardClient() {
                   placeholder="Search section"
                   className="border border-gray-300 rounded px-2 py-1 text-xs"
                 />
-                <select
-                  value={sectionSort}
-                  onChange={(event) =>
-                    setSectionSort(
-                      event.target.value as
-                        | "created_desc"
-                        | "created_asc"
-                        | "title_asc"
-                        | "title_desc"
-                    )
-                  }
-                  className="border border-gray-300 rounded px-2 py-1 text-xs"
-                >
-                  <option value="created_desc">Newest</option>
-                  <option value="created_asc">Oldest</option>
-                  <option value="title_asc">Title A-Z</option>
-                  <option value="title_desc">Title Z-A</option>
-                </select>
-                <select
-                  value={sectionPageSize}
-                  onChange={(event) =>
-                    setSectionPageSize(Number.parseInt(event.target.value, 10) as 10 | 25 | 50)
-                  }
-                  className="border border-gray-300 rounded px-2 py-1 text-xs"
-                >
-                  <option value={10}>10 per page</option>
-                  <option value={25}>25 per page</option>
-                  <option value={50}>50 per page</option>
-                </select>
                 <select
                   value={courseFilter}
                   onChange={(event) => setCourseFilter(event.target.value)}
@@ -1617,28 +1628,6 @@ export default function ClassroomDashboardClient() {
                 <span className="text-xs text-gray-500">
                   {sections.length}/{totalSectionsCount} loaded
                 </span>
-                <button
-                  type="button"
-                  onClick={() => setAllSectionsExpanded(true)}
-                  className="border border-gray-300 rounded px-2 py-1 text-xs hover:bg-gray-50"
-                >
-                  Expand all
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAllSectionsExpanded(false)}
-                  className="border border-gray-300 rounded px-2 py-1 text-xs hover:bg-gray-50"
-                >
-                  Collapse all
-                </button>
-                <label className="flex items-center gap-1 text-xs text-gray-600">
-                  <input
-                    type="checkbox"
-                    checked={virtualizeSectionList}
-                    onChange={(event) => setVirtualizeSectionList(event.target.checked)}
-                  />
-                  Virtualized list
-                </label>
                 {loadingSections && <span className="text-xs text-gray-500">Refreshing...</span>}
               </div>
             </div>
@@ -1735,21 +1724,14 @@ export default function ClassroomDashboardClient() {
                       </p>
                       {!panel.error && panel.gradeSummary.length > 0 && (
                         <p className="text-xs text-gray-600 mt-1">
-                          Pass rate:{" "}
+                          Avg completion:{" "}
                           {(
                             panel.gradeSummary.reduce(
                               (acc, row) => acc + row.completionRate,
                               0
                             ) / panel.gradeSummary.length
                           ).toFixed(1)}
-                          % · Stuck:{" "}
-                          {
-                            panel.gradeSummary.filter(
-                              (row) =>
-                                row.attemptsCount >= panelRiskConfig.minAttemptsAtRisk &&
-                                row.completionRate < panelRiskConfig.maxCompletionRateAtRisk
-                            ).length
-                          }
+                          %
                         </p>
                       )}
                     </div>
@@ -2086,6 +2068,86 @@ export default function ClassroomDashboardClient() {
                     )}
                   </div>
                   {panel.error && <p className="text-xs text-rose-700">{panel.error}</p>}
+                  {!panel.error && (
+                    <div className="mt-3 rounded border border-gray-100 p-3">
+                      <h3 className="text-sm font-medium text-gray-900 mb-2">Members</h3>
+                      <form
+                        className="grid gap-2 sm:grid-cols-4"
+                        onSubmit={(event) => onAddMember(event, panel.section.sectionId)}
+                      >
+                        <input
+                          value={memberDrafts[panel.section.sectionId]?.userId ?? ""}
+                          onChange={(event) =>
+                            setMemberDrafts((prev) => ({
+                              ...prev,
+                              [panel.section.sectionId]: {
+                                ...(prev[panel.section.sectionId] ?? { role: "student", userId: "" }),
+                                userId: event.target.value,
+                              },
+                            }))
+                          }
+                          placeholder="Learner user ID"
+                          required
+                          className="border border-gray-300 rounded px-2 py-1.5 text-xs"
+                        />
+                        <select
+                          value={memberDrafts[panel.section.sectionId]?.role ?? "student"}
+                          onChange={(event) =>
+                            setMemberDrafts((prev) => ({
+                              ...prev,
+                              [panel.section.sectionId]: {
+                                ...(prev[panel.section.sectionId] ?? { role: "student", userId: "" }),
+                                role: event.target.value as "student" | "ta" | "instructor",
+                              },
+                            }))
+                          }
+                          className="border border-gray-300 rounded px-2 py-1.5 text-xs"
+                        >
+                          <option value="student">Student</option>
+                          <option value="ta">Teaching assistant</option>
+                          <option value="instructor">Instructor</option>
+                        </select>
+                        <button
+                          type="submit"
+                          disabled={memberBusy[panel.section.sectionId]}
+                          className="bg-indigo-600 text-white rounded px-2 py-1.5 text-xs font-medium hover:bg-indigo-700 disabled:opacity-60"
+                        >
+                          {memberBusy[panel.section.sectionId] ? "Adding..." : "Add member"}
+                        </button>
+                      </form>
+                      {memberError[panel.section.sectionId] && (
+                        <p className="mt-2 text-xs text-rose-700">{memberError[panel.section.sectionId]}</p>
+                      )}
+                      {panel.enrollments.length === 0 ? (
+                        <p className="mt-2 text-xs text-gray-500">No members enrolled yet.</p>
+                      ) : (
+                        <div className="mt-2 overflow-x-auto">
+                          <table className="min-w-full text-xs">
+                            <thead>
+                              <tr className="text-left text-gray-500">
+                                <th className="py-1 pr-2">User</th>
+                                <th className="py-1 pr-2">Role</th>
+                                <th className="py-1 pr-2">Status</th>
+                                <th className="py-1">Enrolled</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {panel.enrollments.map((enrollment) => (
+                                <tr key={enrollment.enrollmentId} className="border-t border-gray-100">
+                                  <td className="py-1.5 pr-2 font-mono">{enrollment.userId}</td>
+                                  <td className="py-1.5 pr-2">{enrollment.role}</td>
+                                  <td className="py-1.5 pr-2">{enrollment.status}</td>
+                                  <td className="py-1.5">
+                                    {new Date(enrollment.enrolledAt).toLocaleString()}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  )}
                   {!panel.error && panel.metrics.length === 0 && (
                     <p className="text-sm text-gray-600">No learner metrics yet.</p>
                   )}
@@ -2100,20 +2162,6 @@ export default function ClassroomDashboardClient() {
                           placeholder="Filter by learner id"
                           className="border border-gray-300 rounded px-2 py-1 text-xs"
                         />
-                        <select
-                          value={riskMode}
-                          onChange={(event) =>
-                            setLearnerRiskFilterValue(
-                              panel.section.sectionId,
-                              event.target.value as "all" | "at-risk" | "on-track"
-                            )
-                          }
-                          className="border border-gray-300 rounded px-2 py-1 text-xs"
-                        >
-                          <option value="all">All learners</option>
-                          <option value="at-risk">At risk only</option>
-                          <option value="on-track">On track only</option>
-                        </select>
                         <span className="text-xs text-gray-500">
                           Showing {visibleRows.length} of {learnerRows.length}
                         </span>
@@ -2127,31 +2175,19 @@ export default function ClassroomDashboardClient() {
                             <th className="py-1 pr-2">Attempts</th>
                             <th className="py-1 pr-2">Overdue</th>
                             <th className="py-1 pr-2">Completion rate</th>
-                            <th className="py-1 pr-2">Risk</th>
                             <th className="py-1">Last attempt</th>
                           </tr>
                         </thead>
-                        <tbody>
-                          {visibleRows.map((row) => {
-                            const { metric, completionRate, atRisk } = row;
-                            return (
+                          <tbody>
+                            {visibleRows.map((row) => {
+                              const { metric, completionRate } = row;
+                              return (
                               <tr key={metric.userId} className="border-t border-gray-100">
                                 <td className="py-1.5 pr-2 font-mono">{metric.userId}</td>
                                 <td className="py-1.5 pr-2">{metric.completedExercises}</td>
                                 <td className="py-1.5 pr-2">{metric.attemptsCount}</td>
                                 <td className="py-1.5 pr-2">{overdueAssignments}</td>
                                 <td className="py-1.5 pr-2">{completionRate.toFixed(1)}%</td>
-                                <td className="py-1.5 pr-2">
-                                  {atRisk ? (
-                                    <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700">
-                                      At risk
-                                    </span>
-                                  ) : (
-                                    <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
-                                      On track
-                                    </span>
-                                  )}
-                                </td>
                                 <td className="py-1.5">
                                   {metric.lastAttemptAt
                                     ? new Date(metric.lastAttemptAt).toLocaleString()
@@ -2162,7 +2198,7 @@ export default function ClassroomDashboardClient() {
                           })}
                           {visibleRows.length === 0 && (
                             <tr className="border-t border-gray-100">
-                              <td className="py-2 text-gray-500" colSpan={7}>
+                              <td className="py-2 text-gray-500" colSpan={6}>
                                 No learners match the selected filters.
                               </td>
                             </tr>
