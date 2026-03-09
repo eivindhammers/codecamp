@@ -18,21 +18,17 @@ def main() -> None:
         tests.append(("code runs", False, "Code did not run successfully."))
         feedback.append(f"Execution error: {error}")
 
-    expected = {
-        "Norway": 5421241,
-        "Sweden": 10379295,
-        "Denmark": 5831404,
-    }
+    expected = [4, 16, 36, 64, 100, 144, 196, 256, 324, 400]
     if namespace:
-        country_data = namespace.get("country_data")
-        if isinstance(country_data, dict) and country_data == expected:
-            tests.append(("country_data dict", True, "country_data has the expected keys and values."))
+        squared = namespace.get("squared")
+        if isinstance(squared, list) and squared == expected:
+            tests.append(("squared list", True, "squared contains squares of even numbers from 1 to 20."))
         else:
             tests.append(
                 (
-                    "country_data dict",
+                    "squared list",
                     False,
-                    "Define country_data with Norway/Sweden/Denmark and their populations.",
+                    "Create squared as squares of even numbers from 1 to 20.",
                 )
             )
 
@@ -41,7 +37,7 @@ def main() -> None:
         status = "passed"
         feedback.append("Correct solution submitted.")
     elif not feedback:
-        feedback.append("Create country_data with the requested key-value pairs.")
+        feedback.append("Use a list comprehension with an even-number filter to build squared.")
 
     output_stream = io.StringIO()
     output_stream.write(f"STATUS:{status}\n")

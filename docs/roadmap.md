@@ -396,6 +396,8 @@ Primary target users are economics students, with platform usage planned across 
 - Added scaffolded packs for `intro-r/basics/hello-r` and `intro-python/lists-dicts/lists` to expand beginner coverage across both language tracks.
 - Added scaffolded packs for `intro-r/vectors/create-vector` and `intro-python/lists-dicts/dicts` for broader beginner sequence coverage.
 - Added scaffolded packs for `intro-r/vectors/vector-ops` and `intro-python/functions/define-function` to extend beginner progression into vectors and functions.
+- Added scaffolded pack for `intro-python/functions/list-comprehension`, completing filesystem pack coverage for all intro-python exercises currently defined in `lib/courses.ts`.
+- Replaced placeholder scaffold checkers with exercise-specific Python checks for intro-python packs (`variables`, `conditionals`, `lists`, `dicts`, `define-function`, `list-comprehension`) using structured checker output (`STATUS/FEEDBACK/TEST`).
 - Keeps migration momentum on the current "Content migration throughput" Now item while preserving metadata parity and pack validation workflows.
 
 ## Runtime Setup
