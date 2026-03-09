@@ -400,6 +400,8 @@ Primary target users are economics students, with platform usage planned across 
 - Replaced placeholder scaffold checkers with exercise-specific Python checks for intro-python packs (`variables`, `conditionals`, `lists`, `dicts`, `define-function`, `list-comprehension`) using structured checker output (`STATUS/FEEDBACK/TEST`).
 - Added scaffolded packs for `intro-r/data-frames/create-df` and `intro-r/data-frames/df-subset`, completing filesystem pack coverage for all intro-r exercises currently defined in `lib/courses.ts`.
 - Replaced placeholder scaffold checkers with exercise-specific R checks for intro-r packs (`hello-r`, `data-types`, `create-vector`, `vector-ops`, `create-df`, `df-subset`) using structured checker output (`STATUS/FEEDBACK/TEST`).
+- Added scaffolded packs for `intermediate-python/numpy/arrays`, `intermediate-python/numpy/array-ops`, `intermediate-python/pandas/dataframes`, and `intermediate-python/matplotlib/line-plot`.
+- Replaced placeholder scaffold checkers with exercise-specific Python checks for intermediate-python packs (`arrays`, `array-ops`, `dataframes`, `groupby`, `line-plot`) using structured checker output (`STATUS/FEEDBACK/TEST`).
 - Keeps migration momentum on the current "Content migration throughput" Now item while preserving metadata parity and pack validation workflows.
 
 ## Runtime Setup

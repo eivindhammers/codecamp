@@ -1,0 +1,9 @@
+{
+  "id": "dataframes",
+  "language": "python",
+  "title": "Creating DataFrames",
+  "instructions": "Create a pandas DataFrame `df` from a dictionary with columns `country`, `gdp_billion`, and `population_million`. Add a derived column `gdp_per_capita` = `gdp_billion * 1000 / population_million`. Print the resulting DataFrame.",
+  "starterCode": "import pandas as pd\n\ndf = pd.DataFrame({\n    \"country\": [\"Germany\", \"France\", \"Italy\"],\n    \"gdp_billion\": [3869, 2779, 1997],\n    \"population_million\": [83.2, 67.4, 59.6]\n})\n\ndf[\"gdp_per_capita\"] = ___\nprint(df)",
+  "xp": 25,
+  "checker": "checker.py"
+}

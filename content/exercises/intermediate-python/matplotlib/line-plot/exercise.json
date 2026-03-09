@@ -1,0 +1,9 @@
+{
+  "id": "line-plot",
+  "language": "python",
+  "title": "Line Plot",
+  "instructions": "Plot GDP growth over years. Create `years = [2019, 2020, 2021, 2022, 2023]` and `gdp = [21.4, 20.9, 23.0, 25.5, 26.9]` (US GDP in trillions). Plot a line with markers, add axis labels and a title.",
+  "starterCode": "import matplotlib\nmatplotlib.use('Agg')\nimport matplotlib.pyplot as plt\n\nyears = [2019, 2020, 2021, 2022, 2023]\ngdp = [21.4, 20.9, 23.0, 25.5, 26.9]\n\nplt.plot(___, ___, marker=___)\nplt.xlabel(\"Year\")\nplt.ylabel(\"GDP (Trillion USD)\")\nplt.title(\"US GDP 2019–2023\")\nplt.tight_layout()\nplt.savefig('/tmp/gdp_line.png')\nprint(\"Plot saved\")",
+  "xp": 25,
+  "checker": "checker.py"
+}

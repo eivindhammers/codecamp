@@ -1,0 +1,9 @@
+{
+  "id": "array-ops",
+  "language": "python",
+  "title": "Array Operations",
+  "instructions": "Create two arrays `a = np.array([10, 20, 30, 40])` and `b = np.array([1, 2, 3, 4])`. Compute element-wise division, the dot product, and filter elements of `a` greater than 15.",
+  "starterCode": "import numpy as np\n\na = np.array([10, 20, 30, 40])\nb = np.array([1, 2, 3, 4])\n\nprint(a / b)        # element-wise division\nprint(np.dot(___))  # dot product\nprint(a[___])       # elements > 15",
+  "xp": 25,
+  "checker": "checker.py"
+}
